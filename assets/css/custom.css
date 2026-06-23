@@ -1,0 +1,43 @@
+/* Student Feedback Management System — Custom CSS */
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Transitions */
+* { transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+    transition-duration: 150ms; transition-timing-function: cubic-bezier(0.4,0,0.2,1); }
+
+/* Font */
+body { font-family: 'Inter', system-ui, sans-serif; }
+
+/* Table */
+table { border-collapse: collapse; width: 100%; }
+th { font-weight: 600; font-size: 0.75rem; letter-spacing: 0.05em; text-transform: uppercase; }
+
+/* Stat card shimmer effect */
+@keyframes shimmer { 0%,100% { opacity:1; } 50% { opacity:0.7; } }
+.stat-card:hover .stat-icon { animation: shimmer 1.5s ease-in-out infinite; }
+
+/* Modal */
+.modal-backdrop { animation: fadeIn .15s ease-out; }
+.modal-box      { animation: slideIn .2s ease-out; }
+@keyframes fadeIn  { from { opacity:0 } to { opacity:1 } }
+@keyframes slideIn { from { opacity:0; transform:translateY(-12px) } to { opacity:1; transform:translateY(0) } }
+
+/* Active sidebar highlight bar */
+.sidebar-active::before {
+    content:''; position:absolute; left:0; top:50%; transform:translateY(-50%);
+    width:3px; height:60%; background:#60a5fa; border-radius:0 4px 4px 0;
+}
+
+/* Star rating colors */
+.rating-Excellent { color: #16a34a; }
+.rating-Good      { color: #2563eb; }
+.rating-Fair      { color: #d97706; }
+.rating-Poor      { color: #dc2626; }
+
+/* Input focus */
+.form-input:focus { outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,0.2); }
