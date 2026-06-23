@@ -94,7 +94,8 @@ $stmt->close();
             class="fixed inset-y-0 left-0 w-64 bg-gradient-to-b from-cyan-600 to-cyan-700 text-white flex flex-col z-40 transform -translate-x-full transition-transform duration-300 lg:relative lg:translate-x-0 lg:flex-shrink-0">
             <div class="flex items-center gap-3 px-5 py-5 border-b border-cyan-500">
                 <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
-                    <?= iconSvg('academic', 'w-5 h-5 text-white') ?></div>
+                    <?= iconSvg('academic', 'w-5 h-5 text-white') ?>
+                </div>
                 <div>
                     <p class="text-sm font-bold">SFMS Student</p>
                 </div><button onclick="closeSidebar()" class="ml-auto lg:hidden text-cyan-100"><svg
@@ -104,14 +105,14 @@ $stmt->close();
                     </svg></button>
             </div>
             <nav class="flex-1 py-4 px-3 space-y-0.5"><?php foreach ($navItems as $n):
-                $a = $n['key'] === 'profile'; ?><a
-                        href="<?= $n['href'] ?>"
+                $a = $n['key'] === 'profile'; ?><a href="<?= $n['href'] ?>"
                         class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm <?= $a ? 'bg-white/20 text-white font-semibold' : 'text-cyan-100 hover:bg-white/10 hover:text-white' ?>"><?= iconSvg($n['icon'], 'w-4 h-4') ?>
                         <?= e($n['label']) ?></a><?php endforeach ?></nav>
             <div class="border-t border-cyan-500 px-4 py-4">
                 <div class="flex items-center gap-3">
                     <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold">
-                        <?= e($initials) ?></div>
+                        <?= e($initials) ?>
+                    </div>
                     <div class="flex-1 min-w-0">
                         <p class="text-xs font-semibold text-white truncate"><?= e($user['name']) ?></p>
                         <p class="text-[10px] text-cyan-100 truncate"><?= $student['major_name'] ?? 'Student' ?></p>
@@ -142,7 +143,8 @@ $stmt->close();
                         class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col items-center text-center">
                         <div
                             class="w-20 h-20 rounded-full bg-gradient-to-br from-cyan-500 to-cyan-700 flex items-center justify-center text-2xl font-bold text-white shadow-lg mb-4">
-                            <?= e(avatarInitials($userData['name'])) ?></div>
+                            <?= e(avatarInitials($userData['name'])) ?>
+                        </div>
                         <h3 class="text-lg font-semibold text-slate-800"><?= e($userData['name']) ?></h3>
                         <p class="text-sm text-slate-500 mt-1"><?= e($userData['email']) ?></p>
                         <div class="mt-3"><?= badgeRole($userData['role']) ?></div>
@@ -158,7 +160,7 @@ $stmt->close();
                     <div class="lg:col-span-2 space-y-5">
                         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                             <div class="px-6 py-4 border-b border-slate-100">
-                                <h3 class="font-semibold text-slate-800">Update Information</h3>
+                                <h3 class="font-semibold text-slate-800">Update Informations</h3>
                             </div>
                             <form method="POST" class="px-6 py-5 space-y-4"><?= csrfField() ?><input type="hidden"
                                     name="action" value="update_info">
