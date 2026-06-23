@@ -102,7 +102,6 @@ $initials = avatarInitials($user['name']);
         <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 mb-1"><?= iconSvg('shield','w-4 h-4 text-purple-500') ?>
                 <p class="text-sm font-semibold text-slate-800"><?= e($f['title']) ?></p></div>
-            <?php if ($f['description']): ?><p class="text-xs text-slate-500 ml-6 mb-1"><?= e($f['description']) ?></p><?php endif ?>
             <p class="text-xs text-slate-400 ml-6"><?= formatDate($f['start_date']) ?> — <?= formatDate($f['end_date']) ?></p>
         </div>
         <div class="flex items-center gap-3 flex-shrink-0">
