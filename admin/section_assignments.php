@@ -203,12 +203,6 @@ $stmt->execute();
 $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 
-$sectionCountMap = [];
-$cntRes = $conn->query("SELECT student_id, COUNT(*) AS cnt FROM section_assignments GROUP BY student_id");
-while ($r = $cntRes->fetch_assoc()) {
-    $sectionCountMap[$r['student_id']] = (int) $r['cnt'];
-}
-
 include '../includes/admin_header.php';
 include '../includes/admin_sidebar.php';
 ?>
@@ -277,7 +271,6 @@ include '../includes/admin_sidebar.php';
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">Student</th>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">Assigned Courses & Sections
                     </th>
-                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">Total</th>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">Latest Enrollment</th>
                     <th class="text-right px-5 py-3 text-slate-500 text-sm font-semibold">Actions</th>
                 </tr>
@@ -293,6 +286,7 @@ include '../includes/admin_sidebar.php';
                         $semesters = $row['semesters'] ? explode('||', $row['semesters']) : [];
 
                         $hasVisibleCard = false;
+                        $visibleCardCount = 0;
                         $cardsHtml = '';
 
                         if (!empty($asgnIds)) {
@@ -316,6 +310,7 @@ include '../includes/admin_sidebar.php';
 
                                 if ($matchSearch) {
                                     $hasVisibleCard = true;
+                                    $visibleCardCount++;
                                     $cardsHtml .= '
                                     <div class="flex flex-wrap items-center justify-between gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200/60 text-xs">
                                         <div class="min-w-0 flex-1">
@@ -353,15 +348,19 @@ include '../includes/admin_sidebar.php';
                                 <p class="text-sm font-semibold text-slate-800"><?= e($row['name']) ?></p>
                                 <p class="text-xs font-mono text-slate-400 mt-0.5"><?= e($row['roll_no']) ?></p>
                             </td>
-                            <td class="px-5 py-4 space-y-2.5">
-                                <?= $cardsHtml ?>
-                            </td>
-                            <td class="px-5 py-4 align-top">
-                                <?php $cnt = $sectionCountMap[$row['student_id']] ?? 0; ?>
-                                <span
-                                    class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold <?= $cnt > 1 ? 'bg-cyan-100 text-cyan-700 border border-cyan-200/30' : 'bg-slate-100 text-slate-600' ?>">
-                                    <?= $cnt ?> Course<?= $cnt !== 1 ? 's' : '' ?>
-                                </span>
+                            <td class="px-5 py-4">
+                                <?php if ($visibleCardCount > 0): ?>
+                                    <button type="button" onclick="toggleCourses(this)"
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-cyan-50 text-cyan-700 border border-cyan-200/60 rounded-lg hover:bg-cyan-100 transition-colors shadow-xs cursor-pointer">
+                                        <?= $visibleCardCount ?> Course<?= $visibleCardCount !== 1 ? 's' : '' ?>
+                                        <svg class="w-3.5 h-3.5 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                                    </button>
+                                    <div class="hidden mt-2 space-y-2">
+                                        <?= $cardsHtml ?>
+                                    </div>
+                                <?php else: ?>
+                                    <span class="text-xs text-slate-400">—</span>
+                                <?php endif; ?>
                             </td>
                             <td class="px-5 py-4 text-xs text-slate-400 align-top"><?= formatDate($row['latest_enrolled']) ?>
                             </td>
@@ -375,7 +374,7 @@ include '../includes/admin_sidebar.php';
                         </tr>
                     <?php endforeach; else: ?>
                     <tr>
-                        <td colspan="6" class="text-center py-16 text-slate-400">
+                        <td colspan="5" class="text-center py-16 text-slate-400">
                             <?= iconSvg('link', 'w-10 h-10 mx-auto mb-3 opacity-40') ?>
                             <p class="text-sm">No assignments found.</p>
                         </td>
@@ -577,6 +576,16 @@ include '../includes/admin_sidebar.php';
         document.getElementById('bulk_student_id').value = studentId;
         document.getElementById('bulk_delete_name').textContent = name;
         openModal('bulkDeleteModal');
+    }
+
+    function toggleCourses(btn) {
+        const container = btn.parentElement;
+        const details = container.querySelector('.hidden.mt-2, [class*="mt-2"]');
+        if (!details) return;
+        const isHidden = details.classList.contains('hidden');
+        details.classList.toggle('hidden');
+        const arrow = btn.querySelector('svg');
+        if (arrow) arrow.style.transform = isHidden ? 'rotate(180deg)' : '';
     }
 
     // Edit Modal filtering logic

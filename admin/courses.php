@@ -7,29 +7,25 @@ requireRole('admin');
 $pageTitle  = 'Courses';
 $activeMenu = 'courses';
 
-$majorList = $conn->query("SELECT m.id, m.major_name, d.department_name FROM majors m JOIN departments d ON m.department_id=d.id ORDER BY d.department_name, m.major_name")->fetch_all(MYSQLI_ASSOC);
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     $action = $_POST['action'] ?? '';
     if ($action === 'add') {
-        $major = (int)($_POST['major_id'] ?? 0);
         $code  = clean($_POST['course_code'] ?? '');
         $name  = clean($_POST['course_name'] ?? '');
-        if ($major && $code && $name) {
-            $stmt = $conn->prepare("INSERT INTO courses (major_id, course_code, course_name) VALUES (?,?,?)");
-            $stmt->bind_param('iss',$major,$code,$name);
+        if ($code && $name) {
+            $stmt = $conn->prepare("INSERT INTO courses (course_code, course_name) VALUES (?,?)");
+            $stmt->bind_param('ss',$code,$name);
             $stmt->execute() ? setFlash('success','Course added.') : setFlash('error','Failed. Code may already exist.');
             $stmt->close();
         } else { setFlash('error','All fields required.'); }
     }
     if ($action === 'edit') {
         $id    = (int)($_POST['id'] ?? 0);
-        $major = (int)($_POST['major_id'] ?? 0);
         $code  = clean($_POST['course_code'] ?? '');
         $name  = clean($_POST['course_name'] ?? '');
-        if ($id && $major && $code && $name) {
-            $stmt = $conn->prepare("UPDATE courses SET major_id=?,course_code=?,course_name=? WHERE id=?");
-            $stmt->bind_param('issi',$major,$code,$name,$id);
+        if ($id && $code && $name) {
+            $stmt = $conn->prepare("UPDATE courses SET course_code=?,course_name=? WHERE id=?");
+            $stmt->bind_param('ssi',$code,$name,$id);
             $stmt->execute() ? setFlash('success','Course updated.') : setFlash('error','Update failed.');
             $stmt->close();
         }
@@ -52,8 +48,8 @@ $page    = max(1,(int)($_GET['page'] ?? 1));
 
 if ($search) {
     $s2="%$search%";
-    $c=$conn->prepare("SELECT COUNT(*) AS c FROM courses c JOIN majors m ON c.major_id=m.id WHERE c.course_name LIKE ? OR c.course_code LIKE ? OR m.major_name LIKE ?");
-    $c->bind_param('sss',$s2,$s2,$s2); $c->execute();
+    $c=$conn->prepare("SELECT COUNT(*) AS c FROM courses WHERE course_name LIKE ? OR course_code LIKE ?");
+    $c->bind_param('ss',$s2,$s2); $c->execute();
     $total=(int)$c->get_result()->fetch_assoc()['c']; $c->close();
 } else {
     $total=(int)$conn->query("SELECT COUNT(*) AS c FROM courses")->fetch_assoc()['c'];
@@ -62,10 +58,10 @@ $pg=paginate($total,$perPage,$page); $off=$pg['offset'];
 
 if ($search) {
     $s2="%$search%";
-    $stmt=$conn->prepare("SELECT c.*, m.major_name, d.department_name FROM courses c JOIN majors m ON c.major_id=m.id JOIN departments d ON m.department_id=d.id WHERE c.course_name LIKE ? OR c.course_code LIKE ? OR m.major_name LIKE ? ORDER BY c.id DESC LIMIT ? OFFSET ?");
-    $stmt->bind_param('sssii',$s2,$s2,$s2,$perPage,$off);
+    $stmt=$conn->prepare("SELECT * FROM courses WHERE course_name LIKE ? OR course_code LIKE ? ORDER BY id DESC LIMIT ? OFFSET ?");
+    $stmt->bind_param('ssii',$s2,$s2,$perPage,$off);
 } else {
-    $stmt=$conn->prepare("SELECT c.*, m.major_name, d.department_name FROM courses c JOIN majors m ON c.major_id=m.id JOIN departments d ON m.department_id=d.id ORDER BY c.id DESC LIMIT ? OFFSET ?");
+    $stmt=$conn->prepare("SELECT * FROM courses ORDER BY id DESC LIMIT ? OFFSET ?");
     $stmt->bind_param('ii',$perPage,$off);
 }
 $stmt->execute(); $rows=$stmt->get_result()->fetch_all(MYSQLI_ASSOC); $stmt->close();
@@ -100,8 +96,6 @@ include '../includes/admin_sidebar.php';
                     <th class="text-left px-5 py-3 text-slate-500">#</th>
                     <th class="text-left px-5 py-3 text-slate-500">Course</th>
                     <th class="text-left px-5 py-3 text-slate-500">Code</th>
-                    <th class="text-left px-5 py-3 text-slate-500">Major</th>
-                    <th class="text-left px-5 py-3 text-slate-500">Department</th>
                     <th class="text-right px-5 py-3 text-slate-500">Actions</th>
                 </tr>
             </thead>
@@ -111,11 +105,9 @@ include '../includes/admin_sidebar.php';
                     <td class="px-5 py-3 text-sm text-slate-400"><?= $pg['offset']+$i+1 ?></td>
                     <td class="px-5 py-3 text-sm font-medium text-slate-800"><?= e($row['course_name']) ?></td>
                     <td class="px-5 py-3"><span class="font-mono text-xs bg-cyan-50 text-cyan-700 px-2 py-1 rounded border border-cyan-200"><?= e($row['course_code']) ?></span></td>
-                    <td class="px-5 py-3"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800"><?= e($row['major_name']) ?></span></td>
-                    <td class="px-5 py-3 text-sm text-slate-500"><?= e($row['department_name']) ?></td>
                     <td class="px-5 py-3 text-right">
                         <div class="flex items-center justify-end gap-2">
-                            <button onclick="openEdit(<?= $row['id'] ?>,<?= $row['major_id'] ?>,'<?= addslashes(e($row['course_code'])) ?>','<?= addslashes(e($row['course_name'])) ?>')"
+                            <button onclick="openEdit(<?= $row['id'] ?>,'<?= addslashes(e($row['course_code'])) ?>','<?= addslashes(e($row['course_name'])) ?>')"
                                 class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-cyan-700 bg-cyan-50 hover:bg-cyan-100 rounded-lg">
                                 <?= iconSvg('edit','w-3.5 h-3.5') ?> Edit
                             </button>
@@ -127,7 +119,7 @@ include '../includes/admin_sidebar.php';
                     </td>
                 </tr>
             <?php endforeach; else: ?>
-                <tr><td colspan="6" class="text-center py-16 text-slate-400"><?= iconSvg('book','w-10 h-10 mx-auto mb-3 opacity-40') ?><p class="text-sm">No courses found.</p></td></tr>
+                <tr><td colspan="4" class="text-center py-16 text-slate-400"><?= iconSvg('book','w-10 h-10 mx-auto mb-3 opacity-40') ?><p class="text-sm">No courses found.</p></td></tr>
             <?php endif ?>
             </tbody>
         </table>
@@ -144,12 +136,6 @@ include '../includes/admin_sidebar.php';
         </div>
         <form method="POST"><?= csrfField() ?><input type="hidden" name="action" value="add">
             <div class="px-6 py-5 space-y-4">
-                <div><label class="block text-sm font-medium text-slate-700 mb-1">Major <span class="text-red-500">*</span></label>
-                    <select name="major_id" required class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
-                        <option value="">Select Major</option>
-                        <?php foreach ($majorList as $m): ?><option value="<?= $m['id'] ?>"><?= e($m['department_name']) ?> › <?= e($m['major_name']) ?></option><?php endforeach ?>
-                    </select>
-                </div>
                 <div><label class="block text-sm font-medium text-slate-700 mb-1">Course Code <span class="text-red-500">*</span></label>
                     <input type="text" name="course_code" required placeholder="e.g. CS-301" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
                 </div>
@@ -174,11 +160,6 @@ include '../includes/admin_sidebar.php';
         </div>
         <form method="POST"><?= csrfField() ?><input type="hidden" name="action" value="edit"><input type="hidden" name="id" id="edit_id">
             <div class="px-6 py-5 space-y-4">
-                <div><label class="block text-sm font-medium text-slate-700 mb-1">Major <span class="text-red-500">*</span></label>
-                    <select name="major_id" id="edit_major" required class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
-                        <?php foreach ($majorList as $m): ?><option value="<?= $m['id'] ?>"><?= e($m['department_name']) ?> › <?= e($m['major_name']) ?></option><?php endforeach ?>
-                    </select>
-                </div>
                 <div><label class="block text-sm font-medium text-slate-700 mb-1">Course Code</label>
                     <input type="text" name="course_code" id="edit_code" required class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
                 </div>
@@ -212,11 +193,10 @@ include '../includes/admin_sidebar.php';
 </div>
 
 <script>
-function openEdit(id,majorId,code,name) {
-    document.getElementById('edit_id').value    = id;
-    document.getElementById('edit_major').value = majorId;
-    document.getElementById('edit_code').value  = code;
-    document.getElementById('edit_name').value  = name;
+function openEdit(id,code,name) {
+    document.getElementById('edit_id').value   = id;
+    document.getElementById('edit_code').value = code;
+    document.getElementById('edit_name').value = name;
     openModal('editModal');
 }
 function openDelete(id,name) {

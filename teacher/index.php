@@ -34,7 +34,6 @@ $navItems = [
     ['label' => 'My Sections', 'href' => '/studentfeedback/teacher/my_sections.php', 'key' => 'sections', 'icon' => 'grid'],
     ['label' => 'Feedback Results', 'href' => '/studentfeedback/teacher/feedback_results.php', 'key' => 'results', 'icon' => 'chart'],
     ['label' => 'Analytics', 'href' => '/studentfeedback/teacher/analytics.php', 'key' => 'analytics', 'icon' => 'report'],
-    ['label' => 'Progress', 'href' => '/studentfeedback/teacher/feedback_progress.php', 'key' => 'progress', 'icon' => 'clipboard'],
     ['label' => 'Profile', 'href' => '/studentfeedback/teacher/profile.php', 'key' => 'profile', 'icon' => 'user'],
 ];
 $initials = avatarInitials($user['name']);

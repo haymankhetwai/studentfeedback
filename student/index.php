@@ -5,7 +5,7 @@ require_once '../includes/functions.php';
 requireRole('student');
 
 $user = getCurrentUser();
-$stmt = $conn->prepare("SELECT st.id, m.major_name FROM students st JOIN majors m ON st.major_id=m.id WHERE st.user_id=?");
+$stmt = $conn->prepare("SELECT st.id FROM students st WHERE st.user_id=?");
 $stmt->bind_param('i', $user['id']);
 $stmt->execute();
 $student = $stmt->get_result()->fetch_assoc();
@@ -126,7 +126,7 @@ $initials = avatarInitials($user['name']);
                         <?= e($initials) ?></div>
                     <div class="flex-1 min-w-0">
                         <p class="text-xs font-semibold text-white truncate"><?= e($user['name']) ?></p>
-                        <p class="text-[10px] text-cyan-100 truncate"><?= $student['major_name'] ?? 'Student' ?>
+                        <p class="text-[10px] text-cyan-100 truncate">Student
                         </p>
                     </div>
                     <a href="/studentfeedback/auth/logout.php" class="text-cyan-200 hover:text-red-300">

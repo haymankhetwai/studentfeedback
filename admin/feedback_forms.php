@@ -64,7 +64,7 @@ if ($search) {
 }
 $pg=paginate($total,$perPage,$page); $off=$pg['offset'];
 
-$baseSQL="SELECT ff.*, c2.course_name, c2.course_code, s.section, s.academic_year, (SELECT COUNT(*) FROM feedback_submissions fs WHERE fs.feedback_form_id=ff.id) AS submission_count, (SELECT COUNT(*) FROM feedback_questions fq WHERE fq.feedback_form_id=ff.id) AS question_count FROM feedback_forms ff JOIN sections s ON ff.section_id=s.id JOIN courses c2 ON s.course_id=c2.id";
+$baseSQL="SELECT ff.*, c2.course_name, c2.course_code, s.section, s.academic_year, (SELECT COUNT(*) FROM feedback_submissions fs WHERE fs.feedback_form_id=ff.id) AS submission_count, (SELECT COUNT(*) FROM global_feedback_questions) AS question_count FROM feedback_forms ff JOIN sections s ON ff.section_id=s.id JOIN courses c2 ON s.course_id=c2.id";
 
 if ($search) {
     $s2="%$search%";
@@ -125,7 +125,7 @@ include '../includes/admin_sidebar.php';
                     <td class="px-5 py-3"><?= badgeStatus($row['status']) ?></td>
                     <td class="px-5 py-3 text-right">
                         <div class="flex items-center justify-end gap-1.5">
-                            <a href="feedback_questions.php?form_id=<?= $row['id'] ?>" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg">
+                            <a href="feedback_questions.php" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg">
                                 <?= iconSvg('question','w-3.5 h-3.5') ?> Questions
                             </a>
                             <button onclick="openEdit(<?= htmlspecialchars(json_encode($row),ENT_QUOTES) ?>)"

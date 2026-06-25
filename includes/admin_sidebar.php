@@ -1,5 +1,5 @@
 <?php
-$academicKeys = ['departments', 'majors', 'teachers', 'students', 'courses', 'sections', 'assignments'];
+$academicKeys = ['departments', 'teachers', 'students', 'courses', 'sections', 'assignments'];
 $isAcademicActive = in_array($activeMenu, $academicKeys);
 
 $academicFeedbackKeys = ['forms', 'questions', 'results'];
@@ -14,12 +14,10 @@ $isAdmActive = in_array($activeMenu, $admKeys);
 $nav = [
     ['label' => 'Dashboard', 'href' => '/studentfeedback/admin/index.php', 'key' => 'dashboard', 'icon' => 'home'],
     ['label' => 'Reports & Analytics', 'href' => '/studentfeedback/admin/reports.php', 'key' => 'reports', 'icon' => 'chart'],
-    ['label' => 'Feedback Progress', 'href' => '/studentfeedback/admin/feedback_progress.php', 'key' => 'progress', 'icon' => 'clipboard'],
     ['label' => 'User Management', 'type' => 'group', 'key' => 'user_management', 'isOpen' => in_array($activeMenu, ['users'])],
     ['label' => 'Users', 'href' => '/studentfeedback/admin/users.php', 'key' => 'users', 'icon' => 'users', 'indent' => true, 'group' => 'user_management'],
     ['label' => 'Academic Management', 'type' => 'group', 'key' => 'academic', 'isOpen' => $isAcademicActive],
     ['label' => 'Departments', 'href' => '/studentfeedback/admin/departments.php', 'key' => 'departments', 'icon' => 'building', 'indent' => true, 'group' => 'academic'],
-    ['label' => 'Majors', 'href' => '/studentfeedback/admin/majors.php', 'key' => 'majors', 'icon' => 'academic', 'indent' => true, 'group' => 'academic'],
     ['label' => 'Students', 'href' => '/studentfeedback/admin/students.php', 'key' => 'students', 'icon' => 'users', 'indent' => true, 'group' => 'academic'],
     ['label' => 'Teachers', 'href' => '/studentfeedback/admin/teachers.php', 'key' => 'teachers', 'icon' => 'user', 'indent' => true, 'group' => 'academic'],
     ['label' => 'Courses', 'href' => '/studentfeedback/admin/courses.php', 'key' => 'courses', 'icon' => 'book', 'indent' => true, 'group' => 'academic'],
@@ -74,15 +72,17 @@ $nav = [
             <?php elseif (($item['type'] ?? '') === 'group'): ?>
                 <?php if ($groupActive): ?></div><?php $groupActive = false; endif; ?>
                 <?php $groupKey = $item['key']; ?>
-                <button onclick="toggleGroup('<?= $groupKey ?>')"
-                    class="w-full flex items-center justify-between px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-widest text-cyan-200 hover:text-white transition-colors">
-                    <span><?= e($item['label']) ?></span>
-                    <svg id="chevron-<?= $groupKey ?>" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                        stroke-width="2" stroke="currentColor"
-                        class="w-3 h-3 transition-transform duration-200 <?= $item['isOpen'] ? 'rotate-90' : '' ?>">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                    </svg>
-                </button>
+                <div class="px-3 pt-4 pb-0">
+                    <button onclick="toggleGroup('<?= $groupKey ?>')"
+                        class="w-full flex items-center justify-between pb-1 text-[12px] font-semibold uppercase tracking-widest text-cyan-200 hover:text-white transition-colors border-b border-cyan-200/30">
+                        <span><?= e($item['label']) ?></span>
+                        <svg id="chevron-<?= $groupKey ?>" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                            stroke-width="2" stroke="currentColor"
+                            class="w-3 h-3 transition-transform duration-200 <?= $item['isOpen'] ? 'rotate-90' : '' ?>">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                        </svg>
+                    </button>
+                </div>
                 <div id="group-<?= $groupKey ?>" class="<?= $item['isOpen'] ? '' : 'hidden' ?>">
                     <?php $groupActive = true; ?>
                 <?php else:

@@ -7,6 +7,14 @@ requireRole('admin');
 $pageTitle  = 'Users';
 $activeMenu = 'users';
 
+function isValidEmail($email) {
+    return preg_match('/^[a-zA-Z0-9._%+-]+@ucsh\.edu\.mm$/', $email);
+}
+
+function isValidPassword($password) {
+    return strlen($password) >= 6 && preg_match('/^[a-zA-Z0-9@]+$/', $password);
+}
+
 // ─── POST Handlers ────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     $action = $_POST['action'] ?? '';
@@ -16,19 +24,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         $username = clean($_POST['username'] ?? '');
         $email    = clean($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
+        $confirm  = $_POST['confirm_password'] ?? '';
         $role     = in_array($_POST['role'],['admin','teacher','student']) ? $_POST['role'] : 'student';
 
-        if ($name && $username && $email && $password) {
-            $hash = password_hash($password, PASSWORD_DEFAULT);
-            $stmt = $conn->prepare("INSERT INTO users (name,username,email,password,role) VALUES (?,?,?,?,?)");
-            $stmt->bind_param('sssss',$name,$username,$email,$hash,$role);
-            if ($stmt->execute()) {
-                setFlash('success','User created successfully.');
+        $errors = [];
+        if (!$name || !$username || !$email || !$password || !$confirm) {
+            $errors[] = 'All fields are required.';
+        }
+        if ($email && !isValidEmail($email)) {
+            $errors[] = 'email';
+        }
+        if ($password && !isValidPassword($password)) {
+            $errors[] = 'password';
+        }
+        if ($password && $password !== $confirm) {
+            $errors[] = 'confirm';
+        }
+
+        $openModal = null;
+        if ($errors) {
+            $_SESSION['form_errors'] = $errors;
+            $_SESSION['form_values'] = ['name'=>$name,'username'=>$username,'email'=>$email,'role'=>$role];
+            $openModal = 'addModal';
+        } else {
+            $check = $conn->prepare("SELECT id FROM users WHERE email = ?");
+            $check->bind_param('s', $email);
+            $check->execute();
+            if ($check->get_result()->num_rows > 0) {
+                $_SESSION['form_errors'] = ['email_exists'];
+                $_SESSION['form_values'] = ['name'=>$name,'username'=>$username,'email'=>$email,'role'=>$role];
+                $openModal = 'addModal';
             } else {
-                setFlash('error','Failed: email or username already exists.');
+                $hash = password_hash($password, PASSWORD_DEFAULT);
+                $stmt = $conn->prepare("INSERT INTO users (name,username,email,password,role) VALUES (?,?,?,?,?)");
+                $stmt->bind_param('sssss',$name,$username,$email,$hash,$role);
+                if ($stmt->execute()) {
+                    setFlash('success','User created successfully.');
+                } else {
+                    setFlash('error','Failed to create user.');
+                }
+                $stmt->close();
             }
-            $stmt->close();
-        } else { setFlash('error','All fields are required.'); }
+            $check->close();
+        }
+
+        if ($openModal) {
+            $_SESSION['reopen_modal'] = $openModal;
+            header('Location: users.php'); exit;
+        }
     }
 
     if ($action === 'edit') {
@@ -39,7 +82,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         $role     = in_array($_POST['role'],['admin','teacher','student']) ? $_POST['role'] : 'student';
         $password = $_POST['password'] ?? '';
 
-        if ($id && $name && $email) {
+        $errors = [];
+        if (!$id || !$name || !$email) {
+            $errors[] = 'All fields are required.';
+        }
+        if ($email && !isValidEmail($email)) {
+            $errors[] = 'email';
+        }
+        if ($password && !isValidPassword($password)) {
+            $errors[] = 'password';
+        }
+
+        if ($errors) {
+            $_SESSION['form_errors'] = $errors;
+            $_SESSION['form_values'] = ['id'=>$id,'name'=>$name,'username'=>$username,'email'=>$email,'role'=>$role];
+            $_SESSION['reopen_modal'] = 'editModal';
+            header('Location: users.php'); exit;
+        } else {
             if ($password) {
                 $hash = password_hash($password, PASSWORD_DEFAULT);
                 $stmt = $conn->prepare("UPDATE users SET name=?,username=?,email=?,password=?,role=? WHERE id=?");
@@ -50,6 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             }
             $stmt->execute() ? setFlash('success','User updated.') : setFlash('error','Failed to update.');
             $stmt->close();
+            header('Location: users.php'); exit;
         }
     }
 
@@ -64,6 +124,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     }
     header('Location: users.php'); exit;
 }
+
+// ─── Read inline errors from session ──────────────────────────
+$formErrors = $_SESSION['form_errors'] ?? [];
+$formValues = $_SESSION['form_values'] ?? [];
+$reopenModal = $_SESSION['reopen_modal'] ?? null;
+unset($_SESSION['form_errors'], $_SESSION['form_values'], $_SESSION['reopen_modal']);
+
+$emailError      = in_array('email', $formErrors);
+$emailExistsErr  = in_array('email_exists', $formErrors);
+$passwordError   = in_array('password', $formErrors);
+$confirmError    = in_array('confirm', $formErrors);
+$requiredError   = in_array('All fields are required.', $formErrors);
+$hasErrors       = !empty($formErrors);
+
+$addEmailErr     = ($reopenModal === 'addModal') && ($emailError || $emailExistsErr);
+$addPasswordErr  = ($reopenModal === 'addModal') && $passwordError;
+$addConfirmErr   = ($reopenModal === 'addModal') && $confirmError;
+$editEmailErr    = ($reopenModal === 'editModal') && ($emailError || $emailExistsErr);
+$editPasswordErr = ($reopenModal === 'editModal') && $passwordError;
+
+$borderRed = 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20';
 
 // ─── Fetch ────────────────────────────────────────────────────
 $search  = clean($_GET['search'] ?? '');
@@ -201,27 +282,52 @@ include '../includes/admin_sidebar.php';
             <div class="px-6 py-5 grid grid-cols-2 gap-4">
                 <div class="col-span-2">
                     <label class="block text-sm font-medium text-slate-700 mb-1">Full Name <span class="text-red-500">*</span></label>
-                    <input type="text" name="name" required placeholder="John Doe" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
+                    <input type="text" name="name" required placeholder="John Doe" value="<?= e($reopenModal==='addModal' ? ($formValues['name'] ?? '') : '') ?>" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Username <span class="text-red-500">*</span></label>
-                    <input type="text" name="username" required placeholder="john.doe" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
+                    <input type="text" name="username" required placeholder="john.doe" value="<?= e($reopenModal==='addModal' ? ($formValues['username'] ?? '') : '') ?>" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Role <span class="text-red-500">*</span></label>
                     <select name="role" required class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
-                        <option value="student">Student</option>
-                        <option value="teacher">Teacher</option>
-                        <option value="admin">Admin</option>
+                        <option value="student" <?= ($reopenModal==='addModal' && ($formValues['role'] ?? '')==='student') ? 'selected' : '' ?>>Student</option>
+                        <option value="teacher" <?= ($reopenModal==='addModal' && ($formValues['role'] ?? '')==='teacher') ? 'selected' : '' ?>>Teacher</option>
+                        <option value="admin" <?= ($reopenModal==='addModal' && ($formValues['role'] ?? '')==='admin') ? 'selected' : '' ?>>Admin</option>
                     </select>
                 </div>
                 <div class="col-span-2">
                     <label class="block text-sm font-medium text-slate-700 mb-1">Email <span class="text-red-500">*</span></label>
-                    <input type="email" name="email" required placeholder="john@example.com" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
+                    <input type="email" name="email" required placeholder="name@ucsh.edu.mm" value="<?= e($reopenModal==='addModal' ? ($formValues['email'] ?? '') : '') ?>" class="w-full border <?= $addEmailErr ? $borderRed : 'border-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20' ?> rounded-xl px-4 py-2.5 text-sm outline-none">
+                    <?php if ($addEmailErr): ?>
+                        <p class="text-red-500 text-xs mt-1.5">
+                            <?php if ($emailExistsErr): ?>
+                                A user with this email already exists.
+                            <?php else: ?>
+                                Email must be a valid @ucsh.edu.mm address.
+                            <?php endif ?>
+                        </p>
+                    <?php endif ?>
                 </div>
                 <div class="col-span-2">
                     <label class="block text-sm font-medium text-slate-700 mb-1">Password <span class="text-red-500">*</span></label>
-                    <input type="password" name="password" required placeholder="Min 6 characters" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
+                    <div class="relative">
+                        <input type="password" name="password" id="add_password" required minlength="6" placeholder="Letters, numbers, or @" class="w-full border <?= $addPasswordErr ? $borderRed : 'border-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20' ?> rounded-xl px-4 py-2.5 pr-10 text-sm outline-none">
+                        <button type="button" onclick="togglePassword('add_password',this)" class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600"><?= iconSvg('eye','w-4 h-4') ?></button>
+                    </div>
+                    <?php if ($addPasswordErr): ?>
+                        <p class="text-red-500 text-xs mt-1.5">Password must be at least 6 characters. Only letters, numbers, and @ are allowed.</p>
+                    <?php endif ?>
+                </div>
+                <div class="col-span-2">
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Confirm Password <span class="text-red-500">*</span></label>
+                    <div class="relative">
+                        <input type="password" name="confirm_password" id="add_confirm_password" required minlength="6" placeholder="Re-enter password" class="w-full border <?= $addConfirmErr ? $borderRed : 'border-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20' ?> rounded-xl px-4 py-2.5 pr-10 text-sm outline-none">
+                        <button type="button" onclick="togglePassword('add_confirm_password',this)" class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600"><?= iconSvg('eye','w-4 h-4') ?></button>
+                    </div>
+                    <?php if ($addConfirmErr): ?>
+                        <p class="text-red-500 text-xs mt-1.5">Passwords do not match.</p>
+                    <?php endif ?>
                 </div>
             </div>
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
@@ -240,31 +346,40 @@ include '../includes/admin_sidebar.php';
             <button onclick="closeModal('editModal')" class="text-slate-400 hover:text-slate-600"><?= iconSvg('x','w-5 h-5') ?></button>
         </div>
         <form method="POST">
-            <?= csrfField() ?><input type="hidden" name="action" value="edit"><input type="hidden" name="id" id="edit_id">
+            <?= csrfField() ?><input type="hidden" name="action" value="edit"><input type="hidden" name="id" id="edit_id" value="<?= e($reopenModal==='editModal' ? ($formValues['id'] ?? '') : '') ?>">
             <div class="px-6 py-5 grid grid-cols-2 gap-4">
                 <div class="col-span-2">
                     <label class="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
-                    <input type="text" name="name" id="edit_name" required class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
+                    <input type="text" name="name" id="edit_name" required value="<?= e($reopenModal==='editModal' ? ($formValues['name'] ?? '') : '') ?>" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Username</label>
-                    <input type="text" name="username" id="edit_username" required class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
+                    <input type="text" name="username" id="edit_username" required value="<?= e($reopenModal==='editModal' ? ($formValues['username'] ?? '') : '') ?>" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Role</label>
                     <select name="role" id="edit_role" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
-                        <option value="student">Student</option>
-                        <option value="teacher">Teacher</option>
-                        <option value="admin">Admin</option>
+                        <option value="student" <?= ($reopenModal==='editModal' && ($formValues['role'] ?? '')==='student') ? 'selected' : '' ?>>Student</option>
+                        <option value="teacher" <?= ($reopenModal==='editModal' && ($formValues['role'] ?? '')==='teacher') ? 'selected' : '' ?>>Teacher</option>
+                        <option value="admin" <?= ($reopenModal==='editModal' && ($formValues['role'] ?? '')==='admin') ? 'selected' : '' ?>>Admin</option>
                     </select>
                 </div>
                 <div class="col-span-2">
                     <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
-                    <input type="email" name="email" id="edit_email" required class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
+                    <input type="email" name="email" id="edit_email" required value="<?= e($reopenModal==='editModal' ? ($formValues['email'] ?? '') : '') ?>" class="w-full border <?= $editEmailErr ? $borderRed : 'border-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20' ?> rounded-xl px-4 py-2.5 text-sm outline-none">
+                    <?php if ($editEmailErr): ?>
+                        <p class="text-red-500 text-xs mt-1.5">Email must be a valid @ucsh.edu.mm address.</p>
+                    <?php endif ?>
                 </div>
                 <div class="col-span-2">
                     <label class="block text-sm font-medium text-slate-700 mb-1">New Password <span class="text-xs text-slate-400">(leave blank to keep current)</span></label>
-                    <input type="password" name="password" placeholder="••••••••" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
+                    <div class="relative">
+                        <input type="password" name="password" id="edit_password" placeholder="Letters, numbers, or @" class="w-full border <?= $editPasswordErr ? $borderRed : 'border-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20' ?> rounded-xl px-4 py-2.5 pr-10 text-sm outline-none">
+                        <button type="button" onclick="togglePassword('edit_password',this)" class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600"><?= iconSvg('eye','w-4 h-4') ?></button>
+                    </div>
+                    <?php if ($editPasswordErr): ?>
+                        <p class="text-red-500 text-xs mt-1.5">Password must be at least 6 characters. Only letters, numbers, and @ are allowed.</p>
+                    <?php endif ?>
                 </div>
             </div>
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
@@ -294,6 +409,14 @@ include '../includes/admin_sidebar.php';
 </div>
 
 <script>
+function togglePassword(id, btn) {
+    var inp = document.getElementById(id);
+    var show = inp.type === 'password';
+    inp.type = show ? 'text' : 'password';
+    btn.innerHTML = show
+        ? '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"/></svg>'
+        : '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178zM15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>';
+}
 function openEdit(u) {
     document.getElementById('edit_id').value       = u.id;
     document.getElementById('edit_name').value     = u.name;
@@ -307,6 +430,11 @@ function openDelete(id,name) {
     document.getElementById('delete_name').textContent = name;
     openModal('deleteModal');
 }
+<?php if ($reopenModal): ?>
+document.addEventListener('DOMContentLoaded', function() {
+    openModal('<?= $reopenModal ?>');
+});
+<?php endif ?>
 </script>
 
 <?php include '../includes/admin_footer.php'; ?>

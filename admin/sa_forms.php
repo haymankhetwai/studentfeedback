@@ -66,12 +66,12 @@ if ($search) {
 $pg  = paginate($total, $perPage, $page);
 $off = $pg['offset'];
 
-if ($search) {
+    if ($search) {
     $s2   = "%$search%";
-    $stmt = $conn->prepare("SELECT f.*, (SELECT COUNT(*) FROM sa_feedback_questions WHERE form_id=f.id) AS q_count, (SELECT COUNT(*) FROM sa_feedback_submissions WHERE form_id=f.id) AS s_count FROM sa_feedback_forms f WHERE f.title LIKE ? ORDER BY f.id DESC LIMIT ? OFFSET ?");
+    $stmt = $conn->prepare("SELECT f.*, (SELECT COUNT(*) FROM global_sa_feedback_questions) AS q_count, (SELECT COUNT(*) FROM sa_feedback_submissions WHERE form_id=f.id) AS s_count FROM sa_feedback_forms f WHERE f.title LIKE ? ORDER BY f.id DESC LIMIT ? OFFSET ?");
     $stmt->bind_param('sii', $s2, $perPage, $off);
 } else {
-    $stmt = $conn->prepare("SELECT f.*, (SELECT COUNT(*) FROM sa_feedback_questions WHERE form_id=f.id) AS q_count, (SELECT COUNT(*) FROM sa_feedback_submissions WHERE form_id=f.id) AS s_count FROM sa_feedback_forms f ORDER BY f.id DESC LIMIT ? OFFSET ?");
+    $stmt = $conn->prepare("SELECT f.*, (SELECT COUNT(*) FROM global_sa_feedback_questions) AS q_count, (SELECT COUNT(*) FROM sa_feedback_submissions WHERE form_id=f.id) AS s_count FROM sa_feedback_forms f ORDER BY f.id DESC LIMIT ? OFFSET ?");
     $stmt->bind_param('ii', $perPage, $off);
 }
 $stmt->execute();
@@ -222,7 +222,7 @@ include '../includes/admin_sidebar.php';
         <div class="px-6 py-6 text-center">
             <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4"><?= iconSvg('trash','w-7 h-7 text-red-600') ?></div>
             <h3 class="text-lg font-semibold text-slate-800">Delete SA Form</h3>
-            <p class="text-sm text-slate-500 mt-2">Delete <strong id="delete_name" class="text-slate-700"></strong>? All questions and submissions will be lost.</p>
+            <p class="text-sm text-slate-500 mt-2">Delete <strong id="delete_name" class="text-slate-700"></strong>? All submissions will be lost.</p>
         </div>
         <form method="POST"><?= csrfField() ?><input type="hidden" name="action" value="delete"><input type="hidden" name="id" id="delete_id">
             <div class="flex gap-3 px-6 pb-6">

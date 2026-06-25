@@ -5,7 +5,7 @@ require_once '../includes/functions.php';
 requireRole('student');
 
 $user = getCurrentUser();
-$stmt = $conn->prepare("SELECT st.id, m.major_name FROM students st JOIN majors m ON st.major_id=m.id WHERE st.user_id=?");
+$stmt = $conn->prepare("SELECT st.id FROM students st WHERE st.user_id=?");
 $stmt->bind_param('i', $user['id']);
 $stmt->execute();
 $student = $stmt->get_result()->fetch_assoc();
@@ -18,7 +18,7 @@ $today = date('Y-m-d');
 // Load sections and their forms
 $sections = [];
 if ($studentId) {
-    $rs = $conn->prepare("SELECT s.*, c.course_name, c.course_code, u.name AS teacher_name, d.department_name FROM section_assignments sa JOIN sections s ON sa.section_id=s.id JOIN courses c ON s.course_id=c.id JOIN teachers t ON s.teacher_id=t.id JOIN users u ON t.user_id=u.id JOIN majors m ON c.major_id=m.id JOIN departments d ON m.department_id=d.id WHERE sa.student_id=? ORDER BY s.id DESC");
+    $rs = $conn->prepare("SELECT s.*, c.course_name, c.course_code, u.name AS teacher_name FROM section_assignments sa JOIN sections s ON sa.section_id=s.id JOIN courses c ON s.course_id=c.id JOIN teachers t ON s.teacher_id=t.id JOIN users u ON t.user_id=u.id WHERE sa.student_id=? ORDER BY s.id DESC");
     $rs->bind_param('i', $studentId);
     $rs->execute();
     $sections = $rs->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -96,7 +96,7 @@ $initials = avatarInitials($user['name']);
                         <?= e($initials) ?></div>
                     <div class="flex-1 min-w-0">
                         <p class="text-xs font-semibold text-white truncate"><?= e($user['name']) ?></p>
-                        <p class="text-[10px] text-cyan-100 truncate"><?= $student['major_name'] ?? 'Student' ?>
+                        <p class="text-[10px] text-cyan-100 truncate">Student
                         </p>
                     </div>
                     <a href="/studentfeedback/auth/logout.php" class="text-cyan-100 hover:text-red-300">
@@ -143,8 +143,6 @@ $initials = avatarInitials($user['name']);
                                         <?= e($sec['academic_year']) ?> · <?= e($sec['semester']) ?> · Taught by
                                         <?= e($sec['teacher_name']) ?></p>
                                 </div>
-                                <span
-                                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-cyan-50 text-cyan-600"><?= e($sec['department_name']) ?></span>
                             </div>
                             <?php if ($forms): ?>
                                 <div class="divide-y divide-slate-100">

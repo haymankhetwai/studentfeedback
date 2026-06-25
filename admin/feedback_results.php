@@ -63,11 +63,25 @@ if ($formId) {
 
     if ($form) {
         // ၃။ မေးခွန်းများကို အစီအစဉ်တကျ ဆွဲထုတ်ခြင်း
-        $q = $conn->prepare("SELECT id, question_no, question_text, question_type FROM feedback_questions WHERE feedback_form_id=? ORDER BY question_no ASC");
-        $q->bind_param('i', $formId);
+        $q = $conn->prepare("SELECT id, question_no, question_text, question_type FROM global_feedback_questions ORDER BY question_no ASC");
         $q->execute();
         $questions = $q->get_result()->fetch_all(MYSQLI_ASSOC);
         $q->close();
+
+        // Feedback Progress Stats
+        $totalStudentsStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM section_assignments sa JOIN students st ON sa.student_id = st.id WHERE sa.section_id = ?");
+        $totalStudentsStmt->bind_param('i', $form['section_id']);
+        $totalStudentsStmt->execute();
+        $totalStudents = (int) $totalStudentsStmt->get_result()->fetch_assoc()['cnt'];
+        $totalStudentsStmt->close();
+
+        $completedStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM feedback_submissions fs JOIN students st ON fs.student_id = st.id WHERE fs.feedback_form_id = ?");
+        $completedStmt->bind_param('i', $formId);
+        $completedStmt->execute();
+        $completedCount = (int) $completedStmt->get_result()->fetch_assoc()['cnt'];
+        $completedStmt->close();
+
+        $pendingCount = max(0, $totalStudents - $completedCount);
 
         // ၄။ Rating Questions များအတွက် တွက်ချက်ခြင်း (Good, Fair, Bad တွဲဖတ်နိုင်ရန် Map လုပ်ပါသည်)
         $statStmt = $conn->prepare("
@@ -89,7 +103,7 @@ if ($formId) {
                 $rKey = 'Good';
             } elseif ($rKey === '2' || $rKey === 'သင့်' || $rKey === 'Normal' || $rKey === 'normal' || $rKey === 'Average' || $rKey === 'Fair' || $rKey === 'fair') {
                 $rKey = 'Fair';
-            } elseif ($rKey === '1' || $rKey === 'ညံ့' || $rKey === 'Bad' || $rKey === 'bad') {
+            } elseif ($rKey === '1' || $rKey === 'ညံ့' || $rKey === 'Bad' || $rKey === 'bad' || $rKey === 'Poor' || $rKey === 'poor') {
                 $rKey = 'Bad';
             }
 
@@ -136,15 +150,41 @@ include '../includes/admin_sidebar.php';
     .myanmar-font {
         font-family: 'Pyidaungsu', sans-serif;
     }
+    @media print {
+        *, *::before, *::after { overflow: visible !important; max-height: none !important; height: auto !important; }
+        html, body { height: auto !important; overflow: visible !important; background: white !important; }
+        body { position: static !important; }
+        #sidebar, #sidebar-overlay, header, .no-print, nav, aside { display: none !important; }
+        .flex.h-screen { display: block !important; height: auto !important; overflow: visible !important; }
+        .flex-1.flex.flex-col { overflow: visible !important; width: 100% !important; }
+        main { overflow: visible !important; padding: 0 !important; height: auto !important; }
+        .bg-white.shadow-md, .bg-white.shadow-lg, .bg-white.rounded-2xl { box-shadow: none !important; break-inside: avoid; }
+        @page { margin: 1.5cm; size: A4 landscape; }
+        .mb-6 { margin-bottom: 1rem !important; }
+        .mb-8 { margin-bottom: 1rem !important; }
+        .mt-8 { margin-top: 1rem !important; }
+        table { page-break-inside: auto; }
+        tr { page-break-inside: avoid; }
+        h3 { page-break-after: avoid; }
+        .overflow-x-auto { overflow: visible !important; }
+    }
 </style>
 
-<div class="mb-6 myanmar-font">
-    <h2 class="text-xl font-bold text-slate-800">Course Ratings & Feedback Matrix</h2>
-    <p class="text-sm text-slate-500 mt-0.5">မေးခွန်းအလိုက် စုစုပေါင်းရလဒ် စာရင်းဇယားနှင့် ကျောင်းသားများ၏
-        အကြံပြုချက်များ</p>
+<div class="mb-6 myanmar-font flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+        <h2 class="text-xl font-bold text-slate-800">Course Ratings & Feedback Matrix</h2>
+        <p class="text-sm text-slate-500 mt-0.5">မေးခွန်းအလိုက် စုစုပေါင်းရလဒ် စာရင်းဇယားနှင့် ကျောင်းသားများ၏
+            အကြံပြုချက်များ</p>
+    </div>
+    <?php if ($form): ?>
+    <button onclick="window.print()" class="no-print inline-flex items-center gap-2 bg-slate-700 hover:bg-slate-800 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm transition-all hover:-translate-y-0.5">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m0 0a48.159 48.159 0 018.5 0m-8.5 0V6.75a2 2 0 012-2h4.5a2 2 0 012 2v1.044" /></svg>
+        Print Report
+    </button>
+    <?php endif; ?>
 </div>
 
-<div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6 myanmar-font">
+<div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6 myanmar-font no-print">
     <div class="flex flex-col sm:flex-row gap-4">
 
         <div class="flex-1 max-w-xl">
@@ -179,20 +219,40 @@ include '../includes/admin_sidebar.php';
     function buildFormUrl(formVal) {
         var params = [];
         var tid = '<?= $teacherId ?>';
-        if (tid) params.push('teacher_id=' + tid);
         if (formVal) params.push('form_id=' + formVal);
+        if (tid) params.push('teacher_id=' + tid);
+
         location.href = '?' + params.join('&');
     }
 </script>
 
 <?php if ($form): ?>
+<!-- Feedback Progress Stats (outside form) -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 myanmar-font no-print">
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 text-center">
+        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">စုစုပေါင်း ကျောင်းသား (Total Students)</p>
+        <p class="text-3xl font-black text-slate-800"><?= $totalStudents ?></p>
+    </div>
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 text-center">
+        <p class="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-1">ဖြေဆိုပြီး (Completed)</p>
+        <p class="text-3xl font-black text-emerald-600"><?= $completedCount ?></p>
+        <p class="text-[10px] text-slate-400 mt-1"><?= $totalStudents > 0 ? round(($completedCount / $totalStudents) * 100) : 0 ?>% response rate</p>
+    </div>
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 text-center">
+        <p class="text-xs font-bold text-amber-500 uppercase tracking-wider mb-1">ကျန်ရှိနေသေး (Pending)</p>
+        <p class="text-3xl font-black text-amber-600"><?= $pendingCount ?></p>
+        <p class="text-[10px] text-slate-400 mt-1"><?= $totalStudents > 0 ? round(($pendingCount / $totalStudents) * 100) : 0 ?>% remaining</p>
+    </div>
+</div>
+
     <div class="w-full max-w-5xl mx-auto myanmar-font">
         <div class="bg-white shadow-md rounded-xl border border-slate-200 p-6 md:p-8">
 
             <div class="text-center border-b-2 border-slate-800 pb-4 mb-5">
                 <h2 class="text-lg md:text-xl font-bold text-slate-900 mb-1"><?= e($form['title']) ?></h2>
                 <p class="text-xs text-slate-400 font-mono">Statistical Evaluation Report Matrix (Anonymous)</p>
-                <p class="text-xs text-slate-400 mt-1">Feedback Period: <?= formatDate($form['start_date']) ?> — <?= formatDate($form['end_date']) ?></p>
+                <p class="text-xs text-slate-400 mt-1">Feedback Period: <?= formatDate($form['start_date']) ?> —
+                    <?= formatDate($form['end_date']) ?></p>
             </div>
 
             <div

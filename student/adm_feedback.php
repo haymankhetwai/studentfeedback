@@ -5,7 +5,7 @@ require_once '../includes/functions.php';
 requireRole('student');
 
 $user      = getCurrentUser();
-$stmt      = $conn->prepare("SELECT st.id, m.major_name FROM students st JOIN majors m ON st.major_id=m.id WHERE st.user_id=?");
+$stmt      = $conn->prepare("SELECT st.id FROM students st WHERE st.user_id=?");
 $stmt->bind_param('i', $user['id']); $stmt->execute();
 $student   = $stmt->get_result()->fetch_assoc(); $stmt->close();
 $studentId = $student['id'] ?? 0;
@@ -66,7 +66,7 @@ $initials = avatarInitials($user['name']);
     <div class="border-t border-cyan-500 px-4 py-4">
         <div class="flex items-center gap-3">
             <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold"><?= e($initials) ?></div>
-            <div class="flex-1 min-w-0"><p class="text-xs font-semibold text-white truncate"><?= e($user['name']) ?></p><p class="text-[10px] text-cyan-100"><?= $student['major_name'] ?? '' ?></p></div>
+            <div class="flex-1 min-w-0"><p class="text-xs font-semibold text-white truncate"><?= e($user['name']) ?></p><p class="text-[10px] text-cyan-100"></p></div>
             <a href="/studentfeedback/auth/logout.php" class="text-cyan-200 hover:text-red-300">
                         <?= iconSvg('logout', 'w-4 h-4') ?>
                     </a>

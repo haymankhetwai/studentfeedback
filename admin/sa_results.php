@@ -9,6 +9,14 @@ $activeMenu = 'sa_results';
 
 // Filter Inputs
 $formId = (int) ($_GET['form_id'] ?? 0);
+$semesterFilter = clean($_GET['semester'] ?? '');
+
+// Distinct semesters for filter
+$semesters = [];
+$semRes = $conn->query("SELECT DISTINCT semester FROM sections WHERE semester IS NOT NULL AND semester != '' ORDER BY semester");
+while ($r = $semRes->fetch_assoc()) {
+    $semesters[] = $r['semester'];
+}
 
 // ၁။ Dropdown အတွက် စာရင်းဆွဲထုတ်ခြင်း
 $allForms = $conn->query("SELECT id, title, status FROM sa_feedback_forms ORDER BY id DESC")->fetch_all(MYSQLI_ASSOC);
@@ -16,6 +24,10 @@ $allForms = $conn->query("SELECT id, title, status FROM sa_feedback_forms ORDER 
 // Form ID တိုက်ရိုက်မပါလာပါက နောက်ဆုံးဖောင်ကို Auto ရွေးပေးထားမည်
 if (!$formId && !empty($allForms)) {
     $formId = (int) $allForms[0]['id'];
+    $params = ['form_id' => $formId];
+    if ($semesterFilter) $params['semester'] = $semesterFilter;
+    header('Location: sa_results.php?' . http_build_query($params));
+    exit;
 }
 
 $form = null;
@@ -33,8 +45,7 @@ if ($formId) {
 
     if ($form) {
         // ၃။ မေးခွန်းများကို အစီအစဉ်တကျ ဆွဲထုတ်ခြင်း
-        $q = $conn->prepare("SELECT id, question_no, question_text, question_type FROM sa_feedback_questions WHERE form_id=? ORDER BY question_no ASC");
-        $q->bind_param('i', $formId);
+        $q = $conn->prepare("SELECT id, question_no, question_text, question_type FROM global_sa_feedback_questions ORDER BY question_no ASC");
         $q->execute();
         $questions = $q->get_result()->fetch_all(MYSQLI_ASSOC);
         $q->close();
@@ -59,7 +70,7 @@ if ($formId) {
                 $rKey = 'Good';
             } elseif ($rKey == '2' || $rKey === 'သင့်' || $rKey === 'Normal' || $rKey === 'normal' || $rKey === 'Average' || $rKey === 'Fair' || $rKey === 'fair') {
                 $rKey = 'Fair';
-            } elseif ($rKey == '1' || $rKey === 'ညံ့' || $rKey === 'Bad' || $rKey === 'bad') {
+            } elseif ($rKey == '1' || $rKey === 'ညံ့' || $rKey === 'Bad' || $rKey === 'bad' || $rKey === 'Poor' || $rKey === 'poor') {
                 $rKey = 'Bad';
             }
 
@@ -97,40 +108,111 @@ foreach ($questions as $q) {
     }
 }
 
+// Summary Statistics
+$totalStudents = 0;
+$completedFeedback = 0;
+$pendingFeedback = 0;
+
+if ($semesterFilter) {
+    $stStmt = $conn->prepare("SELECT COUNT(DISTINCT sa.student_id) AS cnt FROM section_assignments sa JOIN sections s ON sa.section_id = s.id JOIN students st ON sa.student_id = st.id WHERE s.semester = ?");
+    $stStmt->bind_param('s', $semesterFilter);
+    $stStmt->execute();
+    $totalStudents = (int) $stStmt->get_result()->fetch_assoc()['cnt'];
+    $stStmt->close();
+
+    if ($formId && $totalStudents > 0) {
+        $compStmt = $conn->prepare("SELECT COUNT(DISTINCT sfs.student_id) AS cnt FROM sa_feedback_submissions sfs JOIN students st ON sfs.student_id = st.id JOIN section_assignments sa ON sa.student_id = st.id JOIN sections s ON sa.section_id = s.id WHERE sfs.form_id = ? AND s.semester = ?");
+        $compStmt->bind_param('is', $formId, $semesterFilter);
+        $compStmt->execute();
+        $completedFeedback = (int) $compStmt->get_result()->fetch_assoc()['cnt'];
+        $compStmt->close();
+    }
+} else {
+    $totalStudents = (int) $conn->query("SELECT COUNT(DISTINCT sa.student_id) AS cnt FROM section_assignments sa JOIN students st ON sa.student_id = st.id")->fetch_assoc()['cnt'];
+    if ($formId) {
+        $completedFeedback = (int) $conn->query("SELECT COUNT(DISTINCT student_id) AS cnt FROM sa_feedback_submissions WHERE form_id = $formId")->fetch_assoc()['cnt'];
+    }
+}
+$pendingFeedback = max(0, $totalStudents - $completedFeedback);
+
 include '../includes/admin_header.php';
 include '../includes/admin_sidebar.php';
 ?>
 <style>
     @import url('https://cdn.jsdelivr.net/css-myanmar-fonts/v1/pyidaungsu.css');
     .myanmar-font { font-family: 'Pyidaungsu', sans-serif; }
+    @media print {
+        *, *::before, *::after { overflow: visible !important; max-height: none !important; height: auto !important; }
+        html, body { height: auto !important; overflow: visible !important; background: white !important; }
+        body { position: static !important; }
+        #sidebar, #sidebar-overlay, header, .no-print, nav, aside { display: none !important; }
+        .flex.h-screen { display: block !important; height: auto !important; overflow: visible !important; }
+        .flex-1.flex.flex-col { overflow: visible !important; width: 100% !important; }
+        main { overflow: visible !important; padding: 0 !important; height: auto !important; }
+        .bg-white.shadow-lg, .bg-white.rounded-2xl { box-shadow: none !important; break-inside: avoid; }
+        @page { margin: 1.5cm; size: A4 landscape; }
+        .mb-6 { margin-bottom: 1rem !important; }
+        .mb-8 { margin-bottom: 1rem !important; }
+        .mt-8 { margin-top: 1rem !important; }
+        table { page-break-inside: auto; }
+        tr { page-break-inside: avoid; }
+        h3 { page-break-after: avoid; }
+        .overflow-x-auto { overflow: visible !important; }
+    }
 </style>
 
-<div class="mb-6 myanmar-font">
-    <h2 class="text-xl font-bold text-slate-800">Student Affairs Feedback Matrix</h2>
-    <p class="text-sm text-slate-500 mt-0.5">ကျောင်းသားရေးရာဌာန စစ်တမ်းများ၏ မေးခွန်းအလိုက် စုစုပေါင်းစာရင်းဇယားရလဒ်များ</p>
+<div class="mb-6 myanmar-font flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+        <h2 class="text-xl font-bold text-slate-800">Student Affairs Feedback Matrix</h2>
+        <p class="text-sm text-slate-500 mt-0.5">ကျောင်းသားရေးရာဌာန စစ်တမ်းများ၏ မေးခွန်းအလိုက် စုစုပေါင်းစာရင်းဇယားရလဒ်များ</p>
+    </div>
+    <?php if ($form): ?>
+    <button onclick="window.print()" class="no-print inline-flex items-center gap-2 bg-slate-700 hover:bg-slate-800 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm transition-all hover:-translate-y-0.5">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m0 0a48.159 48.159 0 018.5 0m-8.5 0V6.75a2 2 0 012-2h4.5a2 2 0 012 2v1.044" /></svg>
+        Print Report
+    </button>
+    <?php endif; ?>
 </div>
 
-<div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6 myanmar-font">
-    <div class="flex-1 max-w-2xl">
-        <label class="block text-xs font-bold text-slate-500 mb-1">Select Student Affairs Form (စစ်တမ်းပုံစံ ရွေးချယ်ရန်):</label>
-        <select onchange="location.href='?form_id='+this.value"
+<div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6 myanmar-font no-print">
+    <div class="flex-1 max-w-xs">
+        <label class="block text-xs font-bold text-slate-500 mb-1">Filter by Semester ( semester ရွေးချယ်ရန်):</label>
+        <select onchange="var fp=new URLSearchParams(window.location.search); fp.set('semester',this.value); location.href='?'+fp.toString();"
             class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none bg-white font-semibold text-slate-700 shadow-sm focus:border-slate-500">
-            <option value="">— Choose a Form —</option>
-            <?php foreach ($allForms as $f): ?>
-                <option value="<?= $f['id'] ?>" <?= $formId == $f['id'] ? 'selected' : '' ?>>
-                    <?= e($f['title']) ?> — [<?= e($f['status']) ?>]
-                </option>
+            <option value="">— All Semesters —</option>
+            <?php foreach ($semesters as $sem): ?>
+                <option value="<?= e($sem) ?>" <?= $semesterFilter === $sem ? 'selected' : '' ?>><?= e($sem) ?></option>
             <?php endforeach ?>
         </select>
     </div>
 </div>
+
+<?php if ($semesterFilter): ?>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 myanmar-font no-print">
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 text-center">
+        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">စုစုပေါင်း ကျောင်းသား (Total Students)</p>
+        <p class="text-3xl font-black text-slate-800"><?= $totalStudents ?></p>
+        <p class="text-[10px] text-slate-400 mt-1"><?= e($semesterFilter) ?></p>
+    </div>
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 text-center">
+        <p class="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-1">ဖြေဆိုပြီး (Completed)</p>
+        <p class="text-3xl font-black text-emerald-600"><?= $completedFeedback ?></p>
+        <p class="text-[10px] text-slate-400 mt-1"><?= $totalStudents > 0 ? round(($completedFeedback / $totalStudents) * 100) : 0 ?>% response rate</p>
+    </div>
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 text-center">
+        <p class="text-xs font-bold text-amber-500 uppercase tracking-wider mb-1">ကျန်ရှိနေသေး (Pending)</p>
+        <p class="text-3xl font-black text-amber-600"><?= $pendingFeedback ?></p>
+        <p class="text-[10px] text-slate-400 mt-1"><?= $totalStudents > 0 ? round(($pendingFeedback / $totalStudents) * 100) : 0 ?>% remaining</p>
+    </div>
+</div>
+<?php endif ?>
 
 <?php if ($form): ?>
     <div class="w-full max-w-5xl mx-auto myanmar-font">
         <div class="bg-white shadow-lg rounded-xl border border-slate-200 p-6 md:p-8">
 
             <div class="text-center border-b-2 border-slate-800 pb-4 mb-5">
-                <h2 class="text-lg md:text-xl font-bold text-slate-900 mb-1">ကျောင်းသားရေးရာဌာန သုံးသပ်ချက် ရလဒ်များ</h2>
+                <h2 class="text-lg md:text-xl font-bold text-slate-900 mb-1"><?= e($form['title']) ?></h2>
                 <p class="text-xs text-purple-600 font-mono">Student Affairs Office — Statistical Evaluation Matrix (Anonymous)</p>
             </div>
 

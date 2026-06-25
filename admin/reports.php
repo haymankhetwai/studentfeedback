@@ -151,21 +151,6 @@ $avgSql = "
 $avgResult = runFilteredQuery($conn, $avgSql, $types, $params)->fetch_assoc();
 $avgRating = $avgResult['avg_rating'] ? round((float)$avgResult['avg_rating'], 2) : 0;
 
-// ─── Per-Section Breakdown ──────────────────────────────────────
-$sectionBreakdownSql = "
-    SELECT sec.id AS section_id, c.course_name, sec.section, sec.semester,
-           COUNT(fr.id) AS total_ratings,
-           AVG(CASE WHEN fr.rating IN ('Excellent','Good') THEN 5 WHEN fr.rating = 'Fair' THEN 3 WHEN fr.rating IN ('Poor','Bad') THEN 1 ELSE 3 END) AS avg_rating
-    FROM feedback_ratings fr
-    JOIN feedback_forms ff ON fr.feedback_form_id = ff.id
-    JOIN sections sec ON ff.section_id = sec.id
-    JOIN courses c ON sec.course_id = c.id
-    $whereSql
-    GROUP BY sec.id, c.course_name, sec.section, sec.semester
-    ORDER BY total_ratings DESC
-";
-$sectionBreakdown = runFilteredQuery($conn, $sectionBreakdownSql, $types, $params)->fetch_all(MYSQLI_ASSOC);
-
 // ─── Semester Statistics (submissions per semester) ─────────────
 $semesterStatSql = "
     SELECT sec.semester, COUNT(*) AS total
@@ -229,7 +214,25 @@ foreach ($teacherPerfData as $tp) {
     if ($filterSemester !== '') { $trTypes .= 's'; $trParams[] = $filterSemester; }
     if ($filterCourse > 0)     { $trTypes .= 'i'; $trParams[] = $filterCourse; }
     $trResult = runFilteredQuery($conn, $trSql, $trTypes, $trParams);
-    $teacherRatingData[$tp['teacher_name']] = $trResult->fetch_all(MYSQLI_ASSOC);
+    $rawRatings = $trResult->fetch_all(MYSQLI_ASSOC);
+
+    // Normalize: merge Excellent→Good, Poor→Bad
+    $normalized = ['Good' => 0, 'Fair' => 0, 'Bad' => 0];
+    foreach ($rawRatings as $rd) {
+        $r = trim($rd['rating']);
+        if (in_array($r, ['Excellent', 'Good', 'good', '3', 'ကောင်း'])) {
+            $normalized['Good'] += (int)$rd['qty'];
+        } elseif (in_array($r, ['Fair', 'fair', 'Normal', 'normal', 'Average', '2', 'သင့်'])) {
+            $normalized['Fair'] += (int)$rd['qty'];
+        } elseif (in_array($r, ['Poor', 'Bad', 'bad', '1', 'ညံ့'])) {
+            $normalized['Bad'] += (int)$rd['qty'];
+        }
+    }
+    $teacherRatingData[$tp['teacher_name']] = [
+        ['rating' => 'Good', 'qty' => $normalized['Good']],
+        ['rating' => 'Fair', 'qty' => $normalized['Fair']],
+        ['rating' => 'Bad',  'qty' => $normalized['Bad']],
+    ];
 }
 
 // ─── Subject Performance (top courses by feedback count) ───────
@@ -468,49 +471,13 @@ include '../includes/admin_sidebar.php';
     </div>
 </div>
 
-<!-- Section Breakdown Table -->
-<?php if (!empty($sectionBreakdown)): ?>
-<div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-6">
-    <div class="px-6 py-4 border-b border-slate-100">
-        <h3 class="text-sm font-bold text-slate-800">Detailed Section Breakdown</h3>
-    </div>
-    <div class="overflow-x-auto">
-        <table class="w-full text-left text-sm">
-            <thead>
-                <tr class="bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    <th class="px-6 py-3">Subject</th>
-                    <th class="px-6 py-3">Section</th>
-                    <th class="px-6 py-3">Semester</th>
-                    <th class="px-6 py-3 text-center">Total Ratings</th>
-                    <th class="px-6 py-3 text-center">Avg Rating</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-                <?php foreach ($sectionBreakdown as $sb): ?>
-                <tr class="hover:bg-slate-50/50 transition-colors">
-                    <td class="px-6 py-3 font-medium text-slate-800"><?= e($sb['course_name']) ?></td>
-                    <td class="px-6 py-3 text-slate-600"><?= e($sb['section']) ?></td>
-                    <td class="px-6 py-3 text-slate-600"><?= e($sb['semester']) ?></td>
-                    <td class="px-6 py-3 text-center font-semibold text-slate-700"><?= number_format($sb['total_ratings']) ?></td>
-                    <td class="px-6 py-3 text-center">
-                        <?php $avg = round((float)$sb['avg_rating'], 1); $color = $avg >= 4 ? 'text-emerald-600' : ($avg >= 3 ? 'text-amber-600' : 'text-red-600'); ?>
-                        <span class="font-bold <?= $color ?>"><?= $avg ?></span>
-                    </td>
-                </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-    </div>
-</div>
-<?php endif; ?>
-
 <!-- Per-Teacher Rating Distribution Pie Charts -->
 <?php if (!empty($teacherRatingData)): ?>
 <div class="mb-6">
     <h3 class="text-sm font-bold text-slate-800 mb-3">Teacher Rating Distribution</h3>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
         <?php
-        $colorMap = ['Excellent' => '#10b981', 'Good' => '#22c55e', 'Fair' => '#f59e0b', 'Poor' => '#ef4444'];
+        $colorMap = ['Good' => '#22c55e', 'Fair' => '#f59e0b', 'Bad' => '#ef4444'];
         $chartIndex = 0;
         foreach ($teacherRatingData as $tName => $tRatings):
             if (empty($tRatings)) continue;
@@ -522,6 +489,33 @@ include '../includes/admin_sidebar.php';
             <h4 class="text-xs font-bold text-slate-700 mb-3 truncate" title="<?= e($tName) ?>"><?= e($tName) ?></h4>
             <div class="relative flex items-center justify-center" style="height:180px;">
                 <canvas id="teacherPie<?= $chartIndex ?>"></canvas>
+            </div>
+            <?php
+            $tGood = 0; $tFair = 0; $tBad = 0;
+            foreach ($tRatings as $tr) {
+                $r = trim($tr['rating']);
+                if (in_array($r, ['Excellent', 'Good', 'good', '3', 'ကောင်း'])) $tGood += (int)$tr['qty'];
+                elseif (in_array($r, ['Fair', 'fair', 'Normal', 'normal', 'Average', '2', 'သင့်'])) $tFair += (int)$tr['qty'];
+                elseif (in_array($r, ['Poor', 'Bad', 'bad', '1', 'ညံ့'])) $tBad += (int)$tr['qty'];
+            }
+            $tTotal = $tGood + $tFair + $tBad;
+            $tPctGood = $tTotal > 0 ? round(($tGood / $tTotal) * 100) : 0;
+            $tPctFair = $tTotal > 0 ? round(($tFair / $tTotal) * 100) : 0;
+            $tPctBad  = $tTotal > 0 ? round(($tBad / $tTotal) * 100) : 0;
+            ?>
+            <div class="grid grid-cols-3 gap-2 mt-3">
+                <div class="text-center p-2 rounded-lg bg-emerald-50 border border-emerald-100">
+                    <p class="text-lg font-bold text-emerald-600"><?= $tPctGood ?>%</p>
+                    <p class="text-[10px] font-semibold text-emerald-700">Good</p>
+                </div>
+                <div class="text-center p-2 rounded-lg bg-amber-50 border border-amber-100">
+                    <p class="text-lg font-bold text-amber-600"><?= $tPctFair ?>%</p>
+                    <p class="text-[10px] font-semibold text-amber-700">Fair</p>
+                </div>
+                <div class="text-center p-2 rounded-lg bg-red-50 border border-red-100">
+                    <p class="text-lg font-bold text-red-600"><?= $tPctBad ?>%</p>
+                    <p class="text-[10px] font-semibold text-red-700">Bad</p>
+                </div>
             </div>
         </div>
         <?php $chartIndex++; endforeach; ?>
@@ -565,6 +559,29 @@ include '../includes/admin_sidebar.php';
         <h3 class="text-sm font-bold text-slate-800 mb-4">SA Rating Distribution (Good / Fair / Bad)</h3>
         <div class="relative flex items-center justify-center" style="height:280px;">
             <canvas id="saRatingPie"></canvas>
+        </div>
+        <?php
+        $saTotal = array_sum($saNormalized);
+        $saPctGood = $saTotal > 0 ? round(($saNormalized['Good'] / $saTotal) * 100) : 0;
+        $saPctFair = $saTotal > 0 ? round(($saNormalized['Fair'] / $saTotal) * 100) : 0;
+        $saPctBad  = $saTotal > 0 ? round(($saNormalized['Bad'] / $saTotal) * 100) : 0;
+        ?>
+        <div class="grid grid-cols-3 gap-3 mt-4">
+            <div class="text-center p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+                <p class="text-2xl font-bold text-emerald-600"><?= $saPctGood ?>%</p>
+                <p class="text-xs font-semibold text-emerald-700">Good</p>
+                <p class="text-[10px] text-slate-500"><?= number_format($saNormalized['Good']) ?> ratings</p>
+            </div>
+            <div class="text-center p-3 rounded-xl bg-amber-50 border border-amber-200">
+                <p class="text-2xl font-bold text-amber-600"><?= $saPctFair ?>%</p>
+                <p class="text-xs font-semibold text-amber-700">Fair</p>
+                <p class="text-[10px] text-slate-500"><?= number_format($saNormalized['Fair']) ?> ratings</p>
+            </div>
+            <div class="text-center p-3 rounded-xl bg-red-50 border border-red-200">
+                <p class="text-2xl font-bold text-red-600"><?= $saPctBad ?>%</p>
+                <p class="text-xs font-semibold text-red-700">Bad</p>
+                <p class="text-[10px] text-slate-500"><?= number_format($saNormalized['Bad']) ?> ratings</p>
+            </div>
         </div>
     </div>
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
@@ -615,6 +632,29 @@ include '../includes/admin_sidebar.php';
         <h3 class="text-sm font-bold text-slate-800 mb-4">Adm Rating Distribution (Good / Fair / Bad)</h3>
         <div class="relative flex items-center justify-center" style="height:280px;">
             <canvas id="admRatingPie"></canvas>
+        </div>
+        <?php
+        $admTotal = array_sum($admNormalized);
+        $admPctGood = $admTotal > 0 ? round(($admNormalized['Good'] / $admTotal) * 100) : 0;
+        $admPctFair = $admTotal > 0 ? round(($admNormalized['Fair'] / $admTotal) * 100) : 0;
+        $admPctBad  = $admTotal > 0 ? round(($admNormalized['Bad'] / $admTotal) * 100) : 0;
+        ?>
+        <div class="grid grid-cols-3 gap-3 mt-4">
+            <div class="text-center p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+                <p class="text-2xl font-bold text-emerald-600"><?= $admPctGood ?>%</p>
+                <p class="text-xs font-semibold text-emerald-700">Good</p>
+                <p class="text-[10px] text-slate-500"><?= number_format($admNormalized['Good']) ?> ratings</p>
+            </div>
+            <div class="text-center p-3 rounded-xl bg-amber-50 border border-amber-200">
+                <p class="text-2xl font-bold text-amber-600"><?= $admPctFair ?>%</p>
+                <p class="text-xs font-semibold text-amber-700">Fair</p>
+                <p class="text-[10px] text-slate-500"><?= number_format($admNormalized['Fair']) ?> ratings</p>
+            </div>
+            <div class="text-center p-3 rounded-xl bg-red-50 border border-red-200">
+                <p class="text-2xl font-bold text-red-600"><?= $admPctBad ?>%</p>
+                <p class="text-xs font-semibold text-red-700">Bad</p>
+                <p class="text-[10px] text-slate-500"><?= number_format($admNormalized['Bad']) ?> ratings</p>
+            </div>
         </div>
     </div>
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">

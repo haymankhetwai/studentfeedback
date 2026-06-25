@@ -21,15 +21,6 @@ CREATE TABLE IF NOT EXISTS departments (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS majors (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    department_id INT NOT NULL,
-    major_name VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_major_department FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE
-);
-
 CREATE TABLE IF NOT EXISTS teachers (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -44,22 +35,18 @@ CREATE TABLE IF NOT EXISTS teachers (
 CREATE TABLE IF NOT EXISTS students (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
-    major_id INT NOT NULL,
     roll_no VARCHAR(50) NOT NULL UNIQUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_student_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    CONSTRAINT fk_student_major FOREIGN KEY (major_id) REFERENCES majors(id) ON DELETE CASCADE
+    CONSTRAINT fk_student_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS courses (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    major_id INT NOT NULL,
     course_code VARCHAR(50) NOT NULL UNIQUE,
     course_name VARCHAR(100) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_course_major FOREIGN KEY (major_id) REFERENCES majors(id) ON DELETE CASCADE
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS sections (
@@ -121,11 +108,10 @@ CREATE TABLE IF NOT EXISTS feedback_ratings (
     feedback_form_id INT NOT NULL,
     student_id INT NOT NULL,
     question_id INT NOT NULL,
-    rating ENUM('Excellent','Good','Fair','Poor') NOT NULL,
+    rating ENUM('Good','Fair','Bad','Excellent','Poor') NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_rating_form FOREIGN KEY(feedback_form_id) REFERENCES feedback_forms(id) ON DELETE CASCADE,
-    CONSTRAINT fk_rating_student FOREIGN KEY(student_id) REFERENCES students(id) ON DELETE CASCADE,
-    CONSTRAINT fk_rating_question FOREIGN KEY(question_id) REFERENCES feedback_questions(id) ON DELETE CASCADE
+    CONSTRAINT fk_rating_student FOREIGN KEY(student_id) REFERENCES students(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS feedback_comments (
@@ -136,15 +122,44 @@ CREATE TABLE IF NOT EXISTS feedback_comments (
     comment_text TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_comment_form FOREIGN KEY(feedback_form_id) REFERENCES feedback_forms(id) ON DELETE CASCADE,
-    CONSTRAINT fk_comment_student FOREIGN KEY(student_id) REFERENCES students(id) ON DELETE CASCADE,
-    CONSTRAINT fk_comment_question FOREIGN KEY(question_id) REFERENCES feedback_questions(id) ON DELETE CASCADE
+    CONSTRAINT fk_comment_student FOREIGN KEY(student_id) REFERENCES students(id) ON DELETE CASCADE
+);
+
+-- Shared global questions used by all feedback forms/semesters
+CREATE TABLE IF NOT EXISTS global_feedback_questions (
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    question_no   INT NOT NULL,
+    question_text TEXT NOT NULL,
+    question_type ENUM('rating','comment') NOT NULL DEFAULT 'rating',
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Shared global questions for Student Affairs feedback (all semesters)
+CREATE TABLE IF NOT EXISTS global_sa_feedback_questions (
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    question_no   INT NOT NULL,
+    question_text TEXT NOT NULL,
+    question_type ENUM('rating','comment') NOT NULL DEFAULT 'rating',
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Shared global questions for Administration feedback (all semesters)
+CREATE TABLE IF NOT EXISTS global_adm_feedback_questions (
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    question_no   INT NOT NULL,
+    question_text TEXT NOT NULL,
+    question_type ENUM('rating','comment') NOT NULL DEFAULT 'rating',
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 INSERT IGNORE INTO users (name, username, email, password, role)
 VALUES (
     'System Admin',
     'admin',
-    'admin@sfms.edu',
+    'admin@ucsh.edu.mm',
     '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
     'admin'
 );

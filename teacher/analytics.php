@@ -164,7 +164,6 @@ $navItems = [
     ['label' => 'My Sections',      'href' => '/studentfeedback/teacher/my_sections.php',       'key' => 'sections',  'icon' => 'grid'],
     ['label' => 'Feedback Results', 'href' => '/studentfeedback/teacher/feedback_results.php',  'key' => 'results',   'icon' => 'chart'],
     ['label' => 'Analytics',        'href' => '/studentfeedback/teacher/analytics.php',         'key' => 'analytics', 'icon' => 'report'],
-    ['label' => 'Progress',         'href' => '/studentfeedback/teacher/feedback_progress.php', 'key' => 'progress',  'icon' => 'clipboard'],
     ['label' => 'Profile',          'href' => '/studentfeedback/teacher/profile.php',           'key' => 'profile',   'icon' => 'user'],
 ];
 $initials = avatarInitials($user['name']);
@@ -300,6 +299,29 @@ $initials = avatarInitials($user['name']);
         <h3 class="text-sm font-bold text-slate-800 mb-4">Rating Distribution (Good / Fair / Bad)</h3>
         <div class="relative flex items-center justify-center" style="height:300px;">
             <canvas id="ratingPieChart"></canvas>
+        </div>
+        <?php
+        $totalRatings = array_sum($ratingData);
+        $pctGood = $totalRatings > 0 ? round(($ratingData['Good'] / $totalRatings) * 100) : 0;
+        $pctFair = $totalRatings > 0 ? round(($ratingData['Fair'] / $totalRatings) * 100) : 0;
+        $pctBad  = $totalRatings > 0 ? round(($ratingData['Bad'] / $totalRatings) * 100) : 0;
+        ?>
+        <div class="grid grid-cols-3 gap-3 mt-4">
+            <div class="text-center p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+                <p class="text-2xl font-bold text-emerald-600"><?= $pctGood ?>%</p>
+                <p class="text-xs font-semibold text-emerald-700">Good</p>
+                <p class="text-[10px] text-slate-500"><?= number_format($ratingData['Good']) ?> ratings</p>
+            </div>
+            <div class="text-center p-3 rounded-xl bg-amber-50 border border-amber-200">
+                <p class="text-2xl font-bold text-amber-600"><?= $pctFair ?>%</p>
+                <p class="text-xs font-semibold text-amber-700">Fair</p>
+                <p class="text-[10px] text-slate-500"><?= number_format($ratingData['Fair']) ?> ratings</p>
+            </div>
+            <div class="text-center p-3 rounded-xl bg-red-50 border border-red-200">
+                <p class="text-2xl font-bold text-red-600"><?= $pctBad ?>%</p>
+                <p class="text-xs font-semibold text-red-700">Bad</p>
+                <p class="text-[10px] text-slate-500"><?= number_format($ratingData['Bad']) ?> ratings</p>
+            </div>
         </div>
     </div>
 

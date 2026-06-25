@@ -91,17 +91,26 @@ if ($formId && $teacherId) {
     $rf->close();
     
     if ($form) {
-        $q = $conn->prepare("SELECT * FROM feedback_questions WHERE feedback_form_id=? ORDER BY question_no ASC");
-        $q->bind_param('i', $formId);
+        $q = $conn->prepare("SELECT * FROM global_feedback_questions ORDER BY question_no ASC");
         $q->execute();
         $questions = $q->get_result()->fetch_all(MYSQLI_ASSOC);
         $q->close();
 
-        $sc = $conn->prepare("SELECT COUNT(*) AS c FROM feedback_submissions WHERE feedback_form_id=?");
+        $sc = $conn->prepare("SELECT COUNT(*) AS c FROM feedback_submissions fs JOIN students st ON fs.student_id = st.id WHERE fs.feedback_form_id=?");
         $sc->bind_param('i', $formId);
         $sc->execute();
         $submissionCount = (int) $sc->get_result()->fetch_assoc()['c'];
         $sc->close();
+
+        // Feedback Progress Stats
+        $totalStudentsStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM section_assignments sa JOIN students st ON sa.student_id = st.id WHERE sa.section_id = ?");
+        $totalStudentsStmt->bind_param('i', $form['section_id']);
+        $totalStudentsStmt->execute();
+        $totalStudents = (int) $totalStudentsStmt->get_result()->fetch_assoc()['cnt'];
+        $totalStudentsStmt->close();
+
+        $completedCount = $submissionCount;
+        $pendingCount = max(0, $totalStudents - $completedCount);
 
         foreach ($questions as $quest) {
             if ($quest['question_type'] === 'rating') {
@@ -150,7 +159,7 @@ foreach ($questions as $q) {
     }
 }
 
-$navItems = [['label' => 'Dashboard', 'href' => '/studentfeedback/teacher/index.php', 'key' => 'dashboard', 'icon' => 'home'], ['label' => 'My Sections', 'href' => '/studentfeedback/teacher/my_sections.php', 'key' => 'sections', 'icon' => 'grid'], ['label' => 'Feedback Results', 'href' => '/studentfeedback/teacher/feedback_results.php', 'key' => 'results', 'icon' => 'chart'], ['label' => 'Analytics', 'href' => '/studentfeedback/teacher/analytics.php', 'key' => 'analytics', 'icon' => 'report'], ['label' => 'Progress', 'href' => '/studentfeedback/teacher/feedback_progress.php', 'key' => 'progress', 'icon' => 'clipboard'], ['label' => 'Profile', 'href' => '/studentfeedback/teacher/profile.php', 'key' => 'profile', 'icon' => 'user']];
+$navItems = [['label' => 'Dashboard', 'href' => '/studentfeedback/teacher/index.php', 'key' => 'dashboard', 'icon' => 'home'], ['label' => 'My Sections', 'href' => '/studentfeedback/teacher/my_sections.php', 'key' => 'sections', 'icon' => 'grid'], ['label' => 'Feedback Results', 'href' => '/studentfeedback/teacher/feedback_results.php', 'key' => 'results', 'icon' => 'chart'], ['label' => 'Analytics', 'href' => '/studentfeedback/teacher/analytics.php', 'key' => 'analytics', 'icon' => 'report'], ['label' => 'Profile', 'href' => '/studentfeedback/teacher/profile.php', 'key' => 'profile', 'icon' => 'user']];
 $initials = avatarInitials($user['name']);
 ?>
 <!DOCTYPE html>
@@ -255,22 +264,56 @@ $initials = avatarInitials($user['name']);
                             
 
                             <?php if ($form): ?>
+                                <!-- Feedback Progress Stats (outside form) -->
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 myanmar-font no-print">
+                                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 text-center">
+                                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">စုစုပေါင်း ကျောင်းသား (Total Students)</p>
+                                        <p class="text-3xl font-black text-slate-800"><?= $totalStudents ?></p>
+                                    </div>
+                                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 text-center">
+                                        <p class="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-1">ဖြေဆိုပြီး (Completed)</p>
+                                        <p class="text-3xl font-black text-emerald-600"><?= $completedCount ?></p>
+                                        <p class="text-[10px] text-slate-400 mt-1"><?= $totalStudents > 0 ? round(($completedCount / $totalStudents) * 100) : 0 ?>% response rate</p>
+                                    </div>
+                                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 text-center">
+                                        <p class="text-xs font-bold text-amber-500 uppercase tracking-wider mb-1">ကျန်ရှိနေသေး (Pending)</p>
+                                        <p class="text-3xl font-black text-amber-600"><?= $pendingCount ?></p>
+                                        <p class="text-[10px] text-slate-400 mt-1"><?= $totalStudents > 0 ? round(($pendingCount / $totalStudents) * 100) : 0 ?>% remaining</p>
+                                    </div>
+                                </div>
+
                                 <div class="bg-white shadow-md rounded-xl border border-slate-200 p-6 md:p-8">
-                                    <div class="border-b-2 border-slate-800 pb-4 mb-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+
+                                    <div class="text-center border-b-2 border-slate-800 pb-4 mb-5">
+                                        <h2 class="text-lg md:text-xl font-bold text-slate-900 mb-1"><?= e($form['title']) ?></h2>
+                                        <p class="text-xs text-slate-400 font-mono">Statistical Evaluation Report Matrix (Anonymous)</p>
+                                        <p class="text-xs text-slate-400 mt-1">Feedback Period: <?= formatDate($form['start_date']) ?> — <?= formatDate($form['end_date']) ?></p>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
                                         <div>
-                                            <h3 class="text-base font-bold text-slate-900"><?= e($form['title']) ?> ရလဒ်များ</h3>
-                                            <p class="text-xs text-slate-400 mt-0.5 font-mono"><?= e($form['course_name']) ?> — Section <?= e($form['section']) ?> (<?= e($form['academic_year']) ?>)</p>
-                                            <p class="text-xs text-slate-400 mt-0.5">Feedback Period: <?= formatDate($form['start_date']) ?> — <?= formatDate($form['end_date']) ?></p>
+                                            <span class="font-bold text-slate-500">ဘာသာရပ် (Course):</span>
+                                            <div class="border-b border-dashed border-slate-300 py-1 font-semibold text-slate-800">
+                                                <?= e($form['course_name']) ?>
+                                            </div>
                                         </div>
-                                        <div class="bg-cyan-600 text-white px-4 py-2 rounded-xl text-center shadow-sm">
-                                            <span class="text-[9px] uppercase tracking-wider block font-bold opacity-70">Total Submissions</span>
-                                            <span class="text-base font-black font-mono"><?= $submissionCount ?></span>
+                                        <div>
+                                            <span class="font-bold text-slate-500">အတန်း (Section):</span>
+                                            <div class="border-b border-dashed border-slate-300 py-1 font-semibold text-slate-800 font-mono">
+                                                Section <?= e($form['section']) ?> (<?= e($form['academic_year']) ?>)
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <span class="font-bold text-slate-500">စုစုပေါင်း ဖြေဆိုသူ (Submissions):</span>
+                                            <div class="border-b border-dashed border-slate-300 py-1 font-semibold text-slate-800">
+                                                <?= $submissionCount ?> ယောက်
+                                            </div>
                                         </div>
                                     </div>
 
                                     <?php if (!empty($ratingQuestions)): ?>
                                         <div class="mb-8">
-                                            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3">ဘာသာရပ်တစ်ခုလုံးအပေါ် သုံးသပ်ချက်မေးခွန်းများ (OVERALL EVALUATION MATRIX)</h3>
+                                            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3">၁။ မေးခွန်းအလိုက် စာရင်းဇယား ရလဒ်များ</h3>
                                             <div class="overflow-x-auto border border-slate-300 rounded-lg">
                                                 <table class="w-full text-left border-collapse min-w-[650px] text-xs">
                                                     <thead>
@@ -318,7 +361,7 @@ $initials = avatarInitials($user['name']);
 
                                     <?php if (!empty($commentQuestions)): ?>
                                         <div class="space-y-6 pt-6 border-t-2 border-slate-300">
-                                            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">အကြံပြုချက်များ (COMMENTS BOX)</h3>
+                                            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">၂။ ရေးသားပေးပို့ထားသော အကြံပြုချက်များ (Comments Box)</h3>
                                             <?php foreach ($commentQuestions as $q): $commentsForThisQuestion = $comments[$q['id']] ?? []; ?>
                                                 <div class="space-y-2 text-xs">
                                                     <label class="block font-bold text-slate-700 text-sm">
@@ -339,6 +382,10 @@ $initials = avatarInitials($user['name']);
                                             <?php endforeach ?>
                                         </div>
                                     <?php endif ?>
+
+                                    <div class="mt-8 pt-4 border-t border-slate-100 text-right text-[11px] text-slate-400 font-semibold italic">
+                                        "ဤအစီရင်ခံစာသည် ကျောင်းသားများ၏ ကိုယ်ရေးအချက်အလက်ကို ထိန်းသိမ်းထားသော အလိုအလျောက် စာရင်းအင်းစနစ်ဖြစ်ပါသည်။"
+                                    </div>
                                 </div>
                             <?php endif ?>
                         <?php elseif ($sectionId): ?>

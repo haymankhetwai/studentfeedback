@@ -73,9 +73,9 @@ elseif (!$isActive)    { $statusNote = 'inactive'; }
 elseif ($form['start_date'] > $today) { $statusNote = 'not_started'; } 
 elseif ($form['end_date'] < $today)   { $statusNote = 'expired'; }
 
-// ─── Step 4: Load Questions
-$qStmt = $conn->prepare("SELECT * FROM feedback_questions WHERE feedback_form_id=? ORDER BY question_no ASC");
-$qStmt->bind_param('i', $formId); $qStmt->execute();
+// ─── Step 4: Load Questions (global — shared across all semesters)
+$qStmt = $conn->prepare("SELECT * FROM global_feedback_questions ORDER BY question_no ASC");
+$qStmt->execute();
 $allQuestions = $qStmt->get_result()->fetch_all(MYSQLI_ASSOC); $qStmt->close();
 
 $ratingQuestions = [];
@@ -101,14 +101,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                 break;
             }
         }
+        if (!$hasError) {
+            foreach ($commentQuestions as $q) {
+                $comment = trim($_POST['comment_' . $q['id']] ?? '');
+                if ($comment === '') {
+                    $hasError = true;
+                    break;
+                }
+            }
+        }
 
         if ($hasError) {
             setFlash('error', 'ကျေးဇူးပြု၍ မေးခွန်းအားလုံးကို အကဲဖြတ်ပေးပါ။');
         } else {
             $conn->begin_transaction();
             try {
+                $recheck = $conn->prepare("SELECT id FROM feedback_submissions WHERE feedback_form_id=? AND student_id=? FOR UPDATE");
+                $recheck->bind_param('ii', $formId, $studentId); $recheck->execute();
+                if ($recheck->get_result()->num_rows > 0) {
+                    $recheck->close(); $conn->rollback();
+                    setFlash('error', 'You have already submitted this form.');
+                    header('Location: my_sections.php'); exit;
+                }
+                $recheck->close();
+
                 $ins = $conn->prepare("INSERT INTO feedback_submissions (feedback_form_id, student_id) VALUES (?,?)");
-                $ins->bind_param('ii', $formId, $studentId); $ins->execute(); $ins->close();
+                $ins->bind_param('ii', $formId, $studentId); $ins->execute();
+                if ($ins->affected_rows === 0) {
+                    $ins->close(); $conn->rollback();
+                    setFlash('error', 'You have already submitted this form.');
+                    header('Location: my_sections.php'); exit;
+                }
+                $ins->close();
 
                 // Save dynamic ratings
                 foreach ($ratingQuestions as $q) {
@@ -229,9 +253,17 @@ $initials = avatarInitials($user['name']);
                     <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl mb-6 text-sm font-semibold">
                         ✓ ဤဘာသာရပ်အတွက် စစ်တမ်းပုံစံ ဖြည့်စွက်ပြီးဖြစ်ပါသည်။ ကျေးဇူးတင်ပါသည်။
                     </div>
-                <?php elseif (!$canSubmit): ?>
+                <?php elseif ($form['start_date'] > $today): ?>
+                    <div class="bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-xl mb-6 text-sm font-semibold">
+                        ⏳ Feedback form is not available yet. It will open on <strong><?= formatDate($form['start_date']) ?></strong>.
+                    </div>
+                <?php elseif ($form['end_date'] < $today): ?>
+                    <div class="bg-slate-100 border border-slate-300 text-slate-700 p-4 rounded-xl mb-6 text-sm font-semibold">
+                        🔒 Feedback form has been closed. It ended on <strong><?= formatDate($form['end_date']) ?></strong>.
+                    </div>
+                <?php elseif (!$isActive): ?>
                     <div class="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl mb-6 text-sm font-semibold">
-                        ⚠️ ဤစစ်တမ်းပုံစံအား လတ်တလော ဖြည့်စွက်၍မရနိုင်သေးပါ။
+                        ⚠️ This feedback form is currently inactive.
                     </div>
                 <?php endif ?>
 
@@ -293,7 +325,7 @@ $initials = avatarInitials($user['name']);
                             <label class="block text-sm font-bold text-slate-800">
                                 <?= e($q['question_no']) ?>။ <?= e($q['question_text']) ?>
                             </label>
-                            <textarea name="comment_<?= $q['id'] ?>" rows="4" 
+                            <textarea name="comment_<?= $q['id'] ?>" rows="4" required
                                       placeholder="ဤနေရာတွင် စာရေးသားထည့်သွင်းပါ (စိတ်ကြိုက်)..."
                                       <?= !$canSubmit ? 'disabled' : '' ?>
                                       class="w-full border-2 border-slate-300 rounded-xl px-4 py-3 text-sm bg-slate-50 focus:bg-white focus:border-slate-800 outline-none resize-none disabled:opacity-60 transition-all"></textarea>
@@ -314,6 +346,14 @@ $initials = avatarInitials($user['name']);
                             <button type="submit" id="submit-btn"
                                     class="w-full md:w-auto px-8 py-2.5 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl shadow-md transition-all">
                                 Submit Form (ပေးပို့မည်)
+                            </button>
+                            <?php elseif ($form['start_date'] > $today): ?>
+                            <button type="button" disabled class="w-full md:w-auto px-8 py-2.5 text-sm font-bold text-slate-400 bg-slate-200 rounded-xl cursor-not-allowed">
+                                Not Yet Available
+                            </button>
+                            <?php elseif ($form['end_date'] < $today): ?>
+                            <button type="button" disabled class="w-full md:w-auto px-8 py-2.5 text-sm font-bold text-slate-400 bg-slate-200 rounded-xl cursor-not-allowed">
+                                Form Closed
                             </button>
                             <?php else: ?>
                             <button type="button" disabled class="w-full md:w-auto px-8 py-2.5 text-sm font-bold text-slate-400 bg-slate-200 rounded-xl cursor-not-allowed">

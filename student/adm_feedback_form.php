@@ -5,7 +5,7 @@ require_once '../includes/functions.php';
 requireRole('student');
 
 $user = getCurrentUser();
-$stmt = $conn->prepare("SELECT st.id, m.major_name FROM students st JOIN majors m ON st.major_id=m.id WHERE st.user_id=?");
+$stmt = $conn->prepare("SELECT st.id FROM students st WHERE st.user_id=?");
 $stmt->bind_param('i', $user['id']);
 $stmt->execute();
 $student = $stmt->get_result()->fetch_assoc();
@@ -78,8 +78,7 @@ elseif ($form['end_date'] < $today)
     $statusNote = 'expired';
 
 // ─── Load Admin Questions ─────────────────────────────────────
-$qStmt = $conn->prepare("SELECT * FROM adm_feedback_questions WHERE form_id=? ORDER BY question_no ASC");
-$qStmt->bind_param('i', $formId);
+$qStmt = $conn->prepare("SELECT id, question_no, question_text, question_type FROM global_adm_feedback_questions ORDER BY question_no ASC");
 $qStmt->execute();
 $allQuestions = $qStmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $qStmt->close();
@@ -107,15 +106,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                 break;
             }
         }
+        if (!$hasError) {
+            foreach ($commentQuestions as $q) {
+                $comment = trim($_POST['comment_' . $q['id']] ?? '');
+                if ($comment === '') {
+                    $hasError = true;
+                    break;
+                }
+            }
+        }
 
         if ($hasError) {
-            setFlash('error', 'ကျေးဇူးပြု၍ အကဲဖြတ်မေးခွန်းများအားလုံးကို ဖြည့်စွက်ပေးပါ။');
+            setFlash('error', 'ကျေးဇူးပြု၍ အကဲဖြတ်မေးခွန်းများအားလုံးနှင့် မှတ်ချက်များအားလုံးကို ဖြည့်စွက်ပေးပါ။');
         } else {
             $conn->begin_transaction();
             try {
+                $recheck = $conn->prepare("SELECT id FROM adm_feedback_submissions WHERE form_id=? AND student_id=? FOR UPDATE");
+                $recheck->bind_param('ii', $formId, $studentId); $recheck->execute();
+                if ($recheck->get_result()->num_rows > 0) {
+                    $recheck->close(); $conn->rollback();
+                    setFlash('error', 'You have already submitted this form.');
+                    header('Location: adm_feedback.php'); exit;
+                }
+                $recheck->close();
+
                 $ins = $conn->prepare("INSERT INTO adm_feedback_submissions (form_id, student_id) VALUES (?,?)");
-                $ins->bind_param('ii', $formId, $studentId);
-                $ins->execute();
+                $ins->bind_param('ii', $formId, $studentId); $ins->execute();
+                if ($ins->affected_rows === 0) {
+                    $ins->close(); $conn->rollback();
+                    setFlash('error', 'You have already submitted this form.');
+                    header('Location: adm_feedback.php'); exit;
+                }
                 $ins->close();
 
                 foreach ($ratingQuestions as $q) {
@@ -191,7 +212,7 @@ $initials = avatarInitials($user['name']);
             <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold text-white"><?= e($initials) ?></div>
             <div class="flex-1 min-w-0">
                 <p class="text-xs font-semibold text-white truncate"><?= e($user['name']) ?></p>
-                <p class="text-[10px] text-cyan-100 truncate"><?= $student['major_name'] ?? 'Student' ?></p>
+                <p class="text-[10px] text-cyan-100 truncate">Student</p>
             </div>
             <a href="/studentfeedback/auth/logout.php" class="text-cyan-200 hover:text-red-300">
                         <?= iconSvg('logout', 'w-4 h-4') ?>
@@ -223,9 +244,17 @@ $initials = avatarInitials($user['name']);
                     <div class="bg-green-50 border border-green-200 text-green-800 p-4 rounded-xl mb-6 text-sm font-semibold">
                         ✓ ဤစီမံခန့်ခွဲမှုစစ်တမ်းပုံစံအား ဖြည့်စွက်ပေးပို့ပြီးဖြစ်ပါသည်။ ပါဝင်ဆောင်ရွက်ပေးမှုအတွက် ကျေးဇူးတင်ပါသည်။
                     </div>
-                <?php elseif (!$canSubmit && $statusNote): ?>
+                <?php elseif ($form['start_date'] > $today): ?>
+                    <div class="bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-xl mb-6 text-sm font-semibold">
+                        ⏳ Feedback form is not available yet. It will open on <strong><?= formatDate($form['start_date']) ?></strong>.
+                    </div>
+                <?php elseif ($form['end_date'] < $today): ?>
+                    <div class="bg-slate-100 border border-slate-300 text-slate-700 p-4 rounded-xl mb-6 text-sm font-semibold">
+                        🔒 Feedback form has been closed. It ended on <strong><?= formatDate($form['end_date']) ?></strong>.
+                    </div>
+                <?php elseif (!$isActive): ?>
                     <div class="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl mb-6 text-sm font-semibold">
-                        ⚠️ လက်ရှိအချိန်တွင် စစ်တမ်းပုံစံ လက်ခံခြင်းမရှိသေးပါ သို့မဟုတ် သက်တမ်းကုန်ဆုံးသွားပါပြီ။
+                        ⚠️ This feedback form is currently inactive.
                     </div>
                 <?php endif ?>
 
@@ -282,7 +311,7 @@ $initials = avatarInitials($user['name']);
                                         <label class="block text-xs font-bold text-slate-800 leading-relaxed">
                                             (<?= e($q['question_no']) ?>)။ <?= e($q['question_text']) ?>
                                         </label>
-                                        <textarea name="comment_<?= $q['id'] ?>" rows="4" 
+                                        <textarea name="comment_<?= $q['id'] ?>" rows="4" required
                                                   placeholder="ဤနေရာတွင် စာသားများရေးသားနိုင်ပါသည်..."
                                                   <?= !$canSubmit ? 'disabled' : '' ?>
                                                   class="w-full border border-slate-300 bg-slate-50 rounded-xl px-4 py-3 text-xs focus:bg-white focus:border-slate-900 outline-none resize-none transition-all disabled:opacity-60"></textarea>
@@ -298,6 +327,14 @@ $initials = avatarInitials($user['name']);
                                 <button type="submit" id="submit-btn"
                                         class="w-full md:w-auto px-8 py-2 text-xs font-bold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl shadow-md transition-all">
                                     Submit Feedback
+                                </button>
+                            <?php elseif ($form['start_date'] > $today): ?>
+                                <button type="button" disabled class="w-full md:w-auto px-8 py-2 text-xs font-bold text-slate-400 bg-slate-200 rounded-xl cursor-not-allowed">
+                                    Not Yet Available
+                                </button>
+                            <?php elseif ($form['end_date'] < $today): ?>
+                                <button type="button" disabled class="w-full md:w-auto px-8 py-2 text-xs font-bold text-slate-400 bg-slate-200 rounded-xl cursor-not-allowed">
+                                    Form Closed
                                 </button>
                             <?php else: ?>
                                 <button type="button" disabled class="w-full md:w-auto px-8 py-2 text-xs font-bold text-slate-400 bg-slate-200 rounded-xl cursor-not-allowed">

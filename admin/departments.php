@@ -24,10 +24,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     if ($action === 'edit') {
         $id = (int) ($_POST['id'] ?? 0);
         $name = clean($_POST['department_name'] ?? '');
-        $desc = clean($_POST['description'] ?? '');
         if ($id && $name) {
-            $stmt = $conn->prepare("UPDATE departments SET department_name=?,description=? WHERE id=?");
-            $stmt->bind_param('ssi', $name, $desc, $id);
+            $stmt = $conn->prepare("UPDATE departments SET department_name=? WHERE id=?");
+            $stmt->bind_param('si', $name, $id);
             $stmt->execute() ? setFlash('success', 'Department updated.') : setFlash('error', 'Update failed.');
             $stmt->close();
         }
@@ -37,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         if ($id) {
             $stmt = $conn->prepare("DELETE FROM departments WHERE id=?");
             $stmt->bind_param('i', $id);
-            $stmt->execute() ? setFlash('success', 'Department deleted.') : setFlash('error', 'Cannot delete (has majors).');
+            $stmt->execute() ? setFlash('success', 'Department deleted.') : setFlash('error', 'Cannot delete.');
             $stmt->close();
         }
     }
@@ -51,8 +50,8 @@ $page = max(1, (int) ($_GET['page'] ?? 1));
 
 if ($search) {
     $s2 = "%$search%";
-    $c = $conn->prepare("SELECT COUNT(*) AS c FROM departments WHERE department_name LIKE ? OR description LIKE ?");
-    $c->bind_param('ss', $s2, $s2);
+    $c = $conn->prepare("SELECT COUNT(*) AS c FROM departments WHERE department_name LIKE ?");
+    $c->bind_param('s', $s2);
     $c->execute();
     $total = (int) $c->get_result()->fetch_assoc()['c'];
     $c->close();
@@ -64,10 +63,10 @@ $off = $pg['offset'];
 
 if ($search) {
     $s2 = "%$search%";
-    $stmt = $conn->prepare("SELECT d.*, (SELECT COUNT(*) FROM majors m WHERE m.department_id=d.id) AS major_count FROM departments d WHERE d.department_name LIKE ? OR d.description LIKE ? ORDER BY d.id DESC LIMIT ? OFFSET ?");
-    $stmt->bind_param('ssii', $s2, $s2, $perPage, $off);
+    $stmt = $conn->prepare("SELECT d.* FROM departments d WHERE d.department_name LIKE ? ORDER BY d.id DESC LIMIT ? OFFSET ?");
+    $stmt->bind_param('sii', $s2, $perPage, $off);
 } else {
-    $stmt = $conn->prepare("SELECT d.*, (SELECT COUNT(*) FROM majors m WHERE m.department_id=d.id) AS major_count FROM departments d ORDER BY d.id DESC LIMIT ? OFFSET ?");
+    $stmt = $conn->prepare("SELECT d.* FROM departments d ORDER BY d.id DESC LIMIT ? OFFSET ?");
     $stmt->bind_param('ii', $perPage, $off);
 }
 $stmt->execute();
@@ -111,8 +110,6 @@ include '../includes/admin_sidebar.php';
                 <tr>
                     <th class="text-left px-5 py-3 text-slate-500">#</th>
                     <th class="text-left px-5 py-3 text-slate-500">Department Name</th>
-                    <th class="text-left px-5 py-3 text-slate-500">Description</th>
-                    <th class="text-left px-5 py-3 text-slate-500">Majors</th>
                     <th class="text-right px-5 py-3 text-slate-500">Actions</th>
                 </tr>
             </thead>
@@ -122,15 +119,10 @@ include '../includes/admin_sidebar.php';
                         <tr class="hover:bg-slate-50 transition-colors">
                             <td class="px-5 py-3 text-sm text-slate-400"><?= $pg['offset'] + $i + 1 ?></td>
                             <td class="px-5 py-3 text-sm font-semibold text-slate-800"><?= e($row['department_name']) ?></td>
-                            <td class="px-5 py-3 text-sm text-slate-500 max-w-xs truncate"><?= e($row['description'] ?? '—') ?>
-                            </td>
-                            <td class="px-5 py-3"><span
-                                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800"><?= $row['major_count'] ?>
-                                    major<?= $row['major_count'] != 1 ? 's' : '' ?></span></td>
                             <td class="px-5 py-3 text-right">
                                 <div class="flex items-center justify-end gap-2">
                                     <button
-                                        onclick="openEdit(<?= $row['id'] ?>,'<?= addslashes(e($row['department_name'])) ?>','<?= addslashes(e($row['description'] ?? '')) ?>')"
+                                        onclick="openEdit(<?= $row['id'] ?>,'<?= addslashes(e($row['department_name'])) ?>')"
                                         class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-cyan-700 bg-cyan-50 hover:bg-cyan-100 rounded-lg">
                                         <?= iconSvg('edit', 'w-3.5 h-3.5') ?> Edit
                                     </button>
@@ -144,7 +136,7 @@ include '../includes/admin_sidebar.php';
                         </tr>
                     <?php endforeach; else: ?>
                     <tr>
-                        <td colspan="5" class="text-center py-16 text-slate-400">
+                        <td colspan="4" class="text-center py-16 text-slate-400">
                             <?= iconSvg('home', 'w-10 h-10 mx-auto mb-3 opacity-40') ?>
                             <p class="text-sm">No departments found.</p>
                         </td>
@@ -169,12 +161,8 @@ include '../includes/admin_sidebar.php';
             <div class="px-6 py-5 space-y-4">
                 <div><label class="block text-sm font-medium text-slate-700 mb-1">Department Name <span
                             class="text-red-500">*</span></label><input type="text" name="department_name" required
-                        placeholder="e.g. Computer Science"
+                        placeholder="e.g. Faculty of Computer Science"
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
-                </div>
-                <div><label class="block text-sm font-medium text-slate-700 mb-1">Description</label><textarea
-                        name="description" rows="2" placeholder="Brief description (optional)..."
-                        class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none resize-none"></textarea>
                 </div>
             </div>
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl"><button
@@ -201,10 +189,6 @@ include '../includes/admin_sidebar.php';
                 <div><label class="block text-sm font-medium text-slate-700 mb-1">Department Name</label><input
                         type="text" name="department_name" id="edit_name" required
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
-                </div>
-                <div><label class="block text-sm font-medium text-slate-700 mb-1">Description</label><textarea
-                        name="description" id="edit_desc" rows="2"
-                        class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none resize-none"></textarea>
                 </div>
             </div>
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl"><button
@@ -238,7 +222,7 @@ include '../includes/admin_sidebar.php';
     </div>
 </div>
 <script>
-    function openEdit(id, name, desc) { document.getElementById('edit_id').value = id; document.getElementById('edit_name').value = name; document.getElementById('edit_desc').value = desc; openModal('editModal'); }
+    function openEdit(id, name) { document.getElementById('edit_id').value = id; document.getElementById('edit_name').value = name; openModal('editModal'); }
     function openDelete(id, name) { document.getElementById('delete_id').value = id; document.getElementById('delete_name').textContent = name; openModal('deleteModal'); }
 </script>
 <?php include '../includes/admin_footer.php'; ?>

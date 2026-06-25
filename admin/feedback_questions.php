@@ -4,37 +4,30 @@ require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 requireRole('admin');
 
-$pageTitle  = 'Feedback Questions';
+$pageTitle  = 'Global Feedback Questions';
 $activeMenu = 'questions';
-
-// Optional: filter by form_id
-$filterFormId = (int)($_GET['form_id'] ?? 0);
-
-$formList = $conn->query("SELECT ff.id, ff.title, c.course_name, s.section FROM feedback_forms ff JOIN sections s ON ff.section_id=s.id JOIN courses c ON s.course_id=c.id ORDER BY ff.id DESC")->fetch_all(MYSQLI_ASSOC);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     $action = $_POST['action'] ?? '';
     if ($action === 'add') {
-        $formId  = (int)($_POST['feedback_form_id'] ?? 0);
-        $qno     = (int)($_POST['question_no'] ?? 0);
-        $qtext   = clean($_POST['question_text'] ?? '');
-        $qtype   = in_array($_POST['question_type'],['rating','comment']) ? $_POST['question_type'] : 'rating';
-        if ($formId && $qno && $qtext) {
-            $stmt = $conn->prepare("INSERT INTO feedback_questions (feedback_form_id, question_no, question_text, question_type) VALUES (?,?,?,?)");
-            $stmt->bind_param('iiss',$formId,$qno,$qtext,$qtype);
+        $qno   = (int)($_POST['question_no'] ?? 0);
+        $qtext = clean($_POST['question_text'] ?? '');
+        $qtype = in_array($_POST['question_type'],['rating','comment']) ? $_POST['question_type'] : 'rating';
+        if ($qno && $qtext) {
+            $stmt = $conn->prepare("INSERT INTO global_feedback_questions (question_no, question_text, question_type) VALUES (?,?,?)");
+            $stmt->bind_param('iss',$qno,$qtext,$qtype);
             $stmt->execute() ? setFlash('success','Question added.') : setFlash('error','Failed.');
             $stmt->close();
         } else { setFlash('error','All fields required.'); }
     }
     if ($action === 'edit') {
         $id    = (int)($_POST['id'] ?? 0);
-        $formId= (int)($_POST['feedback_form_id'] ?? 0);
         $qno   = (int)($_POST['question_no'] ?? 0);
         $qtext = clean($_POST['question_text'] ?? '');
         $qtype = in_array($_POST['question_type'],['rating','comment']) ? $_POST['question_type'] : 'rating';
-        if ($id && $formId && $qno && $qtext) {
-            $stmt = $conn->prepare("UPDATE feedback_questions SET feedback_form_id=?,question_no=?,question_text=?,question_type=? WHERE id=?");
-            $stmt->bind_param('iissi',$formId,$qno,$qtext,$qtype,$id);
+        if ($id && $qno && $qtext) {
+            $stmt = $conn->prepare("UPDATE global_feedback_questions SET question_no=?,question_text=?,question_type=? WHERE id=?");
+            $stmt->bind_param('issi',$qno,$qtext,$qtype,$id);
             $stmt->execute() ? setFlash('success','Question updated.') : setFlash('error','Update failed.');
             $stmt->close();
         }
@@ -42,49 +35,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     if ($action === 'delete') {
         $id=(int)($_POST['id']??0);
         if ($id) {
-            $stmt=$conn->prepare("DELETE FROM feedback_questions WHERE id=?");
+            $stmt=$conn->prepare("DELETE FROM global_feedback_questions WHERE id=?");
             $stmt->bind_param('i',$id);
             $stmt->execute() ? setFlash('success','Question deleted.') : setFlash('error','Cannot delete.');
             $stmt->close();
         }
     }
-    $redir = 'feedback_questions.php'.($filterFormId?"?form_id=$filterFormId":'');
-    header("Location: $redir"); exit;
+    header('Location: feedback_questions.php'); exit;
 }
 
 $search  = clean($_GET['search'] ?? '');
-$perPage = 15;
+$perPage = 20;
 $page    = max(1,(int)($_GET['page'] ?? 1));
 
 $conds = [];
-$params2 = [];
-$types2  = '';
-if ($filterFormId) { $conds[] = "fq.feedback_form_id=?"; $params2[] = $filterFormId; $types2 .= 'i'; }
-if ($search) { $s2="%$search%"; $conds[]="fq.question_text LIKE ?"; $params2[]=$s2; $types2.='s'; }
+$params = [];
+$types  = '';
+if ($search) { $s2="%$search%"; $conds[]="fq.question_text LIKE ?"; $params[]=$s2; $types.='s'; }
 $where = $conds ? 'WHERE '.implode(' AND ',$conds) : '';
 
-$cntStmt = $conn->prepare("SELECT COUNT(*) AS c FROM feedback_questions fq $where");
-if ($types2) $cntStmt->bind_param($types2,...$params2);
+$cntStmt = $conn->prepare("SELECT COUNT(*) AS c FROM global_feedback_questions fq $where");
+if ($types) $cntStmt->bind_param($types,...$params);
 $cntStmt->execute();
 $total=(int)$cntStmt->get_result()->fetch_assoc()['c'];
 $cntStmt->close();
 
 $pg=paginate($total,$perPage,$page); $off=$pg['offset'];
-$p3=array_merge($params2,[$perPage,$off]); $t3=$types2.'ii';
+$p2=array_merge($params,[$perPage,$off]); $t2=$types.'ii';
 
-$dataStmt=$conn->prepare("SELECT fq.*, ff.title AS form_title, c.course_name, s.section FROM feedback_questions fq JOIN feedback_forms ff ON fq.feedback_form_id=ff.id JOIN sections s ON ff.section_id=s.id JOIN courses c ON s.course_id=c.id $where ORDER BY fq.feedback_form_id, fq.question_no LIMIT ? OFFSET ?");
-$dataStmt->bind_param($t3,...$p3);
+$dataStmt=$conn->prepare("SELECT fq.* FROM global_feedback_questions fq $where ORDER BY fq.question_no LIMIT ? OFFSET ?");
+$dataStmt->bind_param($t2,...$p2);
 $dataStmt->execute(); $rows=$dataStmt->get_result()->fetch_all(MYSQLI_ASSOC); $dataStmt->close();
 
-// Get current form info if filtered
-$currentForm = null;
-if ($filterFormId) {
-    $r=$conn->prepare("SELECT ff.title, c.course_name, s.section FROM feedback_forms ff JOIN sections s ON ff.section_id=s.id JOIN courses c ON s.course_id=c.id WHERE ff.id=?");
-    $r->bind_param('i',$filterFormId); $r->execute();
-    $currentForm=$r->get_result()->fetch_assoc(); $r->close();
-}
-
-$qs = http_build_query(array_filter(['form_id'=>$filterFormId,'search'=>$search]));
+$nextNo = $total + 1;
 
 include '../includes/admin_header.php';
 include '../includes/admin_sidebar.php';
@@ -92,15 +75,8 @@ include '../includes/admin_sidebar.php';
 
 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
     <div>
-        <div class="flex items-center gap-2 text-sm text-slate-400 mb-1">
-            <a href="feedback_forms.php" class="hover:text-cyan-600">Feedback Forms</a>
-            <?php if ($currentForm): ?>
-            <span>›</span><span class="text-slate-600 font-medium"><?= e($currentForm['course_name']) ?> – Sec <?= e($currentForm['section']) ?></span>
-            <?php endif ?>
-        </div>
-        <h2 class="text-xl font-bold text-slate-800">
-            <?= $currentForm ? e($currentForm['title']).' — Questions' : 'Feedback Questions' ?>
-        </h2>
+        <h2 class="text-xl font-bold text-slate-800">Global Feedback Questions</h2>
+        <p class="text-sm text-slate-500 mt-0.5">Shared questions used by all feedback forms across every semester</p>
     </div>
     <button onclick="openModal('addModal')" class="inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm shadow-cyan-600/20 transition-all hover:-translate-y-0.5">
         <?= iconSvg('plus','w-4 h-4') ?> Add Question
@@ -109,23 +85,14 @@ include '../includes/admin_sidebar.php';
 <?php renderFlash() ?>
 
 <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-    <div class="px-5 py-4 border-b border-slate-100 flex items-center gap-3 flex-wrap">
+    <div class="px-5 py-4 border-b border-slate-100 flex items-center gap-3">
         <form method="GET" class="flex items-center gap-2 flex-1">
-            <?php if ($filterFormId): ?><input type="hidden" name="form_id" value="<?= $filterFormId ?>"><?php endif ?>
             <div class="relative flex-1 max-w-xs"><span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><?= iconSvg('search','w-4 h-4') ?></span>
                 <input type="text" name="search" value="<?= e($search) ?>" placeholder="Search questions..." class="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
             </div>
             <button type="submit" class="px-3 py-2 text-sm bg-cyan-600 text-white rounded-xl hover:bg-cyan-700">Search</button>
-            <?php if ($search): ?><a href="feedback_questions.php<?= $filterFormId?"?form_id=$filterFormId":'' ?>" class="px-3 py-2 text-sm border border-slate-200 rounded-xl text-slate-600">Clear</a><?php endif ?>
+            <?php if ($search): ?><a href="feedback_questions.php" class="px-3 py-2 text-sm border border-slate-200 rounded-xl text-slate-600">Clear</a><?php endif ?>
         </form>
-        <?php if (!$filterFormId): ?>
-        <form method="GET" class="flex items-center gap-2">
-            <select name="form_id" onchange="this.form.submit()" class="border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-600 focus:border-cyan-500 outline-none bg-white">
-                <option value="">All Forms</option>
-                <?php foreach ($formList as $f): ?><option value="<?= $f['id'] ?>" <?= $filterFormId==$f['id']?'selected':'' ?>><?= e($f['title']) ?> (<?= e($f['course_name']) ?>)</option><?php endforeach ?>
-            </select>
-        </form>
-        <?php endif ?>
         <span class="text-xs text-slate-400"><?= $total ?> question<?= $total!==1?'s':'' ?></span>
     </div>
     <div class="overflow-x-auto">
@@ -135,7 +102,6 @@ include '../includes/admin_sidebar.php';
                     <th class="text-left px-5 py-3 text-slate-500 w-12">Q#</th>
                     <th class="text-left px-5 py-3 text-slate-500">Question</th>
                     <th class="text-left px-5 py-3 text-slate-500">Type</th>
-                    <?php if (!$filterFormId): ?><th class="text-left px-5 py-3 text-slate-500">Form</th><?php endif ?>
                     <th class="text-right px-5 py-3 text-slate-500">Actions</th>
                 </tr>
             </thead>
@@ -157,9 +123,6 @@ include '../includes/admin_sidebar.php';
                         </span>
                         <?php endif ?>
                     </td>
-                    <?php if (!$filterFormId): ?>
-                    <td class="px-5 py-3 text-sm text-slate-500"><?= e($row['form_title']) ?><br><span class="text-xs text-slate-400"><?= e($row['course_name']) ?></span></td>
-                    <?php endif ?>
                     <td class="px-5 py-3 text-right">
                         <div class="flex items-center justify-end gap-2">
                             <button onclick="openEdit(<?= htmlspecialchars(json_encode($row),ENT_QUOTES) ?>)"
@@ -174,12 +137,12 @@ include '../includes/admin_sidebar.php';
                     </td>
                 </tr>
             <?php endforeach; else: ?>
-                <tr><td colspan="5" class="text-center py-16 text-slate-400"><?= iconSvg('question','w-10 h-10 mx-auto mb-3 opacity-40') ?><p class="text-sm">No questions yet. Add questions to the form.</p></td></tr>
+                <tr><td colspan="4" class="text-center py-16 text-slate-400"><?= iconSvg('question','w-10 h-10 mx-auto mb-3 opacity-40') ?><p class="text-sm">No questions yet. Add your first question.</p></td></tr>
             <?php endif ?>
             </tbody>
         </table>
     </div>
-    <div class="px-5 py-4 border-t border-slate-100"><?= paginationLinks($pg,'feedback_questions.php'.($qs?"?$qs":'')) ?></div>
+    <div class="px-5 py-4 border-t border-slate-100"><?= paginationLinks($pg,'feedback_questions.php'.($search?'?search='.urlencode($search):'')) ?></div>
 </div>
 
 <!-- Add Modal -->
@@ -191,20 +154,14 @@ include '../includes/admin_sidebar.php';
         </div>
         <form method="POST"><?= csrfField() ?><input type="hidden" name="action" value="add">
             <div class="px-6 py-5 space-y-4">
-                <div><label class="block text-sm font-medium text-slate-700 mb-1">Feedback Form <span class="text-red-500">*</span></label>
-                    <select name="feedback_form_id" required class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
-                        <option value="">Select Form</option>
-                        <?php foreach ($formList as $f): ?><option value="<?= $f['id'] ?>" <?= $filterFormId==$f['id']?'selected':'' ?>><?= e($f['title']) ?> — <?= e($f['course_name']) ?> Sec <?= e($f['section']) ?></option><?php endforeach ?>
-                    </select>
-                </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div><label class="block text-sm font-medium text-slate-700 mb-1">Question # <span class="text-red-500">*</span></label>
-                        <input type="number" name="question_no" required min="1" placeholder="1" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
+                        <input type="number" name="question_no" value="<?= $nextNo ?>" required min="1" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
                     </div>
                     <div><label class="block text-sm font-medium text-slate-700 mb-1">Type <span class="text-red-500">*</span></label>
                         <select name="question_type" required class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
-                            <option value="rating">⭐ Rating</option>
-                            <option value="comment">💬 Comment</option>
+                            <option value="rating">Rating</option>
+                            <option value="comment">Comment</option>
                         </select>
                     </div>
                 </div>
@@ -229,18 +186,13 @@ include '../includes/admin_sidebar.php';
         </div>
         <form method="POST"><?= csrfField() ?><input type="hidden" name="action" value="edit"><input type="hidden" name="id" id="edit_id">
             <div class="px-6 py-5 space-y-4">
-                <div><label class="block text-sm font-medium text-slate-700 mb-1">Form</label>
-                    <select name="feedback_form_id" id="edit_form" required class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
-                        <?php foreach ($formList as $f): ?><option value="<?= $f['id'] ?>"><?= e($f['title']) ?></option><?php endforeach ?>
-                    </select>
-                </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div><label class="block text-sm font-medium text-slate-700 mb-1">Question #</label>
                         <input type="number" name="question_no" id="edit_qno" min="1" required class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
                     </div>
                     <div><label class="block text-sm font-medium text-slate-700 mb-1">Type</label>
                         <select name="question_type" id="edit_qtype" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
-                            <option value="rating">⭐ Rating</option><option value="comment">💬 Comment</option>
+                            <option value="rating">Rating</option><option value="comment">Comment</option>
                         </select>
                     </div>
                 </div>
@@ -276,7 +228,6 @@ include '../includes/admin_sidebar.php';
 <script>
 function openEdit(row) {
     document.getElementById('edit_id').value     = row.id;
-    document.getElementById('edit_form').value   = row.feedback_form_id;
     document.getElementById('edit_qno').value    = row.question_no;
     document.getElementById('edit_qtype').value  = row.question_type;
     document.getElementById('edit_qtext').value  = row.question_text;
