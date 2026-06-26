@@ -72,7 +72,7 @@ function runQuery($conn, $sql, $types, $params) {
 $totalFeedbackSql = "
     SELECT COUNT(*) AS cnt
     FROM feedback_ratings fr
-    JOIN feedback_forms ff ON fr.feedback_form_id = ff.id
+    JOIN feedback_forms ff ON fr.form_id = ff.id
     JOIN sections s ON ff.section_id = s.id
     $whereSql
 ";
@@ -81,7 +81,7 @@ $totalFeedback = (int) runQuery($conn, $totalFeedbackSql, $types, $params)->fetc
 $totalSubmissionsSql = "
     SELECT COUNT(*) AS cnt
     FROM feedback_submissions fs
-    JOIN feedback_forms ff ON fs.feedback_form_id = ff.id
+    JOIN feedback_forms ff ON fs.form_id = ff.id
     JOIN sections s ON ff.section_id = s.id
     $whereSql
 ";
@@ -107,7 +107,7 @@ $avgSql = "
         END
     ) AS avg_rating
     FROM feedback_ratings fr
-    JOIN feedback_forms ff ON fr.feedback_form_id = ff.id
+    JOIN feedback_forms ff ON fr.form_id = ff.id
     JOIN sections s ON ff.section_id = s.id
     $whereSql
 ";
@@ -118,7 +118,7 @@ $avgRating = $avgResult['avg_rating'] ? round((float)$avgResult['avg_rating'], 2
 $ratingDistSql = "
     SELECT fr.rating, COUNT(*) AS qty
     FROM feedback_ratings fr
-    JOIN feedback_forms ff ON fr.feedback_form_id = ff.id
+    JOIN feedback_forms ff ON fr.form_id = ff.id
     JOIN sections s ON ff.section_id = s.id
     $whereSql
     GROUP BY fr.rating
@@ -150,7 +150,7 @@ $sectionBreakdownSql = "
            COUNT(fr.id) AS total_ratings,
            AVG(CASE WHEN fr.rating IN ('Excellent','Good') THEN 5 WHEN fr.rating = 'Fair' THEN 3 WHEN fr.rating IN ('Poor','Bad') THEN 1 ELSE 3 END) AS avg_rating
     FROM feedback_ratings fr
-    JOIN feedback_forms ff ON fr.feedback_form_id = ff.id
+    JOIN feedback_forms ff ON fr.form_id = ff.id
     JOIN sections s ON ff.section_id = s.id
     JOIN courses c ON s.course_id = c.id
     $whereSql

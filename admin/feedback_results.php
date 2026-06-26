@@ -11,27 +11,29 @@ $activeMenu = 'results';
 $formId = (int) ($_GET['form_id'] ?? 0);
 $teacherId = (int) ($_GET['teacher_id'] ?? 0);
 
-// Teacher dropdown data
+// Teacher dropdown data — all teachers who have sections
 $teacherList = $conn->query("
-    SELECT t.id, u.name AS teacher_name
-    FROM teachers t
+    SELECT DISTINCT t.id, u.name AS teacher_name
+    FROM sections s
+    JOIN teachers t ON s.teacher_id = t.id
     JOIN users u ON t.user_id = u.id
     ORDER BY u.name ASC
 ")->fetch_all(MYSQLI_ASSOC);
 
-// ၁။ Dropdown အတွက် Form စာရင်းကို အရင်ဆွဲထုတ်ပါသည်
+// ၁။ Dropdown အတွက် Form စာရင်းကို အရင်ဆွဲထုတ်ပါသည် (all academic forms)
 $formSql = "
     SELECT ff.id, c.course_name, s.section, s.semester 
     FROM feedback_forms ff 
     JOIN sections s ON ff.section_id = s.id 
     JOIN courses c ON s.course_id = c.id 
     JOIN teachers t ON s.teacher_id = t.id
+    WHERE ff.module = 'academic'
 ";
 $formParams = [];
 $formTypes = '';
 
 if ($teacherId) {
-    $formSql .= " WHERE t.id = ?";
+    $formSql .= " AND t.id = ?";
     $formParams[] = $teacherId;
     $formTypes .= 'i';
 }
@@ -63,8 +65,8 @@ if ($formId) {
 
     if ($form) {
         // ၃။ မေးခွန်းများကို အစီအစဉ်တကျ ဆွဲထုတ်ခြင်း
-        $q = $conn->prepare("SELECT id, question_no, question_text, question_type FROM global_feedback_questions ORDER BY question_no ASC");
-        $q->execute();
+        $q = $conn->prepare("SELECT id, question_no, question_text, question_type FROM feedback_questions WHERE module=? ORDER BY question_no ASC");
+        $module = 'academic'; $q->bind_param('s', $module); $q->execute();
         $questions = $q->get_result()->fetch_all(MYSQLI_ASSOC);
         $q->close();
 
@@ -75,7 +77,7 @@ if ($formId) {
         $totalStudents = (int) $totalStudentsStmt->get_result()->fetch_assoc()['cnt'];
         $totalStudentsStmt->close();
 
-        $completedStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM feedback_submissions fs JOIN students st ON fs.student_id = st.id WHERE fs.feedback_form_id = ?");
+        $completedStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM feedback_submissions fs JOIN students st ON fs.student_id = st.id WHERE fs.form_id = ?");
         $completedStmt->bind_param('i', $formId);
         $completedStmt->execute();
         $completedCount = (int) $completedStmt->get_result()->fetch_assoc()['cnt'];
@@ -87,7 +89,7 @@ if ($formId) {
         $statStmt = $conn->prepare("
             SELECT question_id, rating, COUNT(*) as qty 
             FROM feedback_ratings 
-            WHERE feedback_form_id = ? 
+            WHERE form_id = ? 
             GROUP BY question_id, rating
         ");
         $statStmt->bind_param('i', $formId);
@@ -117,7 +119,7 @@ if ($formId) {
         $cStmt = $conn->prepare("
             SELECT question_id, comment_text 
             FROM feedback_comments 
-            WHERE feedback_form_id = ? AND comment_text IS NOT NULL AND comment_text != ''
+            WHERE form_id = ? AND comment_text IS NOT NULL AND comment_text != ''
         ");
         $cStmt->bind_param('i', $formId);
         $cStmt->execute();

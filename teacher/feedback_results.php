@@ -59,7 +59,7 @@ if ($sectionId && $teacherId) {
     $chk->bind_param('ii', $sectionId, $teacherId);
     $chk->execute();
     if ($chk->get_result()->num_rows) {
-        $rf = $conn->prepare("SELECT ff.id, ff.title, ff.status, (SELECT COUNT(*) FROM feedback_submissions fs WHERE fs.feedback_form_id=ff.id) AS submissions FROM feedback_forms ff WHERE ff.section_id=? ORDER BY ff.id DESC");
+        $rf = $conn->prepare("SELECT ff.id, ff.title, ff.status, (SELECT COUNT(*) FROM feedback_submissions fs WHERE fs.form_id=ff.id) AS submissions FROM feedback_forms ff WHERE ff.section_id=? ORDER BY ff.id DESC");
         $rf->bind_param('i', $sectionId);
         $rf->execute();
         $sectionForms = $rf->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -91,12 +91,12 @@ if ($formId && $teacherId) {
     $rf->close();
     
     if ($form) {
-        $q = $conn->prepare("SELECT * FROM global_feedback_questions ORDER BY question_no ASC");
-        $q->execute();
+        $q = $conn->prepare("SELECT * FROM feedback_questions WHERE module=? ORDER BY question_no ASC");
+        $module = 'academic'; $q->bind_param('s', $module); $q->execute();
         $questions = $q->get_result()->fetch_all(MYSQLI_ASSOC);
         $q->close();
 
-        $sc = $conn->prepare("SELECT COUNT(*) AS c FROM feedback_submissions fs JOIN students st ON fs.student_id = st.id WHERE fs.feedback_form_id=?");
+        $sc = $conn->prepare("SELECT COUNT(*) AS c FROM feedback_submissions fs JOIN students st ON fs.student_id = st.id WHERE fs.form_id=?");
         $sc->bind_param('i', $formId);
         $sc->execute();
         $submissionCount = (int) $sc->get_result()->fetch_assoc()['c'];
@@ -114,7 +114,7 @@ if ($formId && $teacherId) {
 
         foreach ($questions as $quest) {
             if ($quest['question_type'] === 'rating') {
-                $rs = $conn->prepare("SELECT rating, COUNT(*) AS cnt FROM feedback_ratings WHERE question_id=? AND feedback_form_id=? GROUP BY rating");
+                $rs = $conn->prepare("SELECT rating, COUNT(*) AS cnt FROM feedback_ratings WHERE question_id=? AND form_id=? GROUP BY rating");
                 $rs->bind_param('ii', $quest['id'], $formId);
                 $rs->execute();
                 $rawR = $rs->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -139,7 +139,7 @@ if ($formId && $teacherId) {
                 }
                 $ratingResults[$quest['id']] = ['breakdown' => $bd, 'total' => $tot];
             } else {
-                $cs = $conn->prepare("SELECT comment_text FROM feedback_comments WHERE question_id=? AND feedback_form_id=? ORDER BY id DESC");
+                $cs = $conn->prepare("SELECT comment_text FROM feedback_comments WHERE question_id=? AND form_id=? ORDER BY id DESC");
                 $cs->bind_param('ii', $quest['id'], $formId);
                 $cs->execute();
                 $comments[$quest['id']] = $cs->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -313,7 +313,7 @@ $initials = avatarInitials($user['name']);
 
                                     <?php if (!empty($ratingQuestions)): ?>
                                         <div class="mb-8">
-                                            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3">၁။ မေးခွန်းအလိုက် စာရင်းဇယား ရလဒ်များ</h3>
+                                            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3">မေးခွန်းအလိုက် စာရင်းဇယား ရလဒ်များ</h3>
                                             <div class="overflow-x-auto border border-slate-300 rounded-lg">
                                                 <table class="w-full text-left border-collapse min-w-[650px] text-xs">
                                                     <thead>
@@ -361,7 +361,7 @@ $initials = avatarInitials($user['name']);
 
                                     <?php if (!empty($commentQuestions)): ?>
                                         <div class="space-y-6 pt-6 border-t-2 border-slate-300">
-                                            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">၂။ ရေးသားပေးပို့ထားသော အကြံပြုချက်များ (Comments Box)</h3>
+                                            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">ရေးသားပေးပို့ထားသော အကြံပြုချက်များ (Comments Box)</h3>
                                             <?php foreach ($commentQuestions as $q): $commentsForThisQuestion = $comments[$q['id']] ?? []; ?>
                                                 <div class="space-y-2 text-xs">
                                                     <label class="block font-bold text-slate-700 text-sm">

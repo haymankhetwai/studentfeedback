@@ -16,9 +16,12 @@ $filterCourse   = (int)($_GET['course_id'] ?? 0);
 $semesters = $conn->query("SELECT DISTINCT semester FROM sections WHERE semester != '' ORDER BY semester DESC")->fetch_all(MYSQLI_ASSOC);
 $teachers  = $conn->query("
     SELECT DISTINCT t.id, u.name AS teacher_name
-    FROM sections s
+    FROM feedback_submissions fs
+    JOIN feedback_forms ff ON fs.form_id = ff.id
+    JOIN sections s ON ff.section_id = s.id
     JOIN teachers t ON s.teacher_id = t.id
     JOIN users u ON t.user_id = u.id
+    WHERE ff.module = 'academic'
     ORDER BY u.name ASC
 ")->fetch_all(MYSQLI_ASSOC);
 $courses   = $conn->query("
@@ -69,7 +72,7 @@ function runFilteredQuery($conn, $sql, $types, $params) {
 $ratingCountSql = "
     SELECT COUNT(*) AS cnt
     FROM feedback_ratings fr
-    JOIN feedback_forms ff ON fr.feedback_form_id = ff.id
+    JOIN feedback_forms ff ON fr.form_id = ff.id
     JOIN sections sec ON ff.section_id = sec.id
     $whereSql
 ";
@@ -79,7 +82,7 @@ $totalRatings = (int) $ratingCountResult->fetch_assoc()['cnt'];
 $submissionCountSql = "
     SELECT COUNT(*) AS cnt
     FROM feedback_submissions fs
-    JOIN feedback_forms ff ON fs.feedback_form_id = ff.id
+    JOIN feedback_forms ff ON fs.form_id = ff.id
     JOIN sections sec ON ff.section_id = sec.id
     $whereSql
 ";
@@ -98,7 +101,7 @@ $totalForms = (int) $formCountResult->fetch_assoc()['cnt'];
 $teacherCountSql = "
     SELECT COUNT(DISTINCT sec.teacher_id) AS cnt
     FROM feedback_submissions fs
-    JOIN feedback_forms ff ON fs.feedback_form_id = ff.id
+    JOIN feedback_forms ff ON fs.form_id = ff.id
     JOIN sections sec ON ff.section_id = sec.id
     $whereSql
 ";
@@ -109,7 +112,7 @@ $totalTeachers = (int) $teacherCountResult->fetch_assoc()['cnt'];
 $overallRatingSql = "
     SELECT fr.rating, COUNT(*) AS qty
     FROM feedback_ratings fr
-    JOIN feedback_forms ff ON fr.feedback_form_id = ff.id
+    JOIN feedback_forms ff ON fr.form_id = ff.id
     JOIN sections sec ON ff.section_id = sec.id
     $whereSql
     GROUP BY fr.rating
@@ -144,7 +147,7 @@ $avgSql = "
         ELSE 3
     END) AS avg_rating
     FROM feedback_ratings fr
-    JOIN feedback_forms ff ON fr.feedback_form_id = ff.id
+    JOIN feedback_forms ff ON fr.form_id = ff.id
     JOIN sections sec ON ff.section_id = sec.id
     $whereSql
 ";
@@ -155,7 +158,7 @@ $avgRating = $avgResult['avg_rating'] ? round((float)$avgResult['avg_rating'], 2
 $semesterStatSql = "
     SELECT sec.semester, COUNT(*) AS total
     FROM feedback_submissions fs
-    JOIN feedback_forms ff ON fs.feedback_form_id = ff.id
+    JOIN feedback_forms ff ON fs.form_id = ff.id
     JOIN sections sec ON ff.section_id = sec.id
     WHERE sec.semester IS NOT NULL AND sec.semester != ''
     " . ($filterTeacher > 0 ? "AND sec.teacher_id = ?" : "") . "
@@ -179,7 +182,7 @@ $teacherPerfSql = "
            t.id AS teacher_id,
            COUNT(*) AS feedback_count
     FROM feedback_ratings fr
-    JOIN feedback_forms ff ON fr.feedback_form_id = ff.id
+    JOIN feedback_forms ff ON fr.form_id = ff.id
     JOIN sections sec ON ff.section_id = sec.id
     JOIN teachers t ON sec.teacher_id = t.id
     JOIN users u ON t.user_id = u.id
@@ -200,7 +203,7 @@ foreach ($teacherPerfData as $tp) {
     $trSql = "
         SELECT fr.rating, COUNT(*) AS qty
         FROM feedback_ratings fr
-        JOIN feedback_forms ff ON fr.feedback_form_id = ff.id
+        JOIN feedback_forms ff ON fr.form_id = ff.id
         JOIN sections sec ON ff.section_id = sec.id
         JOIN teachers t ON sec.teacher_id = t.id
         WHERE t.id = ?
@@ -240,7 +243,7 @@ $coursePerfSql = "
     SELECT c.course_name, c.id AS course_id,
            COUNT(*) AS feedback_count
     FROM feedback_ratings fr
-    JOIN feedback_forms ff ON fr.feedback_form_id = ff.id
+    JOIN feedback_forms ff ON fr.form_id = ff.id
     JOIN sections sec ON ff.section_id = sec.id
     JOIN courses c ON sec.course_id = c.id
     $whereSql
@@ -260,7 +263,7 @@ foreach ($coursePerfData as $cp) {
     $crSql = "
         SELECT fr.rating, COUNT(*) AS qty
         FROM feedback_ratings fr
-        JOIN feedback_forms ff ON fr.feedback_form_id = ff.id
+        JOIN feedback_forms ff ON fr.form_id = ff.id
         JOIN sections sec ON ff.section_id = sec.id
         JOIN courses c ON sec.course_id = c.id
         WHERE c.id = ?
@@ -290,55 +293,57 @@ function buildFilterUrl(array $overrides = []): string {
 }
 
 // ─── SA Feedback Statistics ─────────────────────────────────────
-$saTotalRatings = (int) $conn->query("SELECT COUNT(*) AS cnt FROM sa_feedback_ratings")->fetch_assoc()['cnt'];
-$saTotalSubmissions = (int) $conn->query("SELECT COUNT(*) AS cnt FROM sa_feedback_submissions")->fetch_assoc()['cnt'];
-$saTotalForms = (int) $conn->query("SELECT COUNT(*) AS cnt FROM sa_feedback_forms")->fetch_assoc()['cnt'];
+$saTotalRatings = (int) $conn->query("SELECT COUNT(*) AS cnt FROM feedback_ratings fr JOIN feedback_forms ff ON fr.form_id=ff.id WHERE ff.module='student_affairs'")->fetch_assoc()['cnt'];
+$saTotalSubmissions = (int) $conn->query("SELECT COUNT(*) AS cnt FROM feedback_submissions fs JOIN feedback_forms ff ON fs.form_id=ff.id WHERE ff.module='student_affairs'")->fetch_assoc()['cnt'];
+$saTotalForms = (int) $conn->query("SELECT COUNT(*) AS cnt FROM feedback_forms WHERE module='student_affairs'")->fetch_assoc()['cnt'];
 
-$saRatingDist = $conn->query("SELECT rating, COUNT(*) AS qty FROM sa_feedback_ratings GROUP BY rating ORDER BY FIELD(rating, 'Excellent', 'Good', 'Fair', 'Poor')")->fetch_all(MYSQLI_ASSOC);
+$saRatingDist = $conn->query("SELECT rating, COUNT(*) AS qty FROM feedback_ratings fr JOIN feedback_forms ff ON fr.form_id=ff.id WHERE ff.module='student_affairs' GROUP BY rating ORDER BY FIELD(rating, 'Excellent', 'Good', 'Fair', 'Poor', 'Bad')")->fetch_all(MYSQLI_ASSOC);
 $saNormalized = ['Good' => 0, 'Fair' => 0, 'Bad' => 0];
 foreach ($saRatingDist as $rd) {
     $r = trim($rd['rating']);
     if (in_array($r, ['Excellent', 'Good'])) $saNormalized['Good'] += (int)$rd['qty'];
     elseif (in_array($r, ['Fair'])) $saNormalized['Fair'] += (int)$rd['qty'];
-    elseif (in_array($r, ['Poor'])) $saNormalized['Bad'] += (int)$rd['qty'];
+    elseif (in_array($r, ['Poor', 'Bad'])) $saNormalized['Bad'] += (int)$rd['qty'];
 }
 
-$saAvgResult = $conn->query("SELECT AVG(CASE WHEN rating='Excellent' THEN 5 WHEN rating='Good' THEN 4 WHEN rating='Fair' THEN 3 WHEN rating='Poor' THEN 1 ELSE 3 END) AS avg_rating FROM sa_feedback_ratings")->fetch_assoc();
+$saAvgResult = $conn->query("SELECT AVG(CASE WHEN rating='Good' THEN 4 WHEN rating='Fair' THEN 3 WHEN rating IN ('Poor','Bad') THEN 1 ELSE 3 END) AS avg_rating FROM feedback_ratings fr JOIN feedback_forms ff ON fr.form_id=ff.id WHERE ff.module='student_affairs'")->fetch_assoc();
 $saAvgRating = $saAvgResult['avg_rating'] ? round((float)$saAvgResult['avg_rating'], 2) : 0;
 
 // SA per-form breakdown
 $saFormBreakdown = $conn->query("
-    SELECT sf.id, sf.title, COUNT(sfr.id) AS total_ratings,
-           AVG(CASE WHEN sfr.rating='Excellent' THEN 5 WHEN sfr.rating='Good' THEN 4 WHEN sfr.rating='Fair' THEN 3 WHEN sfr.rating='Poor' THEN 1 ELSE 3 END) AS avg_rating
-    FROM sa_feedback_ratings sfr
-    JOIN sa_feedback_forms sf ON sfr.form_id = sf.id
+    SELECT sf.id, sf.title, COUNT(fr.id) AS total_ratings,
+           AVG(CASE WHEN fr.rating='Good' THEN 4 WHEN fr.rating='Fair' THEN 3 WHEN fr.rating IN ('Poor','Bad') THEN 1 ELSE 3 END) AS avg_rating
+    FROM feedback_ratings fr
+    JOIN feedback_forms sf ON fr.form_id = sf.id
+    WHERE sf.module='student_affairs'
     GROUP BY sf.id, sf.title
     ORDER BY total_ratings DESC
 ")->fetch_all(MYSQLI_ASSOC);
 
 // ─── Admin Feedback Statistics ──────────────────────────────────
-$admTotalRatings = (int) $conn->query("SELECT COUNT(*) AS cnt FROM adm_feedback_ratings")->fetch_assoc()['cnt'];
-$admTotalSubmissions = (int) $conn->query("SELECT COUNT(*) AS cnt FROM adm_feedback_submissions")->fetch_assoc()['cnt'];
-$admTotalForms = (int) $conn->query("SELECT COUNT(*) AS cnt FROM adm_feedback_forms")->fetch_assoc()['cnt'];
+$admTotalRatings = (int) $conn->query("SELECT COUNT(*) AS cnt FROM feedback_ratings fr JOIN feedback_forms ff ON fr.form_id=ff.id WHERE ff.module='administration'")->fetch_assoc()['cnt'];
+$admTotalSubmissions = (int) $conn->query("SELECT COUNT(*) AS cnt FROM feedback_submissions fs JOIN feedback_forms ff ON fs.form_id=ff.id WHERE ff.module='administration'")->fetch_assoc()['cnt'];
+$admTotalForms = (int) $conn->query("SELECT COUNT(*) AS cnt FROM feedback_forms WHERE module='administration'")->fetch_assoc()['cnt'];
 
-$admRatingDist = $conn->query("SELECT rating, COUNT(*) AS qty FROM adm_feedback_ratings GROUP BY rating ORDER BY FIELD(rating, 'Excellent', 'Good', 'Fair', 'Poor')")->fetch_all(MYSQLI_ASSOC);
+$admRatingDist = $conn->query("SELECT rating, COUNT(*) AS qty FROM feedback_ratings fr JOIN feedback_forms ff ON fr.form_id=ff.id WHERE ff.module='administration' GROUP BY rating ORDER BY FIELD(rating, 'Excellent', 'Good', 'Fair', 'Poor', 'Bad')")->fetch_all(MYSQLI_ASSOC);
 $admNormalized = ['Good' => 0, 'Fair' => 0, 'Bad' => 0];
 foreach ($admRatingDist as $rd) {
     $r = trim($rd['rating']);
     if (in_array($r, ['Excellent', 'Good'])) $admNormalized['Good'] += (int)$rd['qty'];
     elseif (in_array($r, ['Fair'])) $admNormalized['Fair'] += (int)$rd['qty'];
-    elseif (in_array($r, ['Poor'])) $admNormalized['Bad'] += (int)$rd['qty'];
+    elseif (in_array($r, ['Poor', 'Bad'])) $admNormalized['Bad'] += (int)$rd['qty'];
 }
 
-$admAvgResult = $conn->query("SELECT AVG(CASE WHEN rating='Excellent' THEN 5 WHEN rating='Good' THEN 4 WHEN rating='Fair' THEN 3 WHEN rating='Poor' THEN 1 ELSE 3 END) AS avg_rating FROM adm_feedback_ratings")->fetch_assoc();
+$admAvgResult = $conn->query("SELECT AVG(CASE WHEN rating='Good' THEN 4 WHEN rating='Fair' THEN 3 WHEN rating IN ('Poor','Bad') THEN 1 ELSE 3 END) AS avg_rating FROM feedback_ratings fr JOIN feedback_forms ff ON fr.form_id=ff.id WHERE ff.module='administration'")->fetch_assoc();
 $admAvgRating = $admAvgResult['avg_rating'] ? round((float)$admAvgResult['avg_rating'], 2) : 0;
 
 // Admin per-form breakdown
 $admFormBreakdown = $conn->query("
-    SELECT af.id, af.title, COUNT(afr.id) AS total_ratings,
-           AVG(CASE WHEN afr.rating='Excellent' THEN 5 WHEN afr.rating='Good' THEN 4 WHEN afr.rating='Fair' THEN 3 WHEN afr.rating='Poor' THEN 1 ELSE 3 END) AS avg_rating
-    FROM adm_feedback_ratings afr
-    JOIN adm_feedback_forms af ON afr.form_id = af.id
+    SELECT af.id, af.title, COUNT(fr.id) AS total_ratings,
+           AVG(CASE WHEN fr.rating='Good' THEN 4 WHEN fr.rating='Fair' THEN 3 WHEN fr.rating IN ('Poor','Bad') THEN 1 ELSE 3 END) AS avg_rating
+    FROM feedback_ratings fr
+    JOIN feedback_forms af ON fr.form_id = af.id
+    WHERE af.module='administration'
     GROUP BY af.id, af.title
     ORDER BY total_ratings DESC
 ")->fetch_all(MYSQLI_ASSOC);

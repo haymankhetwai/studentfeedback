@@ -4,8 +4,10 @@ require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 requireRole('admin');
 
-$pageTitle  = 'Global Feedback Questions';
+$pageTitle  = 'Academic Feedback Questions';
 $activeMenu = 'questions';
+
+$module = 'academic';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     $action = $_POST['action'] ?? '';
@@ -14,8 +16,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         $qtext = clean($_POST['question_text'] ?? '');
         $qtype = in_array($_POST['question_type'],['rating','comment']) ? $_POST['question_type'] : 'rating';
         if ($qno && $qtext) {
-            $stmt = $conn->prepare("INSERT INTO global_feedback_questions (question_no, question_text, question_type) VALUES (?,?,?)");
-            $stmt->bind_param('iss',$qno,$qtext,$qtype);
+            $stmt = $conn->prepare("INSERT INTO feedback_questions (module, question_no, question_text, question_type) VALUES (?,?,?,?)");
+            $stmt->bind_param('siss',$module,$qno,$qtext,$qtype);
             $stmt->execute() ? setFlash('success','Question added.') : setFlash('error','Failed.');
             $stmt->close();
         } else { setFlash('error','All fields required.'); }
@@ -26,8 +28,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         $qtext = clean($_POST['question_text'] ?? '');
         $qtype = in_array($_POST['question_type'],['rating','comment']) ? $_POST['question_type'] : 'rating';
         if ($id && $qno && $qtext) {
-            $stmt = $conn->prepare("UPDATE global_feedback_questions SET question_no=?,question_text=?,question_type=? WHERE id=?");
-            $stmt->bind_param('issi',$qno,$qtext,$qtype,$id);
+            $stmt = $conn->prepare("UPDATE feedback_questions SET question_no=?,question_text=?,question_type=? WHERE id=? AND module=?");
+            $stmt->bind_param('issis',$qno,$qtext,$qtype,$id,$module);
             $stmt->execute() ? setFlash('success','Question updated.') : setFlash('error','Update failed.');
             $stmt->close();
         }
@@ -35,8 +37,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     if ($action === 'delete') {
         $id=(int)($_POST['id']??0);
         if ($id) {
-            $stmt=$conn->prepare("DELETE FROM global_feedback_questions WHERE id=?");
-            $stmt->bind_param('i',$id);
+            $stmt=$conn->prepare("DELETE FROM feedback_questions WHERE id=? AND module=?");
+            $stmt->bind_param('si',$id,$module);
             $stmt->execute() ? setFlash('success','Question deleted.') : setFlash('error','Cannot delete.');
             $stmt->close();
         }
@@ -48,14 +50,14 @@ $search  = clean($_GET['search'] ?? '');
 $perPage = 20;
 $page    = max(1,(int)($_GET['page'] ?? 1));
 
-$conds = [];
-$params = [];
-$types  = '';
+$conds = ['fq.module=?'];
+$params = [$module];
+$types  = 's';
 if ($search) { $s2="%$search%"; $conds[]="fq.question_text LIKE ?"; $params[]=$s2; $types.='s'; }
-$where = $conds ? 'WHERE '.implode(' AND ',$conds) : '';
+$where = 'WHERE '.implode(' AND ',$conds);
 
-$cntStmt = $conn->prepare("SELECT COUNT(*) AS c FROM global_feedback_questions fq $where");
-if ($types) $cntStmt->bind_param($types,...$params);
+$cntStmt = $conn->prepare("SELECT COUNT(*) AS c FROM feedback_questions fq $where");
+$cntStmt->bind_param($types,...$params);
 $cntStmt->execute();
 $total=(int)$cntStmt->get_result()->fetch_assoc()['c'];
 $cntStmt->close();
@@ -63,7 +65,7 @@ $cntStmt->close();
 $pg=paginate($total,$perPage,$page); $off=$pg['offset'];
 $p2=array_merge($params,[$perPage,$off]); $t2=$types.'ii';
 
-$dataStmt=$conn->prepare("SELECT fq.* FROM global_feedback_questions fq $where ORDER BY fq.question_no LIMIT ? OFFSET ?");
+$dataStmt=$conn->prepare("SELECT fq.* FROM feedback_questions fq $where ORDER BY fq.question_no LIMIT ? OFFSET ?");
 $dataStmt->bind_param($t2,...$p2);
 $dataStmt->execute(); $rows=$dataStmt->get_result()->fetch_all(MYSQLI_ASSOC); $dataStmt->close();
 
@@ -75,8 +77,11 @@ include '../includes/admin_sidebar.php';
 
 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
     <div>
-        <h2 class="text-xl font-bold text-slate-800">Global Feedback Questions</h2>
-        <p class="text-sm text-slate-500 mt-0.5">Shared questions used by all feedback forms across every semester</p>
+        <div class="flex items-center gap-2 mb-1">
+            <?= iconSvg('question','w-5 h-5 text-cyan-600') ?>
+            <h2 class="text-xl font-bold text-slate-800">Academic Feedback Questions</h2>
+        </div>
+        <p class="text-sm text-slate-500 mt-0.5">Shared questions used by all academic feedback forms across every teacher and semester</p>
     </div>
     <button onclick="openModal('addModal')" class="inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm shadow-cyan-600/20 transition-all hover:-translate-y-0.5">
         <?= iconSvg('plus','w-4 h-4') ?> Add Question

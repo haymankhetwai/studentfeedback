@@ -18,12 +18,12 @@ $today      = date('Y-m-d');
 $forms = [];
 if ($studentId) {
     // Check if table exists first
-    $tableCheck = $conn->query("SHOW TABLES LIKE 'sa_feedback_forms'");
+    $tableCheck = $conn->query("SHOW TABLES LIKE 'feedback_forms'");
     if ($tableCheck && $tableCheck->num_rows > 0) {
         $rs = $conn->prepare("
-            SELECT f.*, (SELECT COUNT(*) FROM sa_feedback_submissions s WHERE s.form_id=f.id AND s.student_id=?) AS submitted
-            FROM sa_feedback_forms f
-            WHERE f.status='active'
+            SELECT f.*, (SELECT COUNT(*) FROM feedback_submissions s WHERE s.form_id=f.id AND s.student_id=?) AS submitted
+            FROM feedback_forms f
+            WHERE f.status='active' AND f.module='student_affairs'
             ORDER BY f.end_date ASC, f.id DESC
         ");
         $rs->bind_param('i', $studentId); $rs->execute();
@@ -68,7 +68,7 @@ $initials = avatarInitials($user['name']);
     <div class="border-t border-cyan-500 px-4 py-4">
         <div class="flex items-center gap-3">
             <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold"><?= e($initials) ?></div>
-            <div class="flex-1 min-w-0"><p class="text-xs font-semibold text-white truncate"><?= e($user['name']) ?></p><p class="text-[10px] text-cyan-100"></p></div>
+            <div class="flex-1 min-w-0"><p class="text-xs font-semibold text-white truncate"><?= e($user['name']) ?></p><p class="text-[10px] text-cyan-100">Student</p></div>
             <a href="/studentfeedback/auth/logout.php" class="text-cyan-200 hover:text-red-300">
                         <?= iconSvg('logout', 'w-4 h-4') ?>
                     </a>

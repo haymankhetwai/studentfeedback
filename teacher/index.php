@@ -18,7 +18,7 @@ $teacherId = $teacher['id'] ?? 0;
 
 $sectionCount = $teacherId ? (int) $conn->query("SELECT COUNT(*) AS c FROM sections WHERE teacher_id=$teacherId")->fetch_assoc()['c'] : 0;
 $formCount = $teacherId ? (int) $conn->query("SELECT COUNT(*) AS c FROM feedback_forms ff JOIN sections s ON ff.section_id=s.id WHERE s.teacher_id=$teacherId AND ff.status='active'")->fetch_assoc()['c'] : 0;
-$submissionCount = $teacherId ? (int) $conn->query("SELECT COUNT(*) AS c FROM feedback_submissions fs JOIN feedback_forms ff ON fs.feedback_form_id=ff.id JOIN sections s ON ff.section_id=s.id WHERE s.teacher_id=$teacherId")->fetch_assoc()['c'] : 0;
+$submissionCount = $teacherId ? (int) $conn->query("SELECT COUNT(*) AS c FROM feedback_submissions fs JOIN feedback_forms ff ON fs.form_id=ff.id JOIN sections s ON ff.section_id=s.id WHERE s.teacher_id=$teacherId")->fetch_assoc()['c'] : 0;
 
 // My sections
 $sections = [];

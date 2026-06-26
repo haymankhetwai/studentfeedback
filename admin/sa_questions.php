@@ -4,8 +4,10 @@ require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 requireRole('admin');
 
-$pageTitle  = 'Global SA Feedback Questions';
+$pageTitle  = 'Student Affairs Feedback Questions';
 $activeMenu = 'sa_questions';
+
+$module = 'student_affairs';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     $action = $_POST['action'] ?? '';
@@ -14,8 +16,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         $qtext = clean($_POST['question_text'] ?? '');
         $qtype = in_array($_POST['question_type'], ['rating','comment']) ? $_POST['question_type'] : 'rating';
         if ($qno && $qtext) {
-            $stmt = $conn->prepare("INSERT INTO global_sa_feedback_questions (question_no, question_text, question_type) VALUES (?,?,?)");
-            $stmt->bind_param('iss', $qno, $qtext, $qtype);
+            $stmt = $conn->prepare("INSERT INTO feedback_questions (module, question_no, question_text, question_type) VALUES (?,?,?,?)");
+            $stmt->bind_param('siss', $module, $qno, $qtext, $qtype);
             $stmt->execute() ? setFlash('success','Question added.') : setFlash('error','Failed.');
             $stmt->close();
         } else { setFlash('error','All fields required.'); }
@@ -26,8 +28,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         $qtext = clean($_POST['question_text'] ?? '');
         $qtype = in_array($_POST['question_type'], ['rating','comment']) ? $_POST['question_type'] : 'rating';
         if ($id && $qno && $qtext) {
-            $stmt = $conn->prepare("UPDATE global_sa_feedback_questions SET question_no=?,question_text=?,question_type=? WHERE id=?");
-            $stmt->bind_param('issi', $qno, $qtext, $qtype, $id);
+            $stmt = $conn->prepare("UPDATE feedback_questions SET question_no=?,question_text=?,question_type=? WHERE id=? AND module=?");
+            $stmt->bind_param('issis', $qno, $qtext, $qtype, $id, $module);
             $stmt->execute() ? setFlash('success','Question updated.') : setFlash('error','Update failed.');
             $stmt->close();
         }
@@ -35,8 +37,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     if ($action === 'delete') {
         $id = (int)($_POST['id'] ?? 0);
         if ($id) {
-            $stmt = $conn->prepare("DELETE FROM global_sa_feedback_questions WHERE id=?");
-            $stmt->bind_param('i', $id);
+            $stmt = $conn->prepare("DELETE FROM feedback_questions WHERE id=? AND module=?");
+            $stmt->bind_param('si', $id, $module);
             $stmt->execute() ? setFlash('success','Question deleted.') : setFlash('error','Cannot delete.');
             $stmt->close();
         }
@@ -48,14 +50,14 @@ $search  = clean($_GET['search'] ?? '');
 $perPage = 20;
 $page    = max(1, (int)($_GET['page'] ?? 1));
 
-$conds = [];
-$params = [];
-$types  = '';
-if ($search) { $s2 = "%$search%"; $conds[] = "sq.question_text LIKE ?"; $params[] = $s2; $types .= 's'; }
-$where = $conds ? 'WHERE ' . implode(' AND ', $conds) : '';
+$conds = ['fq.module=?'];
+$params = [$module];
+$types  = 's';
+if ($search) { $s2 = "%$search%"; $conds[] = "fq.question_text LIKE ?"; $params[] = $s2; $types .= 's'; }
+$where = 'WHERE ' . implode(' AND ', $conds);
 
-$cntStmt = $conn->prepare("SELECT COUNT(*) AS c FROM global_sa_feedback_questions sq $where");
-if ($types) $cntStmt->bind_param($types, ...$params);
+$cntStmt = $conn->prepare("SELECT COUNT(*) AS c FROM feedback_questions fq $where");
+$cntStmt->bind_param($types, ...$params);
 $cntStmt->execute();
 $total = (int)$cntStmt->get_result()->fetch_assoc()['c'];
 $cntStmt->close();
@@ -63,7 +65,7 @@ $cntStmt->close();
 $pg = paginate($total, $perPage, $page); $off = $pg['offset'];
 $p2 = array_merge($params, [$perPage, $off]); $t2 = $types . 'ii';
 
-$dataStmt = $conn->prepare("SELECT sq.* FROM global_sa_feedback_questions sq $where ORDER BY sq.question_no LIMIT ? OFFSET ?");
+$dataStmt = $conn->prepare("SELECT fq.* FROM feedback_questions fq $where ORDER BY fq.question_no LIMIT ? OFFSET ?");
 $dataStmt->bind_param($t2, ...$p2);
 $dataStmt->execute(); $rows = $dataStmt->get_result()->fetch_all(MYSQLI_ASSOC); $dataStmt->close();
 
@@ -77,7 +79,7 @@ include '../includes/admin_sidebar.php';
     <div>
         <div class="flex items-center gap-2 mb-1">
             <?= iconSvg('shield','w-5 h-5 text-purple-600') ?>
-            <h2 class="text-xl font-bold text-slate-800">SA Global Questions</h2>
+            <h2 class="text-xl font-bold text-slate-800">SA Feedback Questions</h2>
         </div>
         <p class="text-sm text-slate-500 mt-0.5">Shared questions used by all Student Affairs feedback forms across every semester</p>
     </div>
@@ -216,7 +218,7 @@ include '../includes/admin_sidebar.php';
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm modal-box">
         <div class="px-6 py-6 text-center">
             <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4"><?= iconSvg('trash','w-7 h-7 text-red-600') ?></div>
-            <h3 class="text-lg font-semibold text-slate-800">Delete Question</h3>
+            <h3 class="text-lg font-semibold text-slate-800">Delete SA Question</h3>
             <p class="text-sm text-slate-500 mt-2">Delete <strong id="delete_name" class="text-slate-700"></strong>?</p>
         </div>
         <form method="POST"><?= csrfField() ?><input type="hidden" name="action" value="delete"><input type="hidden" name="id" id="delete_id">
@@ -238,7 +240,7 @@ function openEdit(row) {
 }
 function openDelete(id, name) {
     document.getElementById('delete_id').value         = id;
-    document.getElementById('delete_name').textContent = name;
+    document.getElementById('delete_name').textContent  = name;
     openModal('deleteModal');
 }
 </script>

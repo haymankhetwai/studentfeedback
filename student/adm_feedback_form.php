@@ -23,8 +23,8 @@ $formId = (int) ($_GET['form_id'] ?? 0);
 // ─── Auto-fallback with Semester/Active check ────────────────
 if (!$formId) {
     $activeFormQuery = $conn->query("
-        SELECT id FROM adm_feedback_forms 
-        WHERE status = 'active'
+        SELECT id FROM feedback_forms 
+        WHERE status = 'active' AND module = 'administration'
         ORDER BY id DESC LIMIT 1
     ");
     $activeFormRes = $activeFormQuery->fetch_assoc();
@@ -38,13 +38,7 @@ if (!$formId) {
 }
 
 // ─── Load form ──────────────────────────────────────────────
-$tableCheck = $conn->query("SHOW TABLES LIKE 'adm_feedback_forms'");
-if (!$tableCheck || $tableCheck->num_rows === 0) {
-    setFlash('error', 'Administration feedback tables not found. Please run the database migration.');
-    header('Location: adm_feedback.php');
-    exit;
-}
-$fs = $conn->prepare("SELECT * FROM adm_feedback_forms WHERE id=?");
+$fs = $conn->prepare("SELECT * FROM feedback_forms WHERE id=? AND module='administration'");
 $fs->bind_param('i', $formId);
 $fs->execute();
 $form = $fs->get_result()->fetch_assoc();
@@ -56,7 +50,7 @@ if (!$form) {
 }
 
 // ─── Check already submitted ──────────────────────────────────
-$sub = $conn->prepare("SELECT id FROM adm_feedback_submissions WHERE form_id=? AND student_id=?");
+$sub = $conn->prepare("SELECT id FROM feedback_submissions WHERE form_id=? AND student_id=?");
 $sub->bind_param('ii', $formId, $studentId);
 $sub->execute();
 $alreadySubmitted = (bool) $sub->get_result()->num_rows;
@@ -77,9 +71,9 @@ elseif ($form['start_date'] > $today)
 elseif ($form['end_date'] < $today)
     $statusNote = 'expired';
 
-// ─── Load Admin Questions ─────────────────────────────────────
-$qStmt = $conn->prepare("SELECT id, question_no, question_text, question_type FROM global_adm_feedback_questions ORDER BY question_no ASC");
-$qStmt->execute();
+// ─── Load Questions (per-form)
+$qStmt = $conn->prepare("SELECT id, question_no, question_text, question_type FROM feedback_questions WHERE module=? ORDER BY question_no ASC");
+$module = 'administration'; $qStmt->bind_param('s', $module); $qStmt->execute();
 $allQuestions = $qStmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $qStmt->close();
 
@@ -121,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         } else {
             $conn->begin_transaction();
             try {
-                $recheck = $conn->prepare("SELECT id FROM adm_feedback_submissions WHERE form_id=? AND student_id=? FOR UPDATE");
+                $recheck = $conn->prepare("SELECT id FROM feedback_submissions WHERE form_id=? AND student_id=? FOR UPDATE");
                 $recheck->bind_param('ii', $formId, $studentId); $recheck->execute();
                 if ($recheck->get_result()->num_rows > 0) {
                     $recheck->close(); $conn->rollback();
@@ -130,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                 }
                 $recheck->close();
 
-                $ins = $conn->prepare("INSERT INTO adm_feedback_submissions (form_id, student_id) VALUES (?,?)");
+                $ins = $conn->prepare("INSERT INTO feedback_submissions (form_id, student_id) VALUES (?,?)");
                 $ins->bind_param('ii', $formId, $studentId); $ins->execute();
                 if ($ins->affected_rows === 0) {
                     $ins->close(); $conn->rollback();
@@ -142,8 +136,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                 foreach ($ratingQuestions as $q) {
                     $rating = $_POST['rating_' . $q['id']] ?? '';
                     if ($rating) {
-                        $ri = $conn->prepare("INSERT INTO adm_feedback_ratings (form_id, question_id, student_id, rating) VALUES (?,?,?,?)");
-                        $ri->bind_param('iiis', $formId, $q['id'], $studentId, $rating);
+                        $ri = $conn->prepare("INSERT INTO feedback_ratings (form_id, question_id, rating) VALUES (?,?,?)");
+                        $ri->bind_param('iis', $formId, $q['id'], $rating);
                         $ri->execute();
                         $ri->close();
                     }
@@ -152,8 +146,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                 foreach ($commentQuestions as $q) {
                     $comment = trim($_POST['comment_' . $q['id']] ?? '');
                     if ($comment !== '') {
-                        $ci = $conn->prepare("INSERT INTO adm_feedback_comments (form_id, question_id, student_id, comment_text) VALUES (?,?,?,?)");
-                        $ci->bind_param('iiis', $formId, $q['id'], $studentId, $comment);
+                        $ci = $conn->prepare("INSERT INTO feedback_comments (form_id, question_id, comment_text) VALUES (?,?,?)");
+                        $ci->bind_param('iis', $formId, $q['id'], $comment);
                         $ci->execute();
                         $ci->close();
                     }

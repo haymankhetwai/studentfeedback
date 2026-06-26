@@ -19,7 +19,7 @@ while ($r = $semRes->fetch_assoc()) {
 }
 
 // ၁။ Dropdown အတွက် စာရင်းဆွဲထုတ်ခြင်း
-$allForms = $conn->query("SELECT id, title, status FROM adm_feedback_forms ORDER BY id DESC")->fetch_all(MYSQLI_ASSOC);
+$allForms = $conn->query("SELECT id, title, status FROM feedback_forms WHERE module='administration' ORDER BY id DESC")->fetch_all(MYSQLI_ASSOC);
 
 // Form ID တိုက်ရိုက်မပါလာပါက နောက်ဆုံးဖောင်ကို Auto ရွေးပေးထားမည်
 if (!$formId && !empty($allForms)) {
@@ -37,7 +37,7 @@ $allComments = [];
 
 if ($formId) {
     // ၂။ Form Metadata ဆွဲထုတ်ခြင်း
-    $r = $conn->prepare("SELECT * FROM adm_feedback_forms WHERE id = ?");
+    $r = $conn->prepare("SELECT * FROM feedback_forms WHERE id = ? AND module='administration'");
     $r->bind_param('i', $formId);
     $r->execute();
     $form = $r->get_result()->fetch_assoc();
@@ -45,15 +45,15 @@ if ($formId) {
 
     if ($form) {
         // ၃။ မေးခွန်းများကို အစီအစဉ်တကျ ဆွဲထုတ်ခြင်း
-        $q = $conn->prepare("SELECT id, question_no, question_text, question_type FROM global_adm_feedback_questions ORDER BY question_no ASC");
-        $q->execute();
+        $q = $conn->prepare("SELECT id, question_no, question_text, question_type FROM feedback_questions WHERE module=? ORDER BY question_no ASC");
+        $module = 'administration'; $q->bind_param('s', $module); $q->execute();
         $questions = $q->get_result()->fetch_all(MYSQLI_ASSOC);
         $q->close();
 
         // ၄။ Rating Questions များအတွက် တွက်ချက်ခြင်း (Good, Fair, Bad နှင့် ဒေတာဟောင်းများကိုပါ Map လုပ်ပါသည်)
         $statStmt = $conn->prepare("
             SELECT question_id, rating, COUNT(*) as qty 
-            FROM adm_feedback_ratings 
+            FROM feedback_ratings 
             WHERE form_id = ? 
             GROUP BY question_id, rating
         ");
@@ -83,7 +83,7 @@ if ($formId) {
         // ၅။ Comments များကို မေးခွန်းအလိုက် Anonymous အဖြစ် စုစည်းထုတ်ယူခြင်း
         $cStmt = $conn->prepare("
             SELECT question_id, comment_text 
-            FROM adm_feedback_comments 
+            FROM feedback_comments 
             WHERE form_id = ? AND comment_text IS NOT NULL AND comment_text != ''
         ");
         $cStmt->bind_param('i', $formId);
@@ -121,7 +121,7 @@ if ($semesterFilter) {
     $stStmt->close();
 
     if ($formId && $totalStudents > 0) {
-        $compStmt = $conn->prepare("SELECT COUNT(DISTINCT afs.student_id) AS cnt FROM adm_feedback_submissions afs JOIN students st ON afs.student_id = st.id JOIN section_assignments sa ON sa.student_id = st.id JOIN sections s ON sa.section_id = s.id WHERE afs.form_id = ? AND s.semester = ?");
+        $compStmt = $conn->prepare("SELECT COUNT(DISTINCT afs.student_id) AS cnt FROM feedback_submissions afs JOIN students st ON afs.student_id = st.id JOIN section_assignments sa ON sa.student_id = st.id JOIN sections s ON sa.section_id = s.id WHERE afs.form_id = ? AND s.semester = ?");
         $compStmt->bind_param('is', $formId, $semesterFilter);
         $compStmt->execute();
         $completedFeedback = (int) $compStmt->get_result()->fetch_assoc()['cnt'];
@@ -130,7 +130,7 @@ if ($semesterFilter) {
 } else {
     $totalStudents = (int) $conn->query("SELECT COUNT(DISTINCT sa.student_id) AS cnt FROM section_assignments sa JOIN students st ON sa.student_id = st.id")->fetch_assoc()['cnt'];
     if ($formId) {
-        $completedFeedback = (int) $conn->query("SELECT COUNT(DISTINCT student_id) AS cnt FROM adm_feedback_submissions WHERE form_id = $formId")->fetch_assoc()['cnt'];
+        $completedFeedback = (int) $conn->query("SELECT COUNT(DISTINCT student_id) AS cnt FROM feedback_submissions WHERE form_id = $formId")->fetch_assoc()['cnt'];
     }
 }
 $pendingFeedback = max(0, $totalStudents - $completedFeedback);

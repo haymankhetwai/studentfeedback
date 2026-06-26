@@ -19,7 +19,7 @@ if ($studentId) {
     $rs = $conn->prepare("
         SELECT fs.submitted_at, ff.title AS form_title, c.course_name, c.course_code, s.section, s.academic_year, s.semester
         FROM feedback_submissions fs
-        JOIN feedback_forms ff ON fs.feedback_form_id=ff.id
+        JOIN feedback_forms ff ON fs.form_id=ff.id
         JOIN sections s ON ff.section_id=s.id
         JOIN courses c ON s.course_id=c.id
         WHERE fs.student_id=?
@@ -33,11 +33,11 @@ if ($studentId) {
 $saHistory = [];
 if ($studentId) {
     $rs = $conn->prepare("
-        SELECT sas.submitted_at, saf.title AS form_title, saf.start_date, saf.end_date
-        FROM sa_feedback_submissions sas
-        JOIN sa_feedback_forms saf ON sas.form_id=saf.id
-        WHERE sas.student_id=?
-        ORDER BY sas.submitted_at DESC
+        SELECT fs.submitted_at, ff.title AS form_title, ff.start_date, ff.end_date
+        FROM feedback_submissions fs
+        JOIN feedback_forms ff ON fs.form_id=ff.id
+        WHERE ff.module='student_affairs' AND fs.student_id=?
+        ORDER BY fs.submitted_at DESC
     ");
     $rs->bind_param('i', $studentId); $rs->execute();
     $saHistory = $rs->get_result()->fetch_all(MYSQLI_ASSOC); $rs->close();
@@ -47,11 +47,11 @@ if ($studentId) {
 $admHistory = [];
 if ($studentId) {
     $rs = $conn->prepare("
-        SELECT ads.submitted_at, adf.title AS form_title, adf.start_date, adf.end_date
-        FROM adm_feedback_submissions ads
-        JOIN adm_feedback_forms adf ON ads.form_id=adf.id
-        WHERE ads.student_id=?
-        ORDER BY ads.submitted_at DESC
+        SELECT fs.submitted_at, ff.title AS form_title, ff.start_date, ff.end_date
+        FROM feedback_submissions fs
+        JOIN feedback_forms ff ON fs.form_id=ff.id
+        WHERE ff.module='administration' AND fs.student_id=?
+        ORDER BY fs.submitted_at DESC
     ");
     $rs->bind_param('i', $studentId); $rs->execute();
     $admHistory = $rs->get_result()->fetch_all(MYSQLI_ASSOC); $rs->close();

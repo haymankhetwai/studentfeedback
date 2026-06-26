@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         $end    = clean($_POST['end_date'] ?? '');
         $status = in_array($_POST['status'], ['active','inactive']) ? $_POST['status'] : 'active';
         if ($title && $start && $end) {
-            $stmt = $conn->prepare("INSERT INTO adm_feedback_forms (title,start_date,end_date,status) VALUES (?,?,?,?)");
+            $stmt = $conn->prepare("INSERT INTO feedback_forms (module,title,start_date,end_date,status) VALUES ('administration',?,?,?,?)");
             $stmt->bind_param('ssss', $title, $start, $end, $status);
             $stmt->execute() ? setFlash('success','Administration form created.') : setFlash('error','Failed.');
             $stmt->close();
@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         $end    = clean($_POST['end_date'] ?? '');
         $status = in_array($_POST['status'], ['active','inactive']) ? $_POST['status'] : 'active';
         if ($id && $title) {
-            $stmt = $conn->prepare("UPDATE adm_feedback_forms SET title=?,start_date=?,end_date=?,status=? WHERE id=?");
+            $stmt = $conn->prepare("UPDATE feedback_forms SET title=?,start_date=?,end_date=?,status=? WHERE id=? AND module='administration'");
             $stmt->bind_param('ssssi', $title, $start, $end, $status, $id);
             $stmt->execute() ? setFlash('success','Form updated.') : setFlash('error','Update failed.');
             $stmt->close();
@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     if ($action === 'delete') {
         $id = (int)($_POST['id'] ?? 0);
         if ($id) {
-            $stmt = $conn->prepare("DELETE FROM adm_feedback_forms WHERE id=?");
+            $stmt = $conn->prepare("DELETE FROM feedback_forms WHERE id=? AND module='administration'");
             $stmt->bind_param('i', $id);
             $stmt->execute() ? setFlash('success','Form deleted.') : setFlash('error','Cannot delete.');
             $stmt->close();
@@ -51,19 +51,19 @@ $perPage = 10;
 $page    = max(1, (int)($_GET['page'] ?? 1));
 if ($search) {
     $s2 = "%$search%";
-    $c = $conn->prepare("SELECT COUNT(*) AS c FROM adm_feedback_forms WHERE title LIKE ?");
+    $c = $conn->prepare("SELECT COUNT(*) AS c FROM feedback_forms WHERE module='administration' AND title LIKE ?");
     $c->bind_param('s', $s2); $c->execute();
     $total = (int)$c->get_result()->fetch_assoc()['c']; $c->close();
 } else {
-    $total = (int)$conn->query("SELECT COUNT(*) AS c FROM adm_feedback_forms")->fetch_assoc()['c'];
+    $total = (int)$conn->query("SELECT COUNT(*) AS c FROM feedback_forms WHERE module='administration'")->fetch_assoc()['c'];
 }
 $pg = paginate($total, $perPage, $page); $off = $pg['offset'];
 if ($search) {
     $s2 = "%$search%";
-    $stmt = $conn->prepare("SELECT f.*, (SELECT COUNT(*) FROM global_adm_feedback_questions) AS q_count, (SELECT COUNT(*) FROM adm_feedback_submissions WHERE form_id=f.id) AS s_count FROM adm_feedback_forms f WHERE f.title LIKE ? ORDER BY f.id DESC LIMIT ? OFFSET ?");
+    $stmt = $conn->prepare("SELECT f.*, (SELECT COUNT(*) FROM feedback_questions fq WHERE fq.module='administration') AS q_count, (SELECT COUNT(*) FROM feedback_submissions WHERE form_id=f.id) AS s_count FROM feedback_forms f WHERE f.module='administration' AND f.title LIKE ? ORDER BY f.id DESC LIMIT ? OFFSET ?");
     $stmt->bind_param('sii', $s2, $perPage, $off);
 } else {
-    $stmt = $conn->prepare("SELECT f.*, (SELECT COUNT(*) FROM global_adm_feedback_questions) AS q_count, (SELECT COUNT(*) FROM adm_feedback_submissions WHERE form_id=f.id) AS s_count FROM adm_feedback_forms f ORDER BY f.id DESC LIMIT ? OFFSET ?");
+    $stmt = $conn->prepare("SELECT f.*, (SELECT COUNT(*) FROM feedback_questions fq WHERE fq.module='administration') AS q_count, (SELECT COUNT(*) FROM feedback_submissions WHERE form_id=f.id) AS s_count FROM feedback_forms f WHERE f.module='administration' ORDER BY f.id DESC LIMIT ? OFFSET ?");
     $stmt->bind_param('ii', $perPage, $off);
 }
 $stmt->execute(); $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC); $stmt->close();
@@ -118,7 +118,7 @@ include '../includes/admin_sidebar.php';
                     <td class="px-5 py-3"><?= badgeStatus($row['status']) ?></td>
                     <td class="px-5 py-3 text-right">
                         <div class="flex items-center justify-end gap-1.5">
-                            <a href="adm_questions.php?form_id=<?= $row['id'] ?>" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-lg"><?= iconSvg('question','w-3.5 h-3.5') ?> Questions</a>
+                            <a href="adm_questions.php" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-lg"><?= iconSvg('question','w-3.5 h-3.5') ?> Questions</a>
                             <a href="adm_results.php?form_id=<?= $row['id'] ?>" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-cyan-700 bg-cyan-50 hover:bg-cyan-100 rounded-lg"><?= iconSvg('chart','w-3.5 h-3.5') ?> Results</a>
                             <button onclick="openEdit(<?= htmlspecialchars(json_encode($row), ENT_QUOTES) ?>)" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-cyan-700 bg-cyan-50 hover:bg-cyan-100 rounded-lg"><?= iconSvg('edit','w-3.5 h-3.5') ?> Edit</button>
                             <button onclick="openDelete(<?= $row['id'] ?>,'<?= addslashes(e($row['title'])) ?>')" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg"><?= iconSvg('trash','w-3.5 h-3.5') ?> Delete</button>

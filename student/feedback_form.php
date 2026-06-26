@@ -4,20 +4,6 @@ require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 requireRole('student');
 
-// ─── ✨ [အရေးကြီးဆုံး ပြင်ဆင်ချက်] ───────────────────────────
-// ကျောင်းသား စာမျက်နှာသို့ စဝင်ဝင်ချင်းတွင် ယခင်အကြိမ်က ကျန်ခဲ့သော "ကျေးဇူးတင်ပါသည်" စာသားဟောင်းကို
-// ကုဒ်များ အလုပ်မလုပ်ခင် အပေါ်ဆုံးကနေ အပြီးအပိုင် Unset လုပ်ပြီး အမြစ်ဖြတ် ရှင်းထုတ်ပစ်ပါသည်
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-if (isset($_SESSION['flash']['success'])) {
-    unset($_SESSION['flash']['success']);
-}
-if (isset($_SESSION['success'])) {
-    unset($_SESSION['success']);
-}
-// ───────────────────────────────────────────────────────────
-
 $user      = getCurrentUser();
 $stmt      = $conn->prepare("SELECT id FROM students WHERE user_id=?");
 $stmt->bind_param('i', $user['id']); $stmt->execute();
@@ -56,7 +42,7 @@ if (!$form) {
 }
 
 // ─── Step 2: Check if already submitted
-$sub = $conn->prepare("SELECT id FROM feedback_submissions WHERE feedback_form_id=? AND student_id=?");
+$sub = $conn->prepare("SELECT id FROM feedback_submissions WHERE form_id=? AND student_id=?");
 $sub->bind_param('ii', $formId, $studentId); $sub->execute();
 $alreadySubmitted = (bool)$sub->get_result()->num_rows;
 $sub->close();
@@ -73,9 +59,9 @@ elseif (!$isActive)    { $statusNote = 'inactive'; }
 elseif ($form['start_date'] > $today) { $statusNote = 'not_started'; } 
 elseif ($form['end_date'] < $today)   { $statusNote = 'expired'; }
 
-// ─── Step 4: Load Questions (global — shared across all semesters)
-$qStmt = $conn->prepare("SELECT * FROM global_feedback_questions ORDER BY question_no ASC");
-$qStmt->execute();
+// ─── Step 4: Load Questions (per-form)
+$qStmt = $conn->prepare("SELECT * FROM feedback_questions WHERE module=? ORDER BY question_no ASC");
+$qStmt->bind_param('s', $form['module']); $qStmt->execute();
 $allQuestions = $qStmt->get_result()->fetch_all(MYSQLI_ASSOC); $qStmt->close();
 
 $ratingQuestions = [];
@@ -116,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         } else {
             $conn->begin_transaction();
             try {
-                $recheck = $conn->prepare("SELECT id FROM feedback_submissions WHERE feedback_form_id=? AND student_id=? FOR UPDATE");
+                $recheck = $conn->prepare("SELECT id FROM feedback_submissions WHERE form_id=? AND student_id=? FOR UPDATE");
                 $recheck->bind_param('ii', $formId, $studentId); $recheck->execute();
                 if ($recheck->get_result()->num_rows > 0) {
                     $recheck->close(); $conn->rollback();
@@ -125,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                 }
                 $recheck->close();
 
-                $ins = $conn->prepare("INSERT INTO feedback_submissions (feedback_form_id, student_id) VALUES (?,?)");
+                $ins = $conn->prepare("INSERT INTO feedback_submissions (form_id, student_id) VALUES (?,?)");
                 $ins->bind_param('ii', $formId, $studentId); $ins->execute();
                 if ($ins->affected_rows === 0) {
                     $ins->close(); $conn->rollback();
@@ -138,8 +124,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                 foreach ($ratingQuestions as $q) {
                     $rating = $_POST['rating_' . $q['id']] ?? '';
                     if ($rating) {
-                        $ri = $conn->prepare("INSERT INTO feedback_ratings (feedback_form_id, question_id, student_id, rating) VALUES (?,?,?,?)");
-                        $ri->bind_param('iiis', $formId, $q['id'], $studentId, $rating);
+                        $ri = $conn->prepare("INSERT INTO feedback_ratings (form_id, question_id, rating) VALUES (?,?,?)");
+                        $ri->bind_param('iis', $formId, $q['id'], $rating);
                         $ri->execute(); $ri->close();
                     }
                 }
@@ -148,8 +134,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                 foreach ($commentQuestions as $q) {
                     $comment = trim($_POST['comment_' . $q['id']] ?? '');
                     if ($comment !== '') {
-                        $ci = $conn->prepare("INSERT INTO feedback_comments (feedback_form_id, question_id, student_id, comment_text) VALUES (?,?,?,?)");
-                        $ci->bind_param('iiis', $formId, $q['id'], $studentId, $comment);
+                        $ci = $conn->prepare("INSERT INTO feedback_comments (form_id, question_id, comment_text) VALUES (?,?,?)");
+                        $ci->bind_param('iis', $formId, $q['id'], $comment);
                         $ci->execute(); $ci->close();
                     }
                 }
@@ -162,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                 exit;
             } catch (Exception $e) {
                 $conn->rollback();
-                setFlash('error', 'Submission failed. Please try again.');
+                setFlash('error', 'Submission failed: ' . $e->getMessage());
             }
         }
     }
@@ -208,11 +194,22 @@ $initials = avatarInitials($user['name']);
             <a href="/studentfeedback/student/feedback_history.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('history','w-4 h-4 flex-shrink-0') ?> History</a>
             <a href="/studentfeedback/student/profile.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('user','w-4 h-4 flex-shrink-0') ?> Profile</a>
         </nav>
-        <div class="border-t border-cyan-500 px-4 py-4 flex items-center gap-3">
-            <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold text-white"><?= e($initials) ?></div>
-            <div class="flex-1 min-w-0"><p class="text-xs font-semibold text-white truncate"><?= e($user['name']) ?></p></div>
-            <a href="/studentfeedback/auth/logout.php" class="text-cyan-200 hover:text-red-300">Logout</a>
-        </div>
+       
+
+        <div class="border-t border-cyan-500 px-4 py-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold">
+                        <?= e($initials) ?></div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs font-semibold text-white truncate"><?= e($user['name']) ?></p>
+                        <p class="text-[10px] text-cyan-100 truncate">Student
+                        </p>
+                    </div>
+                    <a href="/studentfeedback/auth/logout.php" class="text-cyan-100 hover:text-red-300">
+                        <?= iconSvg('logout', 'w-4 h-4') ?>
+                    </a>
+                </div>
+            </div>
     </aside>
 
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -236,15 +233,15 @@ $initials = avatarInitials($user['name']);
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm">
                     <div>
-                        <span class="font-bold text-slate-700">သင်တန်းအမည် (Course Name):</span>
-                        <div class="border-b border-dashed border-slate-400 py-1 font-semibold text-slate-900"><?= e($form['course_name']) ?></div>
+                        <span class="font-semibold text-slate-500">သင်တန်းအမည် </span>
+                        <div class="border-b border-dashed border-slate-400 py-1 font-semibold text-slate-900"><?= e($form['semester']) ?></div>
                     </div>
                     <div>
-                        <span class="font-bold text-slate-700">ဘာသာရပ် (Subject Code):</span>
-                        <div class="border-b border-dashed border-slate-400 py-1 font-semibold text-slate-900 font-mono"><?= e($form['course_code']) ?></div>
+                        <span class="font-semibold text-slate-500">ဘာသာရပ် (Subject Code/Course Name):</span>
+                        <div class="border-b border-dashed border-slate-400 py-1 font-semibold text-slate-900 font-mono"><?= e($form['course_code']) ?> (<?= e($form['course_name']) ?>)</div>
                     </div>
                     <div>
-                        <span class="font-bold text-slate-700">ဆရာ/မအမည် (Teacher Name):</span>
+                        <span class="font-semibold text-slate-500">ဆရာ/မအမည် (Teacher Name):</span>
                         <div class="border-b border-dashed border-slate-400 py-1 font-semibold text-slate-900"><?= e($form['teacher_name']) ?></div>
                     </div>
                 </div>

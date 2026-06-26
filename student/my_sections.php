@@ -125,10 +125,12 @@ $initials = avatarInitials($user['name']);
                     <p class="text-sm text-slate-500">Your enrolled sections and available feedback forms</p>
                 </div>
 
+                <?php renderFlash() ?>
+
                 <?php if ($sections):
                     foreach ($sections as $sec):
                         // Get forms for this section
-                        $fStmt = $conn->prepare("SELECT ff.id, ff.title, ff.status, ff.start_date, ff.end_date, (SELECT COUNT(*) FROM feedback_submissions fs WHERE fs.feedback_form_id=ff.id AND fs.student_id=?) AS submitted FROM feedback_forms ff WHERE ff.section_id=? ORDER BY ff.id DESC");
+                        $fStmt = $conn->prepare("SELECT ff.id, ff.title, ff.status, ff.start_date, ff.end_date, (SELECT COUNT(*) FROM feedback_submissions fs WHERE fs.form_id=ff.id AND fs.student_id=?) AS submitted FROM feedback_forms ff WHERE ff.section_id=? ORDER BY ff.id DESC");
                         $fStmt->bind_param('ii', $studentId, $sec['id']);
                         $fStmt->execute();
                         $forms = $fStmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -174,6 +176,8 @@ $initials = avatarInitials($user['name']);
                                                 <?php elseif ($expired): ?>
                                                     <span
                                                         class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-slate-500 bg-slate-100 rounded-xl">Expired</span>
+                                                <?php elseif ($f['start_date'] > $today): ?>
+                                                    <span class="text-xs text-slate-400">Starts <?= formatDate($f['start_date']) ?></span>
                                                 <?php else: ?>
                                                     <?= badgeStatus($f['status']) ?>
                                                 <?php endif ?>

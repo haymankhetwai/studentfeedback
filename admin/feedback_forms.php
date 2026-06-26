@@ -64,7 +64,7 @@ if ($search) {
 }
 $pg=paginate($total,$perPage,$page); $off=$pg['offset'];
 
-$baseSQL="SELECT ff.*, c2.course_name, c2.course_code, s.section, s.academic_year, (SELECT COUNT(*) FROM feedback_submissions fs WHERE fs.feedback_form_id=ff.id) AS submission_count, (SELECT COUNT(*) FROM global_feedback_questions) AS question_count FROM feedback_forms ff JOIN sections s ON ff.section_id=s.id JOIN courses c2 ON s.course_id=c2.id";
+$baseSQL="SELECT ff.*, c2.course_name, c2.course_code, s.section, s.academic_year, (SELECT COUNT(*) FROM feedback_submissions fs WHERE fs.form_id=ff.id) AS submission_count, (SELECT COUNT(*) FROM feedback_questions fq WHERE fq.module=ff.module) AS question_count FROM feedback_forms ff JOIN sections s ON ff.section_id=s.id JOIN courses c2 ON s.course_id=c2.id";
 
 if ($search) {
     $s2="%$search%";

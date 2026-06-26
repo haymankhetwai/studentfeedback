@@ -24,43 +24,45 @@ $saPendingCount = 0;
 $admPendingCount = 0;
 
 if ($studentId) {
-    // Academic pending
-    $pAcad = $conn->query("SELECT COUNT(*) AS c FROM feedback_forms ff JOIN section_assignments sa ON ff.section_id=sa.section_id WHERE sa.student_id=$studentId GROUP BY ff.id AND ff.status='active' AND ff.start_date<='$today' AND ff.end_date>='$today' AND ff.id NOT IN (SELECT feedback_form_id FROM feedback_submissions WHERE student_id=$studentId)");
-    $pendingCount = $pAcad ? (int) $pAcad->num_rows : 0;
+    // Academic pending — count active in-range forms assigned to student with no submission
+    $pAcad = $conn->prepare("SELECT COUNT(DISTINCT ff.id) AS c FROM feedback_forms ff JOIN section_assignments sa ON ff.section_id=sa.section_id WHERE sa.student_id=? AND ff.module='academic' AND ff.status='active' AND ff.start_date<=? AND ff.end_date>=? AND ff.id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=?)");
+    $pAcad->bind_param('isss', $studentId, $today, $today, $studentId); $pAcad->execute();
+    $pendingCount = (int) $pAcad->get_result()->fetch_assoc()['c']; $pAcad->close();
 
-    // Submitted count (all 3 modules)
-    $sAcad = (int) $conn->query("SELECT COUNT(*) AS c FROM feedback_submissions WHERE student_id=$studentId")->fetch_assoc()['c'];
-    $sSA = (int) $conn->query("SELECT COUNT(*) AS c FROM sa_feedback_submissions WHERE student_id=$studentId")->fetch_assoc()['c'];
-    $sAdm = (int) $conn->query("SELECT COUNT(*) AS c FROM adm_feedback_submissions WHERE student_id=$studentId")->fetch_assoc()['c'];
-    $submittedCount = $sAcad + $sSA + $sAdm;
+    // Total submitted — count unique form_ids across all modules (only for existing forms)
+    $sStmt = $conn->prepare("SELECT COUNT(DISTINCT fs.form_id) AS c FROM feedback_submissions fs JOIN feedback_forms ff ON fs.form_id=ff.id WHERE fs.student_id=?");
+    $sStmt->bind_param('i', $studentId); $sStmt->execute();
+    $submittedCount = (int) $sStmt->get_result()->fetch_assoc()['c']; $sStmt->close();
 
     // SA pending
-    $pSA = $conn->query("SELECT COUNT(*) AS c FROM sa_feedback_forms WHERE status='active' AND start_date<='$today' AND end_date>='$today' AND id NOT IN (SELECT form_id FROM sa_feedback_submissions WHERE student_id=$studentId)");
-    $saPendingCount = (int) $pSA->fetch_assoc()['c'];
+    $pSA = $conn->prepare("SELECT COUNT(*) AS c FROM feedback_forms WHERE module='student_affairs' AND status='active' AND start_date<=? AND end_date>=? AND id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=?)");
+    $pSA->bind_param('ssi', $today, $today, $studentId); $pSA->execute();
+    $saPendingCount = (int) $pSA->get_result()->fetch_assoc()['c']; $pSA->close();
 
     // Adm pending
-    $pAdm = $conn->query("SELECT COUNT(*) AS c FROM adm_feedback_forms WHERE status='active' AND start_date<='$today' AND end_date>='$today' AND id NOT IN (SELECT form_id FROM adm_feedback_submissions WHERE student_id=$studentId)");
-    $admPendingCount = (int) $pAdm->fetch_assoc()['c'];
+    $pAdm = $conn->prepare("SELECT COUNT(*) AS c FROM feedback_forms WHERE module='administration' AND status='active' AND start_date<=? AND end_date>=? AND id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=?)");
+    $pAdm->bind_param('ssi', $today, $today, $studentId); $pAdm->execute();
+    $admPendingCount = (int) $pAdm->get_result()->fetch_assoc()['c']; $pAdm->close();
 }
 
 // ─── Academic Pending Forms ───────────────────────────────────
 $pendingForms = [];
 if ($studentId) {
-    $rs = $conn->query("SELECT ff.id AS form_id, ff.title, ff.end_date, c.course_name, s.section, u.name AS teacher_name FROM feedback_forms ff JOIN sections s ON ff.section_id=s.id JOIN courses c ON s.course_id=c.id JOIN teachers t ON s.teacher_id=t.id JOIN users u ON t.user_id=u.id JOIN section_assignments sa ON sa.section_id=s.id WHERE sa.student_id=$studentId AND ff.status='active' AND ff.start_date<='$today' AND ff.end_date>='$today' AND ff.id NOT IN (SELECT feedback_form_id FROM feedback_submissions WHERE student_id=$studentId) ORDER BY ff.end_date ASC LIMIT 4");
+    $rs = $conn->query("SELECT ff.id AS form_id, ff.title, ff.end_date, c.course_name, s.section, u.name AS teacher_name FROM feedback_forms ff JOIN sections s ON ff.section_id=s.id JOIN courses c ON s.course_id=c.id JOIN teachers t ON s.teacher_id=t.id JOIN users u ON t.user_id=u.id JOIN section_assignments sa ON sa.section_id=s.id WHERE sa.student_id=$studentId AND ff.status='active' AND ff.start_date<='$today' AND ff.end_date>='$today' AND ff.id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=$studentId) ORDER BY ff.end_date ASC LIMIT 4");
     $pendingForms = $rs->fetch_all(MYSQLI_ASSOC);
 }
 
 // ─── SA Pending Forms (ပြင်ဆင်ချက်- ID များကို form_id ဟု Alias ပေးထားပါသည်) ───
 $saPendingForms = [];
 if ($studentId) {
-    $rs = $conn->query("SELECT id AS form_id, title, end_date FROM sa_feedback_forms WHERE status='active' AND start_date<='$today' AND end_date>='$today' AND id NOT IN (SELECT form_id FROM sa_feedback_submissions WHERE student_id=$studentId) ORDER BY end_date ASC LIMIT 3");
+    $rs = $conn->query("SELECT id AS form_id, title, end_date FROM feedback_forms WHERE module='student_affairs' AND status='active' AND start_date<='$today' AND end_date>='$today' AND id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=$studentId) ORDER BY end_date ASC LIMIT 3");
     $saPendingForms = $rs->fetch_all(MYSQLI_ASSOC);
 }
 
-// ─── Adm Pending Forms (ပြင်ဆင်ချက်- ID များကို form_id ဟု Alias ပေးထားပါသည်) ───
+// ─── Adm Pending Forms ───
 $admPendingForms = [];
 if ($studentId) {
-    $rs = $conn->query("SELECT id AS form_id, title, end_date FROM adm_feedback_forms WHERE status='active' AND start_date<='$today' AND end_date>='$today' AND id NOT IN (SELECT form_id FROM adm_feedback_submissions WHERE student_id=$studentId) ORDER BY end_date ASC LIMIT 3");
+    $rs = $conn->query("SELECT id AS form_id, title, end_date FROM feedback_forms WHERE module='administration' AND status='active' AND start_date<='$today' AND end_date>='$today' AND id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=$studentId) ORDER BY end_date ASC LIMIT 3");
     $admPendingForms = $rs->fetch_all(MYSQLI_ASSOC);
 }
 
