@@ -4,7 +4,7 @@ require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 requireRole('admin');
 
-$pageTitle = 'Section Assignments';
+$pageTitle = $LANG['assignments_title'] ?? 'Section Assignments';
 $activeMenu = 'assignments';
 
 $sectionList = $conn->query("SELECT s.id, c.course_name, c.course_code, s.section, s.academic_year, s.semester FROM sections s JOIN courses c ON s.course_id=c.id ORDER BY c.course_name, s.section")->fetch_all(MYSQLI_ASSOC);
@@ -94,120 +94,150 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     exit;
 }
 
-// GET တန်ဖိုးများကို လက်ခံခြင်း
+if (isset($_GET['ajax_filter']) && $_GET['ajax_filter'] == '1') {
+    header('Content-Type: application/json');
+    $af_sem = clean($_GET['semester_id'] ?? '');
+    $af_sec = clean($_GET['section_id'] ?? '');
+
+    $q = "SELECT s.id, c.course_name, c.course_code, s.section, s.academic_year, s.semester 
+          FROM sections s JOIN courses c ON s.course_id=c.id";
+    $w = [];
+    $bp = [];
+    $bt = "";
+    if ($af_sem) {
+        $w[] = "s.semester = ?";
+        $bp[] = $af_sem;
+        $bt .= "s";
+    }
+    if ($af_sec) {
+        $w[] = "s.section = ?";
+        $bp[] = $af_sec;
+        $bt .= "s";
+    }
+    if ($w)
+        $q .= " WHERE " . implode(" AND ", $w);
+    $q .= " ORDER BY c.course_name, s.section";
+
+    $stmt = $conn->prepare($q);
+    if ($bp)
+        $stmt->bind_param($bt, ...$bp);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+
+    $html = '';
+    foreach ($rows as $sec) {
+        $html .= '<label data-semester="' . e($sec['semester']) . '" data-section="' . e($sec['section']) . '" class="add-section-item flex items-center gap-3 px-3 py-1.5 hover:bg-white cursor-pointer rounded-lg transition-colors"><input type="checkbox" name="section_ids[]" value="' . $sec['id'] . '" class="add-section-cb w-4 h-4 rounded border-slate-300 text-cyan-600 accent-cyan-600"><div class="text-xs"><span class="font-semibold text-slate-800">' . e($sec['course_name']) . '</span><span class="font-bold text-cyan-600 bg-cyan-50 border border-cyan-200 px-1 rounded ml-1">Sec ' . e($sec['section']) . '</span><span class="text-slate-400 ml-2">(' . e(formatSemester($sec['semester'])) . ')</span></div></label>';
+    }
+
+    echo json_encode(['html' => $html, 'count' => count($rows)]);
+    exit;
+}
+
 $search = clean($_GET['search'] ?? '');
 $filter_semester = clean($_GET['filter_semester'] ?? '');
 $filter_section = clean($_GET['filter_section'] ?? '');
 
-// Dynamic WHERE Clause တည်ဆောက်ခြင်း
-$whereClauses = [];
-$bindParams = [];
-$bindTypes = "";
+$hasFilters = $search || $filter_semester || $filter_section;
 
-if ($search) {
-    // ပြင်ဆင်လိုက်သည့်နေရာ - ဘာသာရပ်အမည် (course_name) နှင့် ဘာသာရပ်ကုဒ် (course_code) ကိုပါ ရှာဖွေမှုထဲ ထည့်သွင်းခြင်း
-    $whereClauses[] = "(u2.name LIKE ? OR st2.roll_no LIKE ? OR c3.course_name LIKE ? OR c3.course_code LIKE ?)";
-    $s2 = "%$search%";
-    $bindParams[] = $s2;
-    $bindParams[] = $s2;
-    $bindParams[] = $s2;
-    $bindParams[] = $s2;
-    $bindTypes .= "ssss";
-}
-if ($filter_semester) {
-    $whereClauses[] = "s2.semester = ?";
-    $bindParams[] = $filter_semester;
-    $bindTypes .= "s";
-}
-if ($filter_section) {
-    $whereClauses[] = "s2.section = ?";
-    $bindParams[] = $filter_section;
-    $bindTypes .= "s";
-}
-
-$subqueryWhere = "";
-if (count($whereClauses) > 0) {
-    $subqueryWhere = "WHERE " . implode(" AND ", $whereClauses);
-}
-
-// Pagination အရေအတွက်တွက်ချက်ခြင်း
-if ($subqueryWhere) {
-    $countQuery = "SELECT COUNT(DISTINCT sa.student_id) AS c FROM section_assignments sa WHERE sa.student_id IN (SELECT DISTINCT sa2.student_id FROM section_assignments sa2 JOIN students st2 ON sa2.student_id=st2.id JOIN users u2 ON st2.user_id=u2.id JOIN sections s2 ON sa2.section_id=s2.id JOIN courses c3 ON s2.course_id=c3.id $subqueryWhere)";
-    $cStmt = $conn->prepare($countQuery);
-    $cStmt->bind_param($bindTypes, ...$bindParams);
-    $cStmt->execute();
-    $total = (int) $cStmt->get_result()->fetch_assoc()['c'];
-    $cStmt->close();
-} else {
-    $total = (int) $conn->query("SELECT COUNT(DISTINCT student_id) AS c FROM section_assignments")->fetch_assoc()['c'];
-}
-
-$perPage = 10;
-$page = max(1, (int) ($_GET['page'] ?? 1));
-$pg = paginate($total, $perPage, $page);
-$off = $pg['offset'];
-
-// သတ်မှတ်ထားသော Filter အားလုံးနှင့်ကိုက်ညီသည့် ကျောင်းသားများကို ဆွဲထုတ်ခြင်း
-if ($subqueryWhere) {
-    $query = "SELECT 
-                st.id AS student_id, u.name, st.roll_no, 
-                GROUP_CONCAT(sa.id ORDER BY sa.id DESC SEPARATOR '||') AS assignment_ids,
-                GROUP_CONCAT(c2.course_name ORDER BY sa.id DESC SEPARATOR '||') AS course_names,
-                GROUP_CONCAT(c2.course_code ORDER BY sa.id DESC SEPARATOR '||') AS course_codes,
-                GROUP_CONCAT(s.section ORDER BY sa.id DESC SEPARATOR '||') AS sections,
-                GROUP_CONCAT(s.id ORDER BY sa.id DESC SEPARATOR '||') AS section_ids,
-                GROUP_CONCAT(CONCAT(s.academic_year, ' / ', s.semester) ORDER BY sa.id DESC SEPARATOR '||') AS semesters,
-                MAX(sa.created_at) AS latest_enrolled
-              FROM section_assignments sa 
+$selectFrom = "FROM section_assignments sa 
               JOIN students st ON sa.student_id=st.id 
               JOIN users u ON st.user_id=u.id 
               JOIN sections s ON sa.section_id=s.id 
-              JOIN courses c2 ON s.course_id=c2.id 
-              WHERE sa.student_id IN (
-                  SELECT DISTINCT sa2.student_id FROM section_assignments sa2 
-                  JOIN students st2 ON sa2.student_id=st2.id 
-                  JOIN users u2 ON st2.user_id=u2.id 
-                  JOIN sections s2 ON sa2.section_id=s2.id 
-                  JOIN courses c3 ON s2.course_id=c3.id
-                  $subqueryWhere
-              )
-              GROUP BY sa.student_id 
-              ORDER BY u.name ASC 
-              LIMIT ? OFFSET ?";
+              JOIN courses c ON s.course_id=c.id";
+
+$selectColumns = "SELECT sa.id AS assignment_id, sa.student_id, u.name, st.roll_no,
+                  c.course_name, c.course_code, s.section, s.academic_year, s.semester,
+                  s.id AS section_id, sa.created_at";
+
+if ($hasFilters) {
+    $whereClauses = [];
+    $bindParams = [];
+    $bindTypes = "";
+
+    if ($search) {
+        $whereClauses[] = "(u.name LIKE ? OR st.roll_no LIKE ? OR c.course_name LIKE ? OR c.course_code LIKE ?)";
+        $s = "%$search%";
+        $bindParams[] = $s;
+        $bindParams[] = $s;
+        $bindParams[] = $s;
+        $bindParams[] = $s;
+        $bindTypes .= "ssss";
+    }
+    if ($filter_semester) {
+        $whereClauses[] = "LOWER(s.semester) = LOWER(?)";
+        $bindParams[] = $filter_semester;
+        $bindTypes .= "s";
+    }
+    if ($filter_section) {
+        $whereClauses[] = "s.section = ?";
+        $bindParams[] = $filter_section;
+        $bindTypes .= "s";
+    }
+
+    $whereStr = count($whereClauses) > 0 ? "WHERE " . implode(" AND ", $whereClauses) : "";
+
+    $countQuery = "SELECT COUNT(*) AS c $selectFrom $whereStr";
+    $cStmt = $conn->prepare($countQuery);
+    if ($bindParams) {
+        $cStmt->bind_param($bindTypes, ...$bindParams);
+    }
+    $cStmt->execute();
+    $total = (int) $cStmt->get_result()->fetch_assoc()['c'];
+    $cStmt->close();
+
+    $perPage = 10;
+    $page = max(1, (int) ($_GET['page'] ?? 1));
+    $pg = paginate($total, $perPage, $page);
+    $off = $pg['offset'];
+
+    $query = "$selectColumns $selectFrom $whereStr ORDER BY u.name, c.course_name LIMIT ? OFFSET ?";
     $stmt = $conn->prepare($query);
     $mBindTypes = $bindTypes . "ii";
     $mBindParams = array_merge($bindParams, [$perPage, $off]);
     $stmt->bind_param($mBindTypes, ...$mBindParams);
 } else {
-    $query = "SELECT 
-                st.id AS student_id, u.name, st.roll_no, 
-                GROUP_CONCAT(sa.id ORDER BY sa.id DESC SEPARATOR '||') AS assignment_ids,
-                GROUP_CONCAT(c2.course_name ORDER BY sa.id DESC SEPARATOR '||') AS course_names,
-                GROUP_CONCAT(c2.course_code ORDER BY sa.id DESC SEPARATOR '||') AS course_codes,
-                GROUP_CONCAT(s.section ORDER BY sa.id DESC SEPARATOR '||') AS sections,
-                GROUP_CONCAT(s.id ORDER BY sa.id DESC SEPARATOR '||') AS section_ids,
-                GROUP_CONCAT(CONCAT(s.academic_year, ' / ', s.semester) ORDER BY sa.id DESC SEPARATOR '||') AS semesters,
-                MAX(sa.created_at) AS latest_enrolled
-              FROM section_assignments sa 
-              JOIN students st ON sa.student_id=st.id 
-              JOIN users u ON st.user_id=u.id 
-              JOIN sections s ON sa.section_id=s.id 
-              JOIN courses c2 ON s.course_id=c2.id 
-              GROUP BY sa.student_id 
-              ORDER BY u.name ASC 
-              LIMIT ? OFFSET ?";
+    $total = (int) $conn->query("SELECT COUNT(*) AS c FROM section_assignments")->fetch_assoc()['c'];
+    $perPage = 10;
+    $page = 1;
+    $pg = paginate($total, $perPage, $page);
+    $off = 0;
+
+    $query = "$selectColumns $selectFrom ORDER BY u.name, c.course_name LIMIT 50";
     $stmt = $conn->prepare($query);
-    $stmt->bind_param('ii', $perPage, $off);
 }
+
 $stmt->execute();
-$rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$allRows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 
-$sectionCountMap = [];
-$cntRes = $conn->query("SELECT student_id, COUNT(*) AS cnt FROM section_assignments GROUP BY student_id");
-while ($r = $cntRes->fetch_assoc()) {
-    $sectionCountMap[$r['student_id']] = (int) $r['cnt'];
+$grouped = [];
+foreach ($allRows as $r) {
+    $sid = $r['student_id'];
+    if (!isset($grouped[$sid])) {
+        $grouped[$sid] = [
+            'student_id' => $sid,
+            'name'       => $r['name'],
+            'roll_no'    => $r['roll_no'],
+            'courses'    => [],
+            'latest_enrolled' => $r['created_at'],
+        ];
+    }
+    $grouped[$sid]['courses'][] = [
+        'assignment_id' => (int) $r['assignment_id'],
+        'course_name'   => $r['course_name'],
+        'course_code'   => $r['course_code'],
+        'section'       => $r['section'],
+        'academic_year' => $r['academic_year'],
+        'semester'      => $r['semester'],
+        'section_id'    => (int) $r['section_id'],
+        'created_at'    => $r['created_at'],
+    ];
+    if ($r['created_at'] > $grouped[$sid]['latest_enrolled']) {
+        $grouped[$sid]['latest_enrolled'] = $r['created_at'];
+    }
 }
+$rows = array_values($grouped);
 
 include '../includes/admin_header.php';
 include '../includes/admin_sidebar.php';
@@ -215,58 +245,57 @@ include '../includes/admin_sidebar.php';
 
 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
     <div>
-        <h2 class="text-xl font-bold text-slate-800">Section Assignments</h2>
-        <p class="text-sm text-slate-500 mt-0.5">Enroll students into multiple course sections by Roll Number Range</p>
+        <h2 class="text-xl font-bold text-slate-800"><?= $LANG['assignments_title'] ?? 'Section Assignments' ?></h2>
+        <p class="text-sm text-slate-500 mt-0.5">
+            <?= $LANG['assignments_subtitle'] ?? 'Enroll students into multiple course sections by Roll Number Range' ?>
+        </p>
     </div>
     <button onclick="openModal('addModal')"
         class="inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm shadow-cyan-600/20 transition-all hover:-translate-y-0.5">
-        <?= iconSvg('link', 'w-4 h-4') ?> Assign Students (Roll Range အလိုက်အပ်ရန်)
+        <?= iconSvg('link', 'w-4 h-4') ?> <?= $LANG['assign_students'] ?? 'Assign Students (Roll Range အလိုက်အပ်ရန်)' ?>
     </button>
 </div>
 <?php renderFlash() ?>
 
 <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
     <div class="px-5 py-4 border-b border-slate-100 flex items-center gap-3">
-        <form method="GET" class="flex flex-wrap items-center gap-3 flex-1">
-            <div class="relative flex-1 min-w-[220px] max-w-xs">
+        <form method="GET" class="flex items-center gap-2 flex-1">
+            <div class="relative flex-1 min-w-[180px] max-w-xs">
                 <span
                     class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><?= iconSvg('search', 'w-4 h-4') ?></span>
                 <input type="text" name="search" value="<?= e($search) ?>"
-                    placeholder="Search student, course name/code..."
+                    placeholder="<?= $LANG['search_student_course'] ?? 'Search student, course name/code...' ?>"
                     class="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
             </div>
 
-            <div>
-                <select name="filter_semester"
-                    class="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
-                    <option value="">All Semesters</option>
-                    <?php for ($m = 1; $m <= 10; $m++): ?>
-                        <?php $semVal = $m . ($m == 1 ? 'st' : ($m == 2 ? 'nd' : ($m == 3 ? 'rd' : 'th'))) . ' Semester'; ?>
-                        <option value="<?= $semVal ?>" <?= $filter_semester === $semVal ? 'selected' : '' ?>><?= $semVal ?>
-                        </option>
-                    <?php endfor; ?>
-                </select>
-            </div>
+            <select name="filter_semester"
+                class="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
+                <option value=""><?= $LANG['all_semesters'] ?? 'All Semesters' ?></option>
+                <?php for ($m = 1; $m <= 10; $m++): ?>
+                    <?php $semVal = $m . ($m == 1 ? 'st' : ($m == 2 ? 'nd' : ($m == 3 ? 'rd' : 'th'))) . ' Semester'; ?>
+                    <option value="<?= $semVal ?>" <?= $filter_semester === $semVal ? 'selected' : '' ?>>
+                        <?= e(formatSemester($semVal)) ?></option>
+                <?php endfor; ?>
+            </select>
 
-            <div>
-                <select name="filter_section"
-                    class="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
-                    <option value="">All Sections</option>
-                    <option value="A" <?= $filter_section === 'A' ? 'selected' : '' ?>>Section A</option>
-                    <option value="B" <?= $filter_section === 'B' ? 'selected' : '' ?>>Section B</option>
-                    <option value="C" <?= $filter_section === 'C' ? 'selected' : '' ?>>Section C</option>
-                    <option value="D" <?= $filter_section === 'D' ? 'selected' : '' ?>>Section D</option>
-                </select>
-            </div>
+            <select name="filter_section"
+                class="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
+                <option value=""><?= $LANG['all_sections'] ?? 'All Sections' ?></option>
+                <option value="A" <?= $filter_section === 'A' ? 'selected' : '' ?>>Section A</option>
+                <option value="B" <?= $filter_section === 'B' ? 'selected' : '' ?>>Section B</option>
+                <option value="C" <?= $filter_section === 'C' ? 'selected' : '' ?>>Section C</option>
+                <option value="D" <?= $filter_section === 'D' ? 'selected' : '' ?>>Section D</option>
+            </select>
 
             <button type="submit"
-                class="px-4 py-2 text-sm bg-cyan-600 text-white rounded-xl hover:bg-cyan-700 font-semibold shadow-sm transition-colors">Filter</button>
+                class="px-4 py-2 text-sm bg-cyan-600 text-white rounded-xl hover:bg-cyan-700 font-semibold shadow-sm transition-colors whitespace-nowrap"><?= $LANG['filter'] ?? 'Filter' ?></button>
             <?php if ($search || $filter_semester || $filter_section): ?>
                 <a href="section_assignments.php"
-                    class="px-3 py-2 text-sm border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors">Clear</a>
+                    class="px-3 py-2 text-sm border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors whitespace-nowrap"><?= $LANG['clear'] ?? 'Clear' ?></a>
             <?php endif ?>
         </form>
-        <span class="text-xs text-slate-400 shrink-0"><?= $total ?> student<?= $total !== 1 ? 's' : '' ?> listed</span>
+        <span class="text-xs text-slate-400 shrink-0"><?= $total ?>
+            <?= $LANG['records'] ?? 'student' ?><?= $total !== 1 ? 's' : '' ?> listed</span>
     </div>
 
     <div class="overflow-x-auto">
@@ -274,119 +303,105 @@ include '../includes/admin_sidebar.php';
             <thead class="bg-slate-50 border-b border-slate-200">
                 <tr>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">#</th>
-                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">Student</th>
-                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">Assigned Courses & Sections
-                    </th>
-                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">Total</th>
-                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">Latest Enrollment</th>
-                    <th class="text-right px-5 py-3 text-slate-500 text-sm font-semibold">Actions</th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
+                        <?= $LANG['col_student'] ?? 'Student' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
+                        <?= $LANG['col_course'] ?? 'Course' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
+                        <?= $LANG['section_name'] ?? 'Section' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
+                        <?= $LANG['year_semester'] ?? 'Year / Semester' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
+                        <?= $LANG['col_enrolled'] ?? 'Enrolled' ?></th>
+                    <th class="text-right px-5 py-3 text-slate-500 text-sm font-semibold">
+                        <?= $LANG['col_actions'] ?? 'Actions' ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
-                <?php if ($rows):
-                    foreach ($rows as $i => $row):
-                        $asgnIds = $row['assignment_ids'] ? explode('||', $row['assignment_ids']) : [];
-                        $cNames = $row['course_names'] ? explode('||', $row['course_names']) : [];
-                        $cCodes = $row['course_codes'] ? explode('||', $row['course_codes']) : [];
-                        $secs = $row['sections'] ? explode('||', $row['sections']) : [];
-                        $secIds = $row['section_ids'] ? explode('||', $row['section_ids']) : [];
-                        $semesters = $row['semesters'] ? explode('||', $row['semesters']) : [];
-
-                        $hasVisibleCard = false;
-                        $cardsHtml = '';
-
-                        if (!empty($asgnIds)) {
-                            foreach ($asgnIds as $k => $asgnId) {
-                                if (!isset($cNames[$k]))
-                                    continue;
-
-                                $matchSearch = true;
-                                if ($search) {
-                                    $searchLower = strtolower($search);
-                                    $inStudent = strpos(strtolower($row['name']), $searchLower) !== false || strpos(strtolower($row['roll_no']), $searchLower) !== false;
-                                    // ပြင်ဆင်လိုက်သည့်နေရာ - ကတ်ပြားများကို စစ်ထုတ်ပြသရာတွင် ဘာသာရပ်အမည်/ကုဒ် ကိုပါ Check လုပ်ပေးခြင်း
-                                    $inCourse = strpos(strtolower($cNames[$k]), $searchLower) !== false || strpos(strtolower($cCodes[$k]), $searchLower) !== false;
-                                    if (!$inStudent && !$inCourse)
-                                        $matchSearch = false;
-                                }
-                                if ($filter_semester && strpos($semesters[$k], $filter_semester) === false)
-                                    $matchSearch = false;
-                                if ($filter_section && strtolower($secs[$k]) !== strtolower($filter_section))
-                                    $matchSearch = false;
-
-                                if ($matchSearch) {
-                                    $hasVisibleCard = true;
-                                    $cardsHtml .= '
-                                    <div class="flex flex-wrap items-center justify-between gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200/60 text-xs">
-                                        <div class="min-w-0 flex-1">
-                                            <div class="flex items-center gap-2">
-                                                <span class="font-semibold text-slate-800 text-sm">' . e($cNames[$k]) . '</span>
-                                                <span class="font-mono text-slate-400 text-xs">(' . e($cCodes[$k]) . ')</span>
-                                            </div>
-                                            <div class="text-slate-500 mt-1 flex gap-2 items-center">
-                                                <span class="inline-flex items-center px-2 py-0.5 font-bold rounded-md bg-cyan-50 text-cyan-700 border border-cyan-200/50">Section ' . e($secs[$k]) . '</span>
-                                                <span>·</span>
-                                                <span class="text-slate-400">' . e($semesters[$k]) . '</span>
-                                            </div>
-                                        </div>
-                                        <div class="flex gap-1.5 shrink-0">
-                                            <button type="button" onclick="openEdit(' . (int) $asgnId . ', ' . (int) $secIds[$k] . ', \'' . addslashes(e($row['name'])) . '\')"
-                                                class="px-2.5 py-1.5 text-[11px] font-semibold text-cyan-600 bg-white hover:bg-cyan-50 border border-slate-200 rounded-lg transition-colors shadow-2xs">
-                                                Edit
-                                            </button>
-                                            <button type="button" onclick="openDelete(' . (int) $asgnId . ', \'' . addslashes(e($row['name'])) . ' - ' . addslashes(e($cNames[$k])) . '\')"
-                                                class="px-2.5 py-1.5 text-[11px] font-semibold text-red-600 bg-white hover:bg-red-50 border border-slate-200 rounded-lg transition-colors shadow-2xs">
-                                                Remove
-                                            </button>
-                                        </div>
-                                    </div>';
-                                }
-                            }
-                        }
-
-                        if (($search || $filter_semester || $filter_section) && !$hasVisibleCard)
-                            continue;
-                        ?>
-                        <tr class="hover:bg-slate-50/80 transition-colors">
-                            <td class="px-5 py-4 text-sm text-slate-400 align-top"><?= $pg['offset'] + $i + 1 ?></td>
-                            <td class="px-5 py-4 align-top min-w-[160px]">
+                <?php if ($rows): ?>
+                    <?php foreach ($rows as $i => $row): ?>
+                        <?php $courses = $row['courses'] ?? []; $cnt = count($courses); $first = $courses[0] ?? null; ?>
+                        <tr class="summary-row hover:bg-slate-50/80 transition-colors">
+                            <td class="px-5 py-3 text-sm text-slate-400"><?= $pg['offset'] + $i + 1 ?></td>
+                            <td class="px-5 py-3 min-w-[140px]">
                                 <p class="text-sm font-semibold text-slate-800"><?= e($row['name']) ?></p>
                                 <p class="text-xs font-mono text-slate-400 mt-0.5"><?= e($row['roll_no']) ?></p>
                             </td>
-                            <td class="px-5 py-4 space-y-2.5">
-                                <?= $cardsHtml ?>
+                            <td class="px-5 py-3">
+                                <button type="button" onclick="toggleCourses(this)"
+                                    class="flex items-center gap-1.5 text-sm font-medium text-slate-700 hover:text-cyan-600 cursor-pointer transition-colors group">
+                                    <span class="inline-flex items-center px-2 py-0.5 font-bold rounded-md bg-cyan-50 text-cyan-700 border border-cyan-200/50 text-xs"><?= $cnt ?> course<?= $cnt !== 1 ? 's' : '' ?></span>
+                                    <svg class="w-4 h-4 transition-transform duration-200 text-slate-400 group-hover:text-cyan-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                                    </svg>
+                                </button>
                             </td>
-                            <td class="px-5 py-4 align-top">
-                                <?php $cnt = $sectionCountMap[$row['student_id']] ?? 0; ?>
-                                <span
-                                    class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold <?= $cnt > 1 ? 'bg-cyan-100 text-cyan-700 border border-cyan-200/30' : 'bg-slate-100 text-slate-600' ?>">
-                                    <?= $cnt ?> Course<?= $cnt !== 1 ? 's' : '' ?>
-                                </span>
+                            <td class="px-5 py-3">
+                                <?php if ($first): ?>
+                                    <span class="inline-flex items-center px-2 py-0.5 font-bold rounded-md bg-cyan-50 text-cyan-700 border border-cyan-200/50 text-xs">Section <?= e($first['section']) ?></span>
+                                <?php endif; ?>
                             </td>
-                            <td class="px-5 py-4 text-xs text-slate-400 align-top"><?= formatDate($row['latest_enrolled']) ?>
+                            <td class="px-5 py-3 text-xs text-slate-500">
+                                <?php if ($first): ?>
+                                    <?= e($first['academic_year']) ?> · <?= e(formatSemester($first['semester'])) ?>
+                                <?php endif; ?>
                             </td>
-                            <td class="px-5 py-4 text-right align-top">
+                            <td class="px-5 py-3 text-xs text-slate-400"><?= formatDate($row['latest_enrolled']) ?></td>
+                            <td class="px-5 py-3 text-right">
                                 <button type="button"
-                                    onclick="openBulkDelete(<?= $row['student_id'] ?>, '<?= addslashes(e($row['name'])) ?>')"
-                                    class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200/40 rounded-xl transition-all shadow-3xs">
-                                    <?= iconSvg('trash', 'w-3.5 h-3.5') ?> Remove All
+                                    onclick="openBulkDelete(<?= (int) $row['student_id'] ?>, '<?= addslashes(e($row['name'])) ?>')"
+                                    class="px-2.5 py-1.5 text-[10px] font-semibold text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                                    title="<?= $LANG['remove_all_assignments_modal'] ?? 'Remove All' ?>">
+                                    <?= $LANG['remove_all'] ?? 'Remove All' ?>
                                 </button>
                             </td>
                         </tr>
-                    <?php endforeach; else: ?>
+                        <?php foreach ($courses as $course): ?>
+                            <tr class="course-detail-row hidden bg-slate-50/30">
+                                <td colspan="2" class="px-5 py-0"></td>
+                                <td class="px-5 py-2">
+                                    <p class="text-sm font-medium text-slate-800"><?= e($course['course_name']) ?></p>
+                                </td>
+                                <td colspan="3" class="px-5 py-2"></td>
+                                <td class="px-5 py-2 text-right">
+                                    <div class="flex items-center justify-end gap-1.5">
+                                        <button type="button"
+                                            onclick="openEdit(<?= (int) $course['assignment_id'] ?>, <?= (int) $course['section_id'] ?>, '<?= addslashes(e($row['name'])) ?>')"
+                                            class="px-2.5 py-1.5 text-[11px] font-semibold text-cyan-600 bg-white hover:bg-cyan-50 border border-slate-200 rounded-lg transition-colors shadow-2xs">
+                                            <?= e($LANG['edit'] ?? 'Edit') ?>
+                                        </button>
+                                        <button type="button"
+                                            onclick="openDelete(<?= (int) $course['assignment_id'] ?>, '<?= addslashes(e($row['name'] . ' - ' . $course['course_name'])) ?>')"
+                                            class="px-2.5 py-1.5 text-[11px] font-semibold text-red-600 bg-white hover:bg-red-50 border border-slate-200 rounded-lg transition-colors shadow-2xs">
+                                            <?= e($LANG['delete'] ?? 'Remove') ?>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endforeach; ?>
+                <?php else: ?>
                     <tr>
-                        <td colspan="6" class="text-center py-16 text-slate-400">
+                        <td colspan="7" class="text-center py-16 text-slate-400">
                             <?= iconSvg('link', 'w-10 h-10 mx-auto mb-3 opacity-40') ?>
-                            <p class="text-sm">No assignments found.</p>
+                            <p class="text-sm">
+                                <?php if ($hasFilters): ?>
+                                    <?= $LANG['no_assignments_for_filter'] ?? 'No assigned courses found for the selected semester and section.' ?>
+                                <?php else: ?>
+                                    <?= $LANG['no_assignments_found'] ?? 'No assignments found.' ?>
+                                <?php endif; ?>
+                            </p>
                         </td>
                     </tr>
-                <?php endif ?>
+                <?php endif; ?>
             </tbody>
         </table>
     </div>
-    <div class="px-5 py-4 border-t border-slate-100">
-        <?= paginationLinks($pg, 'section_assignments.php' . '?' . http_build_query(array_filter(['search' => $search, 'filter_semester' => $filter_semester, 'filter_section' => $filter_section]))) ?>
-    </div>
+    <?php if ($hasFilters): ?>
+        <div class="px-5 py-4 border-t border-slate-100">
+            <?= paginationLinks($pg, 'section_assignments.php' . '?' . http_build_query(array_filter(['search' => $search, 'filter_semester' => $filter_semester, 'filter_section' => $filter_section]))) ?>
+        </div>
+    <?php endif; ?>
 </div>
 
 <div id="addModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4 modal-backdrop"
@@ -394,8 +409,11 @@ include '../includes/admin_sidebar.php';
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xl modal-box overflow-hidden">
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
             <div>
-                <h3 class="font-bold text-slate-800 text-lg">Assign Students by Roll Number Range</h3>
-                <p class="text-xs text-slate-500 mt-0.5">Roll နံပါတ် အပိုင်းအခြားအလိုက် ဘာသာရပ်များ အစုလိုက်သွင်းရန်</p>
+                <h3 class="font-bold text-slate-800 text-lg">
+                    <?= $LANG['assign_by_roll_range'] ?? 'Assign Students by Roll Number Range' ?></h3>
+                <p class="text-xs text-slate-500 mt-0.5">
+                    <?= $LANG['assign_roll_range_hint'] ?? 'Roll နံပါတ် အပိုင်းအခြားအလိုက် ဘာသာရပ်များ အစုလိုက်သွင်းရန်' ?>
+                </p>
             </div>
             <button onclick="closeModal('addModal')"
                 class="text-slate-400 hover:text-slate-600"><?= iconSvg('x', 'w-5 h-5') ?></button>
@@ -407,35 +425,64 @@ include '../includes/admin_sidebar.php';
             <div class="px-6 py-5 space-y-4">
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-1">Roll Number (From) <span
-                                class="text-red-500">*</span></label>
+                        <label
+                            class="block text-sm font-semibold text-slate-700 mb-1"><?= $LANG['roll_from'] ?? 'Roll Number (From)' ?>
+                            <span class="text-red-500">*</span></label>
                         <input type="text" name="roll_from" required placeholder="e.g. 4CS-1"
                             class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-1">Roll Number (To) <span
-                                class="text-red-500">*</span></label>
+                        <label
+                            class="block text-sm font-semibold text-slate-700 mb-1"><?= $LANG['roll_to'] ?? 'Roll Number (To)' ?>
+                            <span class="text-red-500">*</span></label>
                         <input type="text" name="roll_to" required placeholder="e.g. 4CS-50"
                             class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-semibold text-slate-700 mb-1">Select Courses / Sections (၎င်း Range
-                        အတွက် တစ်ခါတည်းအပ်မည့် ဘာသာရပ်များ)</label>
-                    <div
+                    <label
+                        class="block text-sm font-semibold text-slate-700 mb-1"><?= $LANG['select_courses_sections'] ?? 'Select Courses / Sections (၎င်း Range အတွက် တစ်ခါတည်းအပ်မည့် ဘာသာရပ်များ)' ?></label>
+                    <div class="flex items-center gap-2 mb-3">
+                        <select id="addFilterSemester"
+                            class="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
+                            <option value=""><?= $LANG['all_semesters'] ?? 'All Semesters' ?></option>
+                            <?php for ($m = 1; $m <= 10; $m++): ?>
+                                <?php $semVal = $m . ($m == 1 ? 'st' : ($m == 2 ? 'nd' : ($m == 3 ? 'rd' : 'th'))) . ' Semester'; ?>
+                                <option value="<?= $semVal ?>"><?= e(formatSemester($semVal)) ?></option>
+                            <?php endfor; ?>
+                        </select>
+                        <select id="addFilterSection"
+                            class="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
+                            <option value=""><?= $LANG['all_sections'] ?? 'All Sections' ?></option>
+                            <option value="A">Section A</option>
+                            <option value="B">Section B</option>
+                            <option value="C">Section C</option>
+                        </select>
+                        <button type="button" onclick="filterAddSections()"
+                            class="px-4 py-2 text-sm bg-cyan-600 text-white rounded-xl hover:bg-cyan-700 font-semibold shadow-sm transition-colors whitespace-nowrap"><?= $LANG['filter'] ?? 'Filter' ?></button>
+                    </div>
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="flex items-center gap-2 text-xs text-slate-500 cursor-pointer select-none">
+                            <input type="checkbox" id="addSelectAllVisible"
+                                class="w-3.5 h-3.5 rounded border-slate-300 text-cyan-600 accent-cyan-600">
+                            <?= $LANG['select_all_visible'] ?? 'Select All Visible' ?>
+                        </label>
+                        <span id="addVisibleCount" class="text-xs text-slate-400"></span>
+                    </div>
+                    <div id="addSectionList"
                         class="border border-slate-200 rounded-xl overflow-y-auto max-h-56 divide-y divide-slate-100 p-2 bg-slate-50/50">
                         <?php foreach ($sectionList as $sec): ?>
-                            <label
-                                class="flex items-center gap-3 px-3 py-1.5 hover:bg-white cursor-pointer rounded-lg transition-colors">
+                            <label data-semester="<?= e($sec['semester']) ?>" data-section="<?= e($sec['section']) ?>"
+                                class="add-section-item flex items-center gap-3 px-3 py-1.5 hover:bg-white cursor-pointer rounded-lg transition-colors">
                                 <input type="checkbox" name="section_ids[]" value="<?= $sec['id'] ?>"
-                                    class="w-4 h-4 rounded border-slate-300 text-cyan-600 accent-cyan-600">
+                                    class="add-section-cb w-4 h-4 rounded border-slate-300 text-cyan-600 accent-cyan-600">
                                 <div class="text-xs">
                                     <span class="font-semibold text-slate-800"><?= e($sec['course_name']) ?></span>
                                     <span
                                         class="font-bold text-cyan-600 bg-cyan-50 border border-cyan-200 px-1 rounded ml-1">Sec
                                         <?= e($sec['section']) ?></span>
-                                    <span class="text-slate-400 ml-2">(<?= e($sec['semester']) ?>)</span>
+                                    <span class="text-slate-400 ml-2">(<?= e(formatSemester($sec['semester'])) ?>)</span>
                                 </div>
                             </label>
                         <?php endforeach; ?>
@@ -444,10 +491,9 @@ include '../includes/admin_sidebar.php';
             </div>
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50">
                 <button type="button" onclick="closeModal('addModal')"
-                    class="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-100">Cancel</button>
+                    class="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-100"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
                 <button type="submit"
-                    class="px-5 py-2 text-sm font-semibold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl shadow-sm">Assign
-                    Range Process</button>
+                    class="px-5 py-2 text-sm font-semibold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl shadow-sm"><?= $LANG['assign_range_process'] ?? 'Assign Range Process' ?></button>
             </div>
         </form>
     </div>
@@ -458,8 +504,9 @@ include '../includes/admin_sidebar.php';
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md modal-box">
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
             <div>
-                <h3 class="font-semibold text-slate-800">Edit Assignment</h3>
-                <p class="text-xs text-slate-400 mt-0.5">Change the section for <strong id="edit_student_name"
+                <h3 class="font-semibold text-slate-800"><?= $LANG['edit_assignment_modal'] ?? 'Edit Assignment' ?></h3>
+                <p class="text-xs text-slate-400 mt-0.5">
+                    <?= $LANG['edit_assignment_hint'] ?? 'Change the section for' ?> <strong id="edit_student_name"
                         class="text-slate-600"></strong></p>
             </div>
             <button onclick="closeModal('editModal')"
@@ -471,9 +518,11 @@ include '../includes/admin_sidebar.php';
             <input type="hidden" name="id" id="edit_id">
             <div class="px-6 py-5 space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">New Section <span
-                            class="text-red-500">*</span></label>
-                    <input type="text" id="editSectionSearch" placeholder="Filter sections..." autocomplete="off"
+                    <label
+                        class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['new_section'] ?? 'New Section' ?>
+                        <span class="text-red-500">*</span></label>
+                    <input type="text" id="editSectionSearch"
+                        placeholder="<?= $LANG['filter_sections'] ?? 'Filter sections...' ?>" autocomplete="off"
                         class="w-full border border-slate-200 rounded-xl px-4 py-2 text-sm mb-2 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
                     <div id="editSectionList"
                         class="border border-slate-200 rounded-xl overflow-y-auto max-h-56 divide-y divide-slate-100">
@@ -489,7 +538,8 @@ include '../includes/admin_sidebar.php';
                                             class="font-mono font-normal text-slate-400">(<?= e($sec['course_code']) ?>)</span>
                                     </p>
                                     <p class="text-xs text-slate-400">Sec <?= e($sec['section']) ?> ·
-                                        <?= e($sec['academic_year']) ?> · <?= e($sec['semester']) ?></p>
+                                        <?= e($sec['academic_year']) ?> · <?= e(formatSemester($sec['semester'])) ?>
+                                    </p>
                                 </div>
                             </label>
                         <?php endforeach ?>
@@ -498,10 +548,9 @@ include '../includes/admin_sidebar.php';
             </div>
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
                 <button type="button" onclick="closeModal('editModal')"
-                    class="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-100">Cancel</button>
+                    class="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-100"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
                 <button type="submit"
-                    class="px-5 py-2 text-sm font-semibold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl shadow-sm">Save
-                    Changes</button>
+                    class="px-5 py-2 text-sm font-semibold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl shadow-sm"><?= $LANG['save_changes'] ?? 'Save Changes' ?></button>
             </div>
         </form>
     </div>
@@ -514,16 +563,20 @@ include '../includes/admin_sidebar.php';
             <div
                 class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4 font-bold text-red-600">
                 ⚠️</div>
-            <h3 class="text-lg font-semibold text-slate-800">Remove Assignment</h3>
-            <p class="text-sm text-slate-500 mt-2">Remove <strong id="delete_name" class="text-slate-700"></strong>?</p>
+            <!-- <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                <?= iconSvg('trash', 'w-7 h-7 text-red-600') ?></div> -->
+            <h3 class="text-lg font-semibold text-slate-800">
+                <?= $LANG['remove_assignment_modal'] ?? 'Remove Assignment' ?></h3>
+            <p class="text-sm text-slate-500 mt-2"><?= $LANG['remove_assignment_modal'] ?? 'Remove' ?> <strong
+                    id="delete_name" class="text-slate-700"></strong>?</p>
         </div>
         <form method="POST"><?= csrfField() ?><input type="hidden" name="action" value="delete"><input type="hidden"
                 name="id" id="delete_id">
             <div class="flex gap-3 px-6 pb-6">
                 <button type="button" onclick="closeModal('deleteModal')"
-                    class="flex-1 px-4 py-2.5 text-sm border border-slate-200 rounded-xl">Cancel</button>
+                    class="flex-1 px-4 py-2.5 text-sm border border-slate-200 rounded-xl"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
                 <button type="submit"
-                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl">Remove</button>
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl"><?= $LANG['delete'] ?? 'Remove' ?></button>
             </div>
         </form>
     </div>
@@ -536,9 +589,12 @@ include '../includes/admin_sidebar.php';
             <div
                 class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4 font-bold text-red-600">
                 ⚠️</div>
-            <h3 class="text-lg font-semibold text-slate-800">Remove All Assignments</h3>
-            <p class="text-sm text-slate-500 mt-2">Are you sure you want to completely clear all course enrollments for
-                <strong id="bulk_delete_name" class="text-slate-700"></strong>?</p>
+            <h3 class="text-lg font-semibold text-slate-800">
+                <?= $LANG['remove_all_assignments_modal'] ?? 'Remove All Assignments' ?></h3>
+            <p class="text-sm text-slate-500 mt-2">
+                <?= $LANG['remove_all_confirm'] ?? 'Are you sure you want to completely clear all course enrollments for' ?>
+                <strong id="bulk_delete_name" class="text-slate-700"></strong>?
+            </p>
         </div>
         <form method="POST">
             <?= csrfField() ?>
@@ -546,10 +602,9 @@ include '../includes/admin_sidebar.php';
             <input type="hidden" name="student_id" id="bulk_student_id">
             <div class="flex gap-3 px-6 pb-6">
                 <button type="button" onclick="closeModal('bulkDeleteModal')"
-                    class="flex-1 px-4 py-2.5 text-sm border border-slate-200 rounded-xl">Cancel</button>
+                    class="flex-1 px-4 py-2.5 text-sm border border-slate-200 rounded-xl"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
                 <button type="submit"
-                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl">Remove
-                    All</button>
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl"><?= $LANG['remove_all_confirm'] ?? 'Remove All' ?></button>
             </div>
         </form>
     </div>
@@ -579,6 +634,22 @@ include '../includes/admin_sidebar.php';
         openModal('bulkDeleteModal');
     }
 
+    function toggleCourses(btn) {
+        const summaryRow = btn.closest('tr');
+        let next = summaryRow.nextElementSibling;
+        const isExpanding = next && next.classList.contains('course-detail-row') && next.classList.contains('hidden');
+        while (next && next.classList.contains('course-detail-row')) {
+            if (isExpanding) {
+                next.classList.remove('hidden');
+            } else {
+                next.classList.add('hidden');
+            }
+            next = next.nextElementSibling;
+        }
+        const svg = btn.querySelector('svg');
+        if (svg) svg.style.transform = isExpanding ? 'rotate(180deg)' : '';
+    }
+
     // Edit Modal filtering logic
     document.getElementById('editSectionSearch').addEventListener('input', function () {
         const q = this.value.toLowerCase();
@@ -586,5 +657,47 @@ include '../includes/admin_sidebar.php';
             item.style.display = item.dataset.label.toLowerCase().includes(q) ? '' : 'none';
         });
     });
+
+    // Add Modal: Semester/Section filter for section checkboxes (AJAX)
+    function filterAddSections() {
+        const sem = document.getElementById('addFilterSemester').value;
+        const sec = document.getElementById('addFilterSection').value;
+        const list = document.getElementById('addSectionList');
+        const params = new URLSearchParams({ ajax_filter: 1 });
+        if (sem) params.set('semester_id', sem);
+        if (sec) params.set('section_id', sec);
+        list.innerHTML = '<div class="text-center text-xs text-slate-400 py-4">Loading...</div>';
+
+        fetch('section_assignments.php?' + params.toString())
+            .then(r => r.json())
+            .then(data => {
+                list.innerHTML = data.html || '<div class="text-center text-xs text-slate-400 py-4">No matching sections.</div>';
+                document.getElementById('addVisibleCount').textContent = data.count + ' item' + (data.count !== 1 ? 's' : '');
+                list.querySelectorAll('.add-section-cb').forEach(cb => cb.addEventListener('change', updateSelectAllVisibleState));
+                updateSelectAllVisibleState();
+            })
+            .catch(() => {
+                list.innerHTML = '<div class="text-center text-xs text-red-400 py-4">Failed to load sections.</div>';
+            });
+    }
+
+    function updateSelectAllVisibleState() {
+        const visibleCbs = [...document.querySelectorAll('#addSectionList .add-section-cb')];
+        const allChecked = visibleCbs.length > 0 && visibleCbs.every(cb => cb.checked);
+        document.getElementById('addSelectAllVisible').checked = allChecked;
+    }
+
+    document.getElementById('addSelectAllVisible').addEventListener('change', function () {
+        const checked = this.checked;
+        document.querySelectorAll('#addSectionList .add-section-item').forEach(item => {
+            const cb = item.querySelector('.add-section-cb');
+            if (cb) cb.checked = checked;
+        });
+    });
+
+    document.querySelectorAll('.add-section-cb').forEach(cb => {
+        cb.addEventListener('change', updateSelectAllVisibleState);
+    });
+
 </script>
 <?php include '../includes/admin_footer.php'; ?>

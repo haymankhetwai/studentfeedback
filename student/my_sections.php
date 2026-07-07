@@ -5,20 +5,20 @@ require_once '../includes/functions.php';
 requireRole('student');
 
 $user = getCurrentUser();
-$stmt = $conn->prepare("SELECT st.id, m.major_name FROM students st JOIN majors m ON st.major_id=m.id WHERE st.user_id=?");
+$stmt = $conn->prepare("SELECT st.id FROM students st WHERE st.user_id=?");
 $stmt->bind_param('i', $user['id']);
 $stmt->execute();
 $student = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 $studentId = $student['id'] ?? 0;
-$pageTitle = 'My Sections';
+$pageTitle = $LANG['my_sections_page_title'] ?? 'My Sections';
 $activeMenu = 'sections';
 $today = date('Y-m-d');
 
 // Load sections and their forms
 $sections = [];
 if ($studentId) {
-    $rs = $conn->prepare("SELECT s.*, c.course_name, c.course_code, u.name AS teacher_name, d.department_name FROM section_assignments sa JOIN sections s ON sa.section_id=s.id JOIN courses c ON s.course_id=c.id JOIN teachers t ON s.teacher_id=t.id JOIN users u ON t.user_id=u.id JOIN majors m ON c.major_id=m.id JOIN departments d ON m.department_id=d.id WHERE sa.student_id=? ORDER BY s.id DESC");
+    $rs = $conn->prepare("SELECT s.*, c.course_name, c.course_code, u.name AS teacher_name FROM section_assignments sa JOIN sections s ON sa.section_id=s.id JOIN courses c ON s.course_id=c.id JOIN teachers t ON s.teacher_id=t.id JOIN users u ON t.user_id=u.id WHERE sa.student_id=? ORDER BY s.id DESC");
     $rs->bind_param('i', $studentId);
     $rs->execute();
     $sections = $rs->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -27,12 +27,12 @@ if ($studentId) {
 
 // Fixed navigation array: Includes all 6 structural modules so items do not disappear
 $navItems = [
-    ['label' => 'Dashboard', 'href' => '/studentfeedback/student/index.php', 'key' => 'dashboard', 'icon' => 'home'],
-    ['label' => 'My Sections', 'href' => '/studentfeedback/student/my_sections.php', 'key' => 'sections', 'icon' => 'grid'],
-    ['label' => 'Student Affairs', 'href' => '/studentfeedback/student/sa_feedback.php', 'key' => 'sa', 'icon' => 'shield'],
-    ['label' => 'Administration', 'href' => '/studentfeedback/student/adm_feedback.php', 'key' => 'adm', 'icon' => 'office'],
-    ['label' => 'History', 'href' => '/studentfeedback/student/feedback_history.php', 'key' => 'history', 'icon' => 'history'],
-    ['label' => 'Profile', 'href' => '/studentfeedback/student/profile.php', 'key' => 'profile', 'icon' => 'user'],
+    ['label' => $LANG['nav_dashboard'] ?? 'Dashboard', 'href' => '/studentfeedbackucsh/student/dashboard.php', 'key' => 'dashboard', 'icon' => 'home'],
+    ['label' => $LANG['nav_my_sections'] ?? 'My Sections', 'href' => '/studentfeedbackucsh/student/my_sections.php', 'key' => 'sections', 'icon' => 'grid'],
+    ['label' => $LANG['nav_student_affairs'] ?? 'Student Affairs', 'href' => '/studentfeedbackucsh/student/sa_feedback.php', 'key' => 'sa', 'icon' => 'shield'],
+    ['label' => $LANG['nav_administration'] ?? 'Administration', 'href' => '/studentfeedbackucsh/student/adm_feedback.php', 'key' => 'adm', 'icon' => 'office'],
+    ['label' => $LANG['nav_history'] ?? 'History', 'href' => '/studentfeedbackucsh/student/feedback_history.php', 'key' => 'history', 'icon' => 'history'],
+    ['label' => $LANG['nav_profile'] ?? 'Profile', 'href' => '/studentfeedbackucsh/student/profile.php', 'key' => 'profile', 'icon' => 'user'],
 ];
 $initials = avatarInitials($user['name']);
 ?>
@@ -54,7 +54,7 @@ $initials = avatarInitials($user['name']);
         }
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/studentfeedback/assets/css/custom.css">
+    <link rel="stylesheet" href="/studentfeedbackucsh/assets/css/custom.css">
 </head>
 
 <body class="h-full bg-slate-50 font-inter">
@@ -90,45 +90,37 @@ $initials = avatarInitials($user['name']);
                 <?php endforeach ?>
             </nav>
 
-            <div class="border-t border-cyan-500 px-4 py-4">
+            <a href="/studentfeedbackucsh/auth/logout.php" title="<?= $LANG['logout'] ?? 'Logout' ?>"
+                class="block border-t border-white/15 bg-red-500 text-gray-50 hover:text-gray-200 transition-colors px-4 py-4 cursor-pointer">
                 <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold">
-                        <?= e($initials) ?></div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-xs font-semibold text-white truncate"><?= e($user['name']) ?></p>
-                        <p class="text-[10px] text-cyan-100 truncate"><?= $student['major_name'] ?? 'Student' ?>
-                        </p>
+
+                    <div class="min-w-0 ">
+                        <p class="text-xl h-8"><?= $LANG['logout'] ?? 'Logout' ?></p>
                     </div>
-                    <a href="/studentfeedback/auth/logout.php" class="text-cyan-100 hover:text-red-300">
-                        <?= iconSvg('logout', 'w-4 h-4') ?>
-                    </a>
+                    <?= iconSvg('logout', 'w-6 h-6') ?>
                 </div>
-            </div>
+            </a>
         </aside>
 
         <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
-            <header
-                class="bg-white border-b border-slate-200 px-4 lg:px-6 py-3.5 flex items-center gap-4 sticky top-0 z-20 shadow-sm">
-                <button onclick="openSidebar()" class="lg:hidden text-slate-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
-                        stroke="currentColor" class="w-6 h-6">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-                    </svg>
-                </button>
-                <h1 class="text-base font-semibold text-slate-800"><?= e($pageTitle) ?></h1>
-            </header>
+            <?php include '../includes/student_header.php'; ?>
 
             <main class="flex-1 overflow-y-auto p-4 lg:p-6">
                 <div class="mb-6">
-                    <h2 class="text-xl font-bold text-slate-800">My Sections & Feedback Forms</h2>
-                    <p class="text-sm text-slate-500">Your enrolled sections and available feedback forms</p>
+                    <h2 class="text-xl font-bold text-slate-800">
+                        <?= $LANG['my_sections_page_title'] ?? 'My Sections & Feedback Forms' ?>
+                    </h2>
+                    <p class="text-sm text-slate-500">
+                        <?= $LANG['my_sections_subtitle'] ?? 'Your enrolled sections and available feedback forms' ?>
+                    </p>
                 </div>
+
+                <?php renderFlash() ?>
 
                 <?php if ($sections):
                     foreach ($sections as $sec):
                         // Get forms for this section
-                        $fStmt = $conn->prepare("SELECT ff.id, ff.title, ff.status, ff.start_date, ff.end_date, (SELECT COUNT(*) FROM feedback_submissions fs WHERE fs.feedback_form_id=ff.id AND fs.student_id=?) AS submitted FROM feedback_forms ff WHERE ff.section_id=? ORDER BY ff.id DESC");
+                        $fStmt = $conn->prepare("SELECT ff.id, ff.title, ff.status, ff.start_date, ff.end_date, (SELECT COUNT(*) FROM feedback_submissions fs WHERE fs.form_id=ff.id AND fs.student_id=?) AS submitted FROM feedback_forms ff WHERE ff.section_id=? ORDER BY ff.id DESC");
                         $fStmt->bind_param('ii', $studentId, $sec['id']);
                         $fStmt->execute();
                         $forms = $fStmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -139,12 +131,13 @@ $initials = avatarInitials($user['name']);
                                 <div>
                                     <p class="text-sm font-semibold text-slate-800"><?= e($sec['course_name']) ?> <span
                                             class="font-mono text-xs text-slate-400">(<?= e($sec['course_code']) ?>)</span></p>
-                                    <p class="text-xs text-slate-400 mt-0.5">Section <?= e($sec['section']) ?> ·
-                                        <?= e($sec['academic_year']) ?> · <?= e($sec['semester']) ?> · Taught by
-                                        <?= e($sec['teacher_name']) ?></p>
+                                    <p class="text-xs text-slate-400 mt-0.5"><?= $LANG['section_label'] ?? 'Section' ?>
+                                        <?= e($sec['section']) ?> ·
+                                        <?= e($sec['academic_year']) ?> · <?= e(formatSemester($sec['semester'])) ?> ·
+                                        <?= $LANG['taught_by'] ?? 'Taught by' ?>
+                                        <?= e($sec['teacher_name']) ?>
+                                    </p>
                                 </div>
-                                <span
-                                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-cyan-50 text-cyan-600"><?= e($sec['department_name']) ?></span>
                             </div>
                             <?php if ($forms): ?>
                                 <div class="divide-y divide-slate-100">
@@ -157,25 +150,30 @@ $initials = avatarInitials($user['name']);
                                             <div>
                                                 <p class="text-sm font-medium text-slate-800"><?= e($f['title']) ?></p>
                                                 <p class="text-xs text-slate-400"><?= formatDate($f['start_date']) ?> —
-                                                    <?= formatDate($f['end_date']) ?></p>
+                                                    <?= formatDate($f['end_date']) ?>
+                                                </p>
                                             </div>
                                             <div class="flex items-center gap-3">
                                                 <?php if ($submitted): ?>
                                                     <span
                                                         class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-xl">
-                                                        <?= iconSvg('check', 'w-3.5 h-3.5') ?> Submitted
+                                                        <?= iconSvg('check', 'w-3.5 h-3.5') ?>
+                                                        <?= $LANG['submitted_status'] ?? 'Submitted' ?>
                                                     </span>
                                                 <?php elseif ($isActive): ?>
                                                     <span
-                                                        class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-700">Open
-                                                        until <?= formatDate($f['end_date']) ?></span>
-                                                    <a href="/studentfeedback/student/feedback_form.php?form_id=<?= $f['id'] ?>"
+                                                        class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-700"><?= $LANG['open_status'] ?? 'Open' ?>
+                                                        <?= $LANG['until_label'] ?? 'until' ?>                     <?= formatDate($f['end_date']) ?></span>
+                                                    <a href="/studentfeedbackucsh/student/feedback_form.php?form_id=<?= $f['id'] ?>"
                                                         class="inline-flex items-center gap-1 px-4 py-2 text-xs font-semibold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl transition-all hover:-translate-y-0.5">
-                                                        <?= iconSvg('clipboard', 'w-3.5 h-3.5') ?> Fill Form
+                                                        <?= iconSvg('clipboard', 'w-3.5 h-3.5') ?>                     <?= $LANG['fill_form'] ?? 'Fill Form' ?>
                                                     </a>
                                                 <?php elseif ($expired): ?>
                                                     <span
-                                                        class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-slate-500 bg-slate-100 rounded-xl">Expired</span>
+                                                        class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-slate-500 bg-slate-100 rounded-xl"><?= $LANG['expired_status'] ?? 'Expired' ?></span>
+                                                <?php elseif ($f['start_date'] > $today): ?>
+                                                    <span class="text-xs text-slate-400"><?= $LANG['starts_label'] ?? 'Starts' ?>
+                                                        <?= formatDate($f['start_date']) ?></span>
                                                 <?php else: ?>
                                                     <?= badgeStatus($f['status']) ?>
                                                 <?php endif ?>
@@ -184,13 +182,16 @@ $initials = avatarInitials($user['name']);
                                     <?php endforeach ?>
                                 </div>
                             <?php else: ?>
-                                <div class="px-6 py-6 text-sm text-slate-400">No feedback forms for this section.</div>
+                                <div class="px-6 py-6 text-sm text-slate-400">
+                                    <?= $LANG['no_forms_for_section'] ?? 'No feedback forms for this section.' ?>
+                                </div>
                             <?php endif ?>
                         </div>
                     <?php endforeach; else: ?>
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 text-center py-16 text-slate-400">
                         <?= iconSvg('grid', 'w-10 h-10 mx-auto mb-3 opacity-40') ?>
-                        <p class="text-sm">You are not enrolled in any sections yet.</p>
+                        <p class="text-sm"><?= $LANG['not_enrolled_any'] ?? 'You are not enrolled in any sections yet.' ?>
+                        </p>
                     </div>
                 <?php endif ?>
 

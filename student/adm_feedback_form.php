@@ -5,7 +5,7 @@ require_once '../includes/functions.php';
 requireRole('student');
 
 $user = getCurrentUser();
-$stmt = $conn->prepare("SELECT st.id, m.major_name FROM students st JOIN majors m ON st.major_id=m.id WHERE st.user_id=?");
+$stmt = $conn->prepare("SELECT st.id FROM students st WHERE st.user_id=?");
 $stmt->bind_param('i', $user['id']);
 $stmt->execute();
 $student = $stmt->get_result()->fetch_assoc();
@@ -13,7 +13,7 @@ $stmt->close();
 $studentId = $student['id'] ?? 0;
 
 if (!$studentId) {
-    setFlash('error', 'Student profile not found.');
+    setFlash('error', $LANG['flash_student_profile_missing'] ?? 'Student profile not found.');
     header('Location: index.php');
     exit;
 }
@@ -23,8 +23,8 @@ $formId = (int) ($_GET['form_id'] ?? 0);
 // ─── Auto-fallback with Semester/Active check ────────────────
 if (!$formId) {
     $activeFormQuery = $conn->query("
-        SELECT id FROM adm_feedback_forms 
-        WHERE status = 'active'
+        SELECT id FROM feedback_forms 
+        WHERE status = 'active' AND module = 'administration'
         ORDER BY id DESC LIMIT 1
     ");
     $activeFormRes = $activeFormQuery->fetch_assoc();
@@ -32,31 +32,25 @@ if (!$formId) {
 }
 
 if (!$formId) {
-    setFlash('error', 'လက်ရှိအချိန်တွင် ဖြည့်စွက်ရန် Administration Form မရှိသေးပါ။');
+    setFlash('error', $LANG['flash_no_adm_form_available'] ?? 'No Administration form available right now.');
     header('Location: adm_feedback.php');
     exit;
 }
 
 // ─── Load form ──────────────────────────────────────────────
-$tableCheck = $conn->query("SHOW TABLES LIKE 'adm_feedback_forms'");
-if (!$tableCheck || $tableCheck->num_rows === 0) {
-    setFlash('error', 'Administration feedback tables not found. Please run the database migration.');
-    header('Location: adm_feedback.php');
-    exit;
-}
-$fs = $conn->prepare("SELECT * FROM adm_feedback_forms WHERE id=?");
+$fs = $conn->prepare("SELECT * FROM feedback_forms WHERE id=? AND module='administration'");
 $fs->bind_param('i', $formId);
 $fs->execute();
 $form = $fs->get_result()->fetch_assoc();
 $fs->close();
 if (!$form) {
-    setFlash('error', 'Administration form not found.');
+    setFlash('error', $LANG['flash_adm_form_not_found'] ?? 'Administration form not found.');
     header('Location: adm_feedback.php');
     exit;
 }
 
 // ─── Check already submitted ──────────────────────────────────
-$sub = $conn->prepare("SELECT id FROM adm_feedback_submissions WHERE form_id=? AND student_id=?");
+$sub = $conn->prepare("SELECT id FROM feedback_submissions WHERE form_id=? AND student_id=?");
 $sub->bind_param('ii', $formId, $studentId);
 $sub->execute();
 $alreadySubmitted = (bool) $sub->get_result()->num_rows;
@@ -77,18 +71,20 @@ elseif ($form['start_date'] > $today)
 elseif ($form['end_date'] < $today)
     $statusNote = 'expired';
 
-// ─── Load Admin Questions ─────────────────────────────────────
-$qStmt = $conn->prepare("SELECT * FROM adm_feedback_questions WHERE form_id=? ORDER BY question_no ASC");
-$qStmt->bind_param('i', $formId);
+// ─── Load Questions (shared per module)
+$qStmt = $conn->prepare("SELECT id, question_no, question_text, question_type FROM feedback_questions WHERE module='administration' ORDER BY question_no ASC");
 $qStmt->execute();
 $allQuestions = $qStmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $qStmt->close();
 
 $ratingQuestions = [];
 $commentQuestions = [];
+$surveyQuestions = [];
 foreach ($allQuestions as $q) {
     if ($q['question_type'] === 'rating') {
         $ratingQuestions[] = $q;
+    } elseif ($q['question_type'] === 'survey') {
+        $surveyQuestions[] = $q;
     } else {
         $commentQuestions[] = $q;
     }
@@ -97,32 +93,56 @@ foreach ($allQuestions as $q) {
 // ─── Handle POST Submission ───────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     if (!$canSubmit) {
-        setFlash('error', 'This form is not open for submission.');
+        setFlash('error', $LANG['flash_form_not_open'] ?? 'This form is not open for submission.');
     } else {
         $hasError = false;
+        $hasFairOrBad = false;
         foreach ($ratingQuestions as $q) {
             $rating = $_POST['rating_' . $q['id']] ?? '';
             if (!in_array($rating, ['Good', 'Fair', 'Bad'])) {
                 $hasError = true;
                 break;
             }
+            if ($rating !== 'Good') { $hasFairOrBad = true; }
+        }
+        if (!$hasError && $hasFairOrBad) {
+            foreach ($commentQuestions as $q) {
+                $comment = trim($_POST['comment_' . $q['id']] ?? '');
+                if ($comment === '') {
+                    $hasError = true;
+                    break;
+                }
+            }
         }
 
         if ($hasError) {
-            setFlash('error', 'ကျေးဇူးပြု၍ အကဲဖြတ်မေးခွန်းများအားလုံးကို ဖြည့်စွက်ပေးပါ။');
+            setFlash('error', $LANG['flash_fill_all_eval'] ?? 'Please fill all evaluation questions and comments.');
         } else {
             $conn->begin_transaction();
             try {
-                $ins = $conn->prepare("INSERT INTO adm_feedback_submissions (form_id, student_id) VALUES (?,?)");
-                $ins->bind_param('ii', $formId, $studentId);
-                $ins->execute();
+                $recheck = $conn->prepare("SELECT id FROM feedback_submissions WHERE form_id=? AND student_id=? FOR UPDATE");
+                $recheck->bind_param('ii', $formId, $studentId); $recheck->execute();
+                if ($recheck->get_result()->num_rows > 0) {
+                    $recheck->close(); $conn->rollback();
+                    setFlash('error', $LANG['flash_already_submitted'] ?? 'You have already submitted this form.');
+                    header('Location: adm_feedback.php'); exit;
+                }
+                $recheck->close();
+
+                $ins = $conn->prepare("INSERT INTO feedback_submissions (form_id, student_id) VALUES (?,?)");
+                $ins->bind_param('ii', $formId, $studentId); $ins->execute();
+                if ($ins->affected_rows === 0) {
+                    $ins->close(); $conn->rollback();
+                    setFlash('error', $LANG['flash_already_submitted'] ?? 'You have already submitted this form.');
+                    header('Location: adm_feedback.php'); exit;
+                }
                 $ins->close();
 
                 foreach ($ratingQuestions as $q) {
                     $rating = $_POST['rating_' . $q['id']] ?? '';
                     if ($rating) {
-                        $ri = $conn->prepare("INSERT INTO adm_feedback_ratings (form_id, question_id, student_id, rating) VALUES (?,?,?,?)");
-                        $ri->bind_param('iiis', $formId, $q['id'], $studentId, $rating);
+                        $ri = $conn->prepare("INSERT INTO feedback_ratings (form_id, question_id, rating) VALUES (?,?,?)");
+                        $ri->bind_param('iis', $formId, $q['id'], $rating);
                         $ri->execute();
                         $ri->close();
                     }
@@ -131,26 +151,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                 foreach ($commentQuestions as $q) {
                     $comment = trim($_POST['comment_' . $q['id']] ?? '');
                     if ($comment !== '') {
-                        $ci = $conn->prepare("INSERT INTO adm_feedback_comments (form_id, question_id, student_id, comment_text) VALUES (?,?,?,?)");
-                        $ci->bind_param('iiis', $formId, $q['id'], $studentId, $comment);
+                        $ci = $conn->prepare("INSERT INTO feedback_comments (form_id, question_id, comment_text) VALUES (?,?,?)");
+                        $ci->bind_param('iis', $formId, $q['id'], $comment);
                         $ci->execute();
                         $ci->close();
                     }
                 }
 
+                $lastSubId = $conn->insert_id;
+                foreach ($surveyQuestions as $q) {
+                    $selectedOptions = $_POST['survey'][$q['id']] ?? [];
+                    if (!is_array($selectedOptions)) $selectedOptions = [$selectedOptions];
+                    foreach ($selectedOptions as $sel) {
+                        $selected = (int)$sel;
+                        if ($selected >= 0 && $selected <= 3) {
+                            $si = $conn->prepare("INSERT INTO feedback_survey_answers (submission_id, question_id, selected_option_index) VALUES (?,?,?)");
+                            $si->bind_param('iii', $lastSubId, $q['id'], $selected);
+                            $si->execute(); $si->close();
+                        }
+                    }
+                }
+
                 $conn->commit();
-                setFlash('success', '🎉 စီမံခန့်ခွဲမှုဆိုင်ရာ စစ်တမ်းပုံစံ ဖြည့်စွက်အောင်မြင်ပါသည်။');
+                setFlash('success', $LANG['flash_thank_you_participation_adm'] ?? '🎉 Administration feedback submitted successfully.');
                 header('Location: adm_feedback.php');
                 exit;
             } catch (Exception $e) {
                 $conn->rollback();
-                setFlash('error', 'Submission failed. Please try again.');
+                setFlash('error', $LANG['flash_submission_failed_try'] ?? 'Submission failed. Please try again.');
             }
         }
     }
 }
 
-$pageTitle = 'Administration Feedback';
+$pageTitle = $LANG['adm_satisfaction_form'] ?? 'Administration Satisfaction Form';
 $initials = avatarInitials($user['name']);
 ?>
 <!DOCTYPE html>
@@ -174,37 +208,37 @@ $initials = avatarInitials($user['name']);
     <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 bg-gradient-to-b from-cyan-600 to-cyan-700 text-white flex flex-col z-40 transform -translate-x-full transition-transform duration-300 lg:relative lg:translate-x-0 lg:flex-shrink-0">
         <div class="flex items-center gap-3 px-5 py-5 border-b border-cyan-500">
             <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center font-bold text-white">S</div>
-            <div><p class="text-sm font-bold">SFMS Student</p><p class="text-[10px] text-cyan-100">Student Portal</p></div>
+            <div><p class="text-sm font-bold">SFMS Student</p><p class="text-[10px] text-cyan-100"><?= $LANG['student_portal'] ?? 'Student Portal' ?></p></div>
             <button onclick="closeSidebar()" class="ml-auto lg:hidden text-cyan-200 hover:text-white">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>
         <nav class="flex-1 py-4 px-3 space-y-0.5">
-            <a href="/studentfeedback/student/index.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('home','w-4 h-4 flex-shrink-0') ?> Dashboard</a>
-            <a href="/studentfeedback/student/my_sections.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('grid','w-4 h-4 flex-shrink-0') ?> My Sections</a>
-            <a href="/studentfeedback/student/sa_feedback.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('shield','w-4 h-4 flex-shrink-0') ?> Student Affairs</a>
-            <a href="/studentfeedback/student/adm_feedback.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm bg-white/20 text-white font-semibold"><?= iconSvg('office','w-4 h-4 flex-shrink-0') ?> Administration</a>
-            <a href="/studentfeedback/student/feedback_history.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('history','w-4 h-4 flex-shrink-0') ?> History</a>
-            <a href="/studentfeedback/student/profile.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('user','w-4 h-4 flex-shrink-0') ?> Profile</a>
+            <a href="/studentfeedbackucsh/student/dashboard.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('home','w-4 h-4 flex-shrink-0') ?> <?= $LANG['nav_dashboard'] ?? 'Dashboard' ?></a>
+            <a href="/studentfeedbackucsh/student/my_sections.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('grid','w-4 h-4 flex-shrink-0') ?> <?= $LANG['nav_my_sections'] ?? 'My Sections' ?></a>
+            <a href="/studentfeedbackucsh/student/sa_feedback.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('shield','w-4 h-4 flex-shrink-0') ?> <?= $LANG['nav_student_affairs_link'] ?? 'Student Affairs' ?></a>
+            <a href="/studentfeedbackucsh/student/adm_feedback.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm bg-white/20 text-white font-semibold"><?= iconSvg('office','w-4 h-4 flex-shrink-0') ?> <?= $LANG['nav_administration_link'] ?? 'Administration' ?></a>
+            <a href="/studentfeedbackucsh/student/feedback_history.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('history','w-4 h-4 flex-shrink-0') ?> <?= $LANG['nav_history'] ?? 'History' ?></a>
+            <a href="/studentfeedbackucsh/student/profile.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('user','w-4 h-4 flex-shrink-0') ?> <?= $LANG['nav_profile'] ?? 'Profile' ?></a>
         </nav>
-        <div class="border-t border-cyan-500 px-4 py-4 flex items-center gap-3">
-            <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold text-white"><?= e($initials) ?></div>
-            <div class="flex-1 min-w-0">
-                <p class="text-xs font-semibold text-white truncate"><?= e($user['name']) ?></p>
-                <p class="text-[10px] text-cyan-100 truncate"><?= $student['major_name'] ?? 'Student' ?></p>
-            </div>
-            <a href="/studentfeedback/auth/logout.php" class="text-cyan-200 hover:text-red-300">
-                        <?= iconSvg('logout', 'w-4 h-4') ?>
-                    </a>
-        </div>
+        <a href="/studentfeedbackucsh/auth/logout.php" title="<?= $LANG['logout'] ?? 'Logout' ?>"
+                class="block border-t border-white/15 bg-red-500 text-gray-50 hover:text-gray-200 transition-colors px-4 py-4 cursor-pointer">
+                <div class="flex items-center gap-3">
+
+                    <div class="min-w-0 ">
+                        <p class="text-xl h-8"><?= $LANG['logout'] ?? 'Logout' ?></p>
+                    </div>
+                    <?= iconSvg('logout', 'w-6 h-6') ?>
+                </div>
+        </a>
     </aside>
 
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
         
         <header class="bg-white border-b border-slate-200 px-6 py-4 flex items-center gap-4 shadow-sm z-20">
             <button onclick="openSidebar()" class="lg:hidden text-slate-500"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg></button>
-            <h1 class="text-base font-bold text-slate-800">Administration Satisfaction Form</h1>
-            <a href="adm_feedback.php" class="ml-auto text-sm font-medium text-cyan-600 hover:underline">← Back</a>
+            <h1 class="text-base font-bold text-slate-800"><?= $LANG['adm_feedback_page_title'] ?? 'Administration Satisfaction Form' ?></h1>
+            <a href="adm_feedback.php" class="ml-auto text-sm font-medium text-cyan-600 hover:underline">← <?= $LANG['back'] ?? 'Back' ?></a>
         </header>
 
         <main class="flex-1 overflow-y-auto p-4 md:p-8 max-w-4xl mx-auto w-full">
@@ -213,103 +247,148 @@ $initials = avatarInitials($user['name']);
             <div class="bg-white shadow-xl rounded-xl border border-slate-200 p-6 md:p-10 mb-8">
                 
                 <div class="text-center pb-4 mb-6 border-b border-slate-100">
-                    <h2 class="text-lg md:text-xl font-bold text-slate-950 mb-1">စီမံခန့်ခွဲမှုဆိုင်ရာသုံးသပ်ချက် (ကျောင်းသား)</h2>
-                    <p class="text-xs font-bold text-slate-600 tracking-wider">University Campus</p>
-                    <h3 class="text-md font-black text-slate-900 mt-2"><?= e($form['title']) ?></h3>
-                    <p class="text-xs text-slate-500 mt-2">Feedback Period: <?= formatDate($form['start_date']) ?> — <?= formatDate($form['end_date']) ?></p>
+                   
+                    <h2 class="text-lg md:text-xl font-bold text-slate-950 mb-1"><?= $LANG['university_name'] ?? 'University of Computer Studies (Hinthada)' ?></h2>
+                    <p class="text-md font-black text-slate-900 mb-1"><?= $LANG['academic_year_label'] ?? 'Academic Year' ?>: <?= e($form['academic_year'] ?? '') ?></p>
+                    <p class="text-md font-black text-slate-900 mt-1 tracking-wider"><?= $LANG['university_campus'] ?? 'University Campus' ?></p>
+                    <h3 class="text-md font-black text-slate-900 mt-1"><?= e($form['title']) ?></h3>
+                    <p class="text-xs text-slate-500 mt-1"><?= $LANG['feedback_period'] ?? 'Feedback Period' ?>: <?= formatDate($form['start_date']) ?> — <?= formatDate($form['end_date']) ?></p>
                 </div>
 
                 <?php if ($alreadySubmitted): ?>
-                    <div class="bg-green-50 border border-green-200 text-green-800 p-4 rounded-xl mb-6 text-sm font-semibold">
-                        ✓ ဤစီမံခန့်ခွဲမှုစစ်တမ်းပုံစံအား ဖြည့်စွက်ပေးပို့ပြီးဖြစ်ပါသည်။ ပါဝင်ဆောင်ရွက်ပေးမှုအတွက် ကျေးဇူးတင်ပါသည်။
-                    </div>
-                <?php elseif (!$canSubmit && $statusNote): ?>
-                    <div class="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl mb-6 text-sm font-semibold">
-                        ⚠️ လက်ရှိအချိန်တွင် စစ်တမ်းပုံစံ လက်ခံခြင်းမရှိသေးပါ သို့မဟုတ် သက်တမ်းကုန်ဆုံးသွားပါပြီ။
-                    </div>
+                <div class="bg-green-50 border border-green-200 text-green-800 p-4 rounded-xl mb-6 text-sm font-semibold">
+                    ✓ <?= $LANG['thank_you_participating'] ?? 'This form has been submitted. Thank you for your participation.' ?>
+                </div>
+                <?php elseif ($form['start_date'] > $today): ?>
+                <div class="bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-xl mb-6 text-sm font-semibold">
+                    ⏳ <?= $LANG['form_not_available_yet'] ?? 'Feedback form is not available yet. It will open on' ?> <strong><?= formatDate($form['start_date']) ?></strong>.
+                </div>
+                <?php elseif ($form['end_date'] < $today): ?>
+                <div class="bg-slate-100 border border-slate-300 text-slate-700 p-4 rounded-xl mb-6 text-sm font-semibold">
+                    🔒 <?= $LANG['form_closed_ended'] ?? 'Feedback form has been closed. It ended on' ?> <strong><?= formatDate($form['end_date']) ?></strong>.
+                </div>
+                <?php elseif (!$isActive): ?>
+                <div class="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl mb-6 text-sm font-semibold">
+                    ⚠️ <?= $LANG['form_inactive'] ?? 'This feedback form is currently inactive.' ?>
+                </div>
                 <?php endif ?>
 
                 <?php if (!empty($allQuestions)): ?>
-                    <form method="POST" id="feedback-form" class="space-y-8">
-                        <?= csrfField() ?>
+                <form method="POST" id="feedback-form" class="space-y-8">
+                    <?= csrfField() ?>
 
-                        <?php if (!empty($ratingQuestions)): ?>
-                            <div>
-                                <div class="overflow-x-auto border border-slate-300 rounded-lg shadow-sm">
-                                    <table class="w-full text-left border-collapse min-w-[500px]">
-                                        <thead>
-                                            <tr class="bg-slate-50 border-b border-slate-300 text-slate-900 font-bold text-xs">
-                                                <th class="p-3 border-r border-slate-300 w-12 text-center">စဉ်</th>
-                                                <th class="p-3 border-r border-slate-300">လုပ်ဆောင်ချက်များ</th>
-                                                <th class="p-3 border-r border-slate-300 w-24 text-center bg-emerald-50 text-emerald-900">Good</th>
-                                                <th class="p-3 border-r border-slate-300 w-24 text-center bg-amber-50 text-amber-900">Fair</th>
-                                                <th class="p-3 w-24 text-center bg-red-50 text-red-900">Bad</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="text-xs divide-y divide-slate-200 text-slate-800">
-                                            <?php foreach ($ratingQuestions as $q): ?>
-                                                <tr class="hover:bg-slate-50/50 transition-colors">
-                                                    <td class="p-3 border-r border-slate-200 text-center font-bold font-mono"><?= e($q['question_no']) ?></td>
-                                                    <td class="p-3 border-r border-slate-200 font-medium leading-relaxed text-slate-900"><?= e($q['question_text']) ?></td>
-                                                
-                                                    <td class="p-3 border-r border-slate-200 text-center bg-emerald-50/30">
-                                                        <input type="radio" name="rating_<?= $q['id'] ?>" value="Good" required 
-                                                               <?= !$canSubmit ? 'disabled' : '' ?>
-                                                               class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 cursor-pointer">
-                                                    </td>
-                                                    <td class="p-3 border-r border-slate-200 text-center bg-amber-50/30">
-                                                        <input type="radio" name="rating_<?= $q['id'] ?>" value="Fair" required 
-                                                               <?= !$canSubmit ? 'disabled' : '' ?>
-                                                               class="w-4 h-4 text-amber-500 focus:ring-amber-500 cursor-pointer">
-                                                    </td>
-                                                    <td class="p-3 text-center bg-red-50/30">
-                                                        <input type="radio" name="rating_<?= $q['id'] ?>" value="Bad" required 
-                                                               <?= !$canSubmit ? 'disabled' : '' ?>
-                                                               class="w-4 h-4 text-red-600 focus:ring-red-500 cursor-pointer">
-                                                    </td>
-                                                </tr>
-                                            <?php endforeach ?>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        <?php endif ?>
-
-                        <?php if (!empty($commentQuestions)): ?>
-                            <div class="space-y-6 pt-4 border-t-2 border-slate-200">
-                                <?php foreach ($commentQuestions as $q): ?>
-                                    <div class="space-y-2">
-                                        <label class="block text-xs font-bold text-slate-800 leading-relaxed">
-                                            (<?= e($q['question_no']) ?>)။ <?= e($q['question_text']) ?>
-                                        </label>
-                                        <textarea name="comment_<?= $q['id'] ?>" rows="4" 
-                                                  placeholder="ဤနေရာတွင် စာသားများရေးသားနိုင်ပါသည်..."
-                                                  <?= !$canSubmit ? 'disabled' : '' ?>
-                                                  class="w-full border border-slate-300 bg-slate-50 rounded-xl px-4 py-3 text-xs focus:bg-white focus:border-slate-900 outline-none resize-none transition-all disabled:opacity-60"></textarea>
-                                    </div>
-                                <?php endforeach ?>
-                            </div>
-                        <?php endif ?>
-
-                        <div class="pt-8 border-t border-slate-200 flex items-center justify-end gap-3">
-                            <a href="index.php" class="px-5 py-2 text-xs border border-slate-300 rounded-xl text-slate-600 hover:bg-slate-50 font-semibold">Cancel</a>
-                        
-                            <?php if ($canSubmit): ?>
-                                <button type="submit" id="submit-btn"
-                                        class="w-full md:w-auto px-8 py-2 text-xs font-bold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl shadow-md transition-all">
-                                    Submit Feedback
-                                </button>
-                            <?php else: ?>
-                                <button type="button" disabled class="w-full md:w-auto px-8 py-2 text-xs font-bold text-slate-400 bg-slate-200 rounded-xl cursor-not-allowed">
-                                    Locked
-                                </button>
-                            <?php endif ?>
+                    <?php if (!empty($ratingQuestions)): ?>
+                    <div>
+                        <div class="overflow-x-auto border border-slate-300 rounded-lg shadow-sm">
+                            <table class="w-full text-left border-collapse min-w-[500px]">
+                                <thead>
+                                    <tr class="bg-slate-50 border-b border-slate-300 text-slate-900 font-bold text-xs">
+                                        <th class="p-3 border-r border-slate-300 w-12 text-center"><?= $LANG['col_no_short'] ?? 'No' ?></th>
+                                        <th class="p-3 border-r border-slate-300"><?= $LANG['col_activities'] ?? 'Activities' ?></th>
+                                        <th class="p-3 border-r border-slate-300 w-24 text-center bg-emerald-50 text-emerald-900"><?= $LANG['good'] ?? 'Good' ?></th>
+                                        <th class="p-3 border-r border-slate-300 w-24 text-center bg-amber-50 text-amber-900"><?= $LANG['fair'] ?? 'Fair' ?></th>
+                                        <th class="p-3 w-24 text-center bg-red-50 text-red-900"><?= $LANG['bad'] ?? 'Bad' ?></th>
+                                    </tr>
+                                </thead>
+                                <tbody class="text-xs divide-y divide-slate-200 text-slate-800">
+                                    <?php foreach ($ratingQuestions as $q): ?>
+                                    <tr class="hover:bg-slate-50/50 transition-colors">
+                                        <td class="p-3 border-r border-slate-200 text-center font-bold font-mono"><?= e($q['question_no']) ?></td>
+                                        <td class="p-3 border-r border-slate-200 font-medium leading-relaxed text-slate-900"><?= e($q['question_text']) ?></td>
+                                        
+                                        <td class="p-3 border-r border-slate-200 text-center bg-emerald-50/30">
+                                            <input type="radio" name="rating_<?= $q['id'] ?>" value="Good" required 
+                                                   <?= !$canSubmit ? 'disabled' : '' ?>
+                                                   class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 cursor-pointer">
+                                        </td>
+                                        <td class="p-3 border-r border-slate-200 text-center bg-amber-50/30">
+                                            <input type="radio" name="rating_<?= $q['id'] ?>" value="Fair" required 
+                                                   <?= !$canSubmit ? 'disabled' : '' ?>
+                                                   class="w-4 h-4 text-amber-500 focus:ring-amber-500 cursor-pointer">
+                                        </td>
+                                        <td class="p-3 text-center bg-red-50/30">
+                                            <input type="radio" name="rating_<?= $q['id'] ?>" value="Bad" required 
+                                                   <?= !$canSubmit ? 'disabled' : '' ?>
+                                                   class="w-4 h-4 text-red-600 focus:ring-red-500 cursor-pointer">
+                                        </td>
+                                    </tr>
+                                    <?php endforeach ?>
+                                </tbody>
+                            </table>
                         </div>
-                    </form>
-                <?php else: ?>
-                    <div class="text-center py-12 text-slate-400 text-sm">
-                        <p>စီမံခန့်ခွဲမှုဆိုင်ရာ မေးခွန်းများ ထည့်သွင်းထားခြင်း မရှိသေးပါ။</p>
                     </div>
+                    <?php endif ?>
+
+                    <?php if (!empty($commentQuestions)): ?>
+                    <div class="space-y-6 pt-4 border-t-2 border-slate-200">
+                        <?php foreach ($commentQuestions as $q): ?>
+                        <div class="space-y-2">
+                            <label class="block text-xs font-bold text-slate-800 leading-relaxed">
+                                (<?= e($q['question_no']) ?>)။ <?= e($q['question_text']) ?>
+                            </label>
+                            <textarea name="comment_<?= $q['id'] ?>" rows="4"
+                                      placeholder="<?= $LANG['comment_placeholder'] ?? 'Write your comment here...' ?>"
+                                      <?= !$canSubmit ? 'disabled' : '' ?>
+                                      class="comment-textarea w-full border border-slate-300 bg-slate-50 rounded-xl px-4 py-3 text-xs focus:bg-white focus:border-slate-900 outline-none resize-none transition-all disabled:opacity-60"></textarea>
+                        </div>
+                        <?php endforeach ?>
+                    </div>
+                    <?php endif ?>
+
+                    <?php if (!empty($surveyQuestions)): ?>
+                    <div class="space-y-6 pt-4 border-t-2 border-violet-200">
+                        <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Survey Questions (MCQ)</h3>
+                        <?php foreach ($surveyQuestions as $q):
+                            $opts = json_decode($q['options_json'] ?? '[]', true) ?: [];
+                            ?>
+                            <div class="space-y-2 survey-group" data-question-id="<?= $q['id'] ?>">
+                                <label class="block text-xs font-bold text-slate-800 leading-relaxed">
+                                    (<?= e($q['question_no']) ?>)။ <?= e($q['question_text']) ?>
+                                    <span class="text-red-500 text-[10px] font-normal">*</span>
+                                </label>
+                                <div class="space-y-2">
+                                    <?php foreach ($opts as $idx => $opt): ?>
+                                    <label class="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 cursor-pointer hover:bg-violet-50 transition-colors <?= !$canSubmit ? 'opacity-60 pointer-events-none' : '' ?>">
+                                        <input type="checkbox" name="survey[<?= $q['id'] ?>][]" value="<?= $idx ?>"
+                                               <?= !$canSubmit ? 'disabled' : '' ?>
+                                               class="w-4 h-4 text-violet-600 focus:ring-violet-500 rounded cursor-pointer survey-cb">
+                                        <span class="text-xs text-slate-700 font-medium"><?= e($opt) ?></span>
+                                    </label>
+                                    <?php endforeach ?>
+                                </div>
+                                <p class="text-xs text-red-500 hidden survey-error">Please select at least one option.</p>
+                            </div>
+                        <?php endforeach ?>
+                    </div>
+                    <?php endif ?>
+
+                    <div class="pt-8 border-t border-slate-200 flex items-center justify-end gap-3">
+                        <a href="index.php" class="px-5 py-2 text-xs border border-slate-300 rounded-xl text-slate-600 hover:bg-slate-50 font-semibold"><?= $LANG['cancel'] ?? 'Cancel' ?></a>
+                        
+                        <?php if ($canSubmit): ?>
+                        <button type="submit" id="submit-btn"
+                                class="w-full md:w-auto px-8 py-2 text-xs font-bold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl shadow-md transition-all">
+                            <?= $LANG['submit_form'] ?? 'Submit Form' ?>
+                        </button>
+                        <?php elseif ($form['start_date'] > $today): ?>
+                        <button type="button" disabled class="w-full md:w-auto px-8 py-2 text-xs font-bold text-slate-400 bg-slate-200 rounded-xl cursor-not-allowed">
+                            <?= $LANG['not_yet_available'] ?? 'Not Yet Available' ?>
+                        </button>
+                        <?php elseif ($form['end_date'] < $today): ?>
+                        <button type="button" disabled class="w-full md:w-auto px-8 py-2 text-xs font-bold text-slate-400 bg-slate-200 rounded-xl cursor-not-allowed">
+                            <?= $LANG['form_closed'] ?? 'Form Closed' ?>
+                        </button>
+                        <?php else: ?>
+                        <button type="button" disabled class="w-full md:w-auto px-8 py-2 text-xs font-bold text-slate-400 bg-slate-200 rounded-xl cursor-not-allowed">
+                            <?= $LANG['submissions_locked'] ?? 'Submissions Locked' ?>
+                        </button>
+                        <?php endif ?>
+                    </div>
+                </form>
+                <?php else: ?>
+                <div class="text-center py-12 text-slate-400 text-sm">
+                    <p><?= $LANG['no_questions_in_form'] ?? 'No questions have been added to this form yet.' ?></p>
+                </div>
                 <?php endif ?>
             </div>
         </main>
@@ -317,17 +396,62 @@ $initials = avatarInitials($user['name']);
 </div>
 
 <script>
+var langAllGood = '<?= $LANG['all_good_comment_not_required'] ?? 'All Good — comment not required.' ?>';
+var langCommentPlaceholder = '<?= $LANG['comment_placeholder'] ?? 'Write here (optional)...' ?>';
+var langSubmitting = '<?= $LANG['submitting'] ?? 'Submitting...' ?>';
 function openSidebar() { document.getElementById('sidebar').classList.remove('-translate-x-full'); document.getElementById('overlay').classList.remove('hidden'); }
 function closeSidebar() { document.getElementById('sidebar').classList.add('-translate-x-full'); document.getElementById('overlay').classList.add('hidden'); }
-<?php if ($canSubmit): ?>
-    const ff = document.getElementById('feedback-form'), btn = document.getElementById('submit-btn');
-    if (ff && btn) {
-        ff.addEventListener('submit', function() { 
-            btn.disabled = true; 
-            btn.className = "w-full md:w-auto px-8 py-2 text-xs font-bold text-slate-400 bg-slate-200 rounded-xl cursor-not-allowed";
-            btn.textContent = 'Submitting...'; 
-        });
+
+function toggleCommentFields() {
+    var radios = document.querySelectorAll('#feedback-form input[type="radio"]:checked');
+    var allGood = true;
+    for (var i = 0; i < radios.length; i++) {
+        if (radios[i].value !== 'Good') { allGood = false; break; }
     }
+    var hasAnyChecked = radios.length > 0;
+    var disable = hasAnyChecked && allGood;
+    var textareas = document.querySelectorAll('.comment-textarea');
+    for (var j = 0; j < textareas.length; j++) {
+        if (disable) {
+            textareas[j].disabled = true;
+            textareas[j].required = false;
+            textareas[j].placeholder = langAllGood;
+        } else {
+            textareas[j].disabled = false;
+            textareas[j].required = true;
+            textareas[j].placeholder = langCommentPlaceholder;
+        }
+    }
+}
+
+<?php if ($canSubmit): ?>
+var ratingRadios = document.querySelectorAll('#feedback-form input[type="radio"]');
+for (var r = 0; r < ratingRadios.length; r++) {
+    ratingRadios[r].addEventListener('change', toggleCommentFields);
+}
+toggleCommentFields();
+
+const ff = document.getElementById('feedback-form'), btn = document.getElementById('submit-btn');
+if (ff && btn) {
+    ff.addEventListener('submit', function(e) {
+        var groups = document.querySelectorAll('.survey-group');
+        var valid = true;
+        for (var g = 0; g < groups.length; g++) {
+            var cbs = groups[g].querySelectorAll('.survey-cb');
+            var err = groups[g].querySelector('.survey-error');
+            var checked = false;
+            for (var c = 0; c < cbs.length; c++) {
+                if (cbs[c].checked) { checked = true; break; }
+            }
+            if (err) err.classList.toggle('hidden', checked);
+            if (!checked) valid = false;
+        }
+        if (!valid) { e.preventDefault(); return; }
+        btn.disabled = true;
+        btn.className = "w-full md:w-auto px-8 py-2 text-xs font-bold text-slate-400 bg-slate-200 rounded-xl cursor-not-allowed";
+        btn.textContent = langSubmitting;
+    });
+}
 <?php endif ?>
 </script>
 </body>

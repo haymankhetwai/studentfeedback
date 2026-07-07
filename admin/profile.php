@@ -4,7 +4,7 @@ require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 requireRole('admin');
 
-$pageTitle  = 'My Profile';
+$pageTitle  = $LANG['my_profile'] ?? 'My Profile';
 $activeMenu = 'profile';
 $user       = getCurrentUser();
 

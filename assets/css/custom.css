@@ -41,3 +41,52 @@ th { font-weight: 600; font-size: 0.75rem; letter-spacing: 0.05em; text-transfor
 
 /* Input focus */
 .form-input:focus { outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,0.2); }
+
+/* ─── Typewriter Animation ────────────────────────────────── */
+.typewriter-box {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+    border: 1px solid rgba(99,102,241,0.3);
+    position: relative;
+    overflow: hidden;
+}
+.typewriter-box::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(99,102,241,0.08) 0%, transparent 70%);
+    pointer-events: none;
+}
+.typewriter-text {
+    font-family: 'Courier New', 'Noto Sans Myanmar', monospace;
+    letter-spacing: 0.08em;
+    min-height: 1.6em;
+}
+#tw-text::after {
+    content: '▌';
+    color: #818cf8;
+    margin-left: 2px;
+    animation: blink 0.7s step-end infinite;
+}
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+.typewriter-subtitle {
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.typewriter-subtitle.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+.lang-toggle-btn {
+    transition: all 0.2s ease;
+}
+.lang-toggle-btn:hover {
+    transform: scale(1.05);
+}
+.lang-toggle-btn.active {
+    background: rgba(255,255,255,0.15);
+    box-shadow: 0 0 12px rgba(129,140,248,0.3);
+}
