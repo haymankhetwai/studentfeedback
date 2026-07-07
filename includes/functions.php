@@ -1,4 +1,22 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) session_start();
+
+if (isset($_GET['lang']) && in_array($_GET['lang'], ['en', 'mm'])) {
+    $_SESSION['lang'] = $_GET['lang'];
+    $cleanUrl = strtok($_SERVER['REQUEST_URI'], '?');
+    header('Location: ' . $cleanUrl);
+    exit;
+}
+
+if (!isset($_SESSION['lang'])) $_SESSION['lang'] = 'en';
+
+$langFile = __DIR__ . '/../lang/' . $_SESSION['lang'] . '.php';
+if (file_exists($langFile)) {
+    require_once $langFile;
+} else {
+    require_once __DIR__ . '/../lang/en.php';
+}
+if (!isset($LANG) || !is_array($LANG)) $LANG = [];
 
 function e(string $s): string {
     return htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
@@ -11,6 +29,28 @@ function clean($val): string {
 function formatDate(?string $date): string {
     if (!$date || $date === '0000-00-00') return '—';
     return date('M d, Y', strtotime($date));
+}
+
+function formatSemester(string $semester): string {
+    $semester = trim($semester);
+    if ($semester === '') return '';
+
+    $romanMap = [
+        1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV', 5 => 'V',
+        6 => 'VI', 7 => 'VII', 8 => 'VIII', 9 => 'IX', 10 => 'X',
+    ];
+
+    if (preg_match('/^(\d{1,2})\s*(st|nd|rd|th| Semester| semester)/i', $semester, $m)) {
+        $num = (int) $m[1];
+        return isset($romanMap[$num]) ? 'Semester ' . $romanMap[$num] : $semester;
+    }
+
+    if (preg_match('/^Semester\s+(\d{1,2})$/i', $semester, $m)) {
+        $num = (int) $m[1];
+        return isset($romanMap[$num]) ? 'Semester ' . $romanMap[$num] : $semester;
+    }
+
+    return $semester;
 }
 
 function avatarInitials(string $name): string {
@@ -36,14 +76,19 @@ function paginate(int $total, int $perPage, int $current): array {
 }
 
 function paginationLinks(array $pg, string $baseUrl): string {
+    global $LANG;
     if ($pg['total_pages'] <= 1) return '';
     $cur   = $pg['current'];
     $total = $pg['total_pages'];
     $sep   = str_contains($baseUrl, '?') ? '&' : '?';
-    $html  = '<nav class="flex items-center justify-between mt-5"><div class="text-sm text-slate-500">Showing ' . (($cur - 1) * $pg['per_page'] + 1) . '–' . min($cur * $pg['per_page'], $pg['total']) . ' of ' . $pg['total'] . '</div><div class="flex gap-1">';
+    $showing = $LANG['pagination_showing'] ?? 'Showing';
+    $of = $LANG['pagination_of'] ?? 'of';
+    $prev = $LANG['pagination_prev'] ?? '‹ Prev';
+    $next = $LANG['pagination_next'] ?? 'Next ›';
+    $html  = '<nav class="flex items-center justify-between mt-5"><div class="text-sm text-slate-500">' . $showing . ' ' . (($cur - 1) * $pg['per_page'] + 1) . '–' . min($cur * $pg['per_page'], $pg['total']) . ' ' . $of . ' ' . $pg['total'] . '</div><div class="flex gap-1">';
 
     if ($cur > 1) {
-        $html .= '<a href="' . $baseUrl . $sep . 'page=' . ($cur - 1) . '" class="px-3 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50">‹ Prev</a>';
+        $html .= '<a href="' . $baseUrl . $sep . 'page=' . ($cur - 1) . '" class="px-3 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50">' . $prev . '</a>';
     }
     $start = max(1, $cur - 2);
     $end   = min($total, $cur + 2);
@@ -52,24 +97,26 @@ function paginationLinks(array $pg, string $baseUrl): string {
         $html .= '<a href="' . $baseUrl . $sep . 'page=' . $i . '" class="px-3 py-1.5 rounded-lg border text-sm ' . $active . '">' . $i . '</a>';
     }
     if ($cur < $total) {
-        $html .= '<a href="' . $baseUrl . $sep . 'page=' . ($cur + 1) . '" class="px-3 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50">Next ›</a>';
+        $html .= '<a href="' . $baseUrl . $sep . 'page=' . ($cur + 1) . '" class="px-3 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50">' . $next . '</a>';
     }
     return $html . '</div></nav>';
 }
 
 function badgeRole(string $role): string {
+    global $LANG;
     return match ($role) {
-        'admin'   => '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">Admin</span>',
-        'teacher' => '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800">Teacher</span>',
-        'student' => '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Student</span>',
+        'admin'   => '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">' . e($LANG['admin_role'] ?? 'Admin') . '</span>',
+        'teacher' => '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800">' . e($LANG['teacher_role'] ?? 'Teacher') . '</span>',
+        'student' => '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">' . e($LANG['student_role'] ?? 'Student') . '</span>',
         default   => '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">' . e($role) . '</span>',
     };
 }
 
 function badgeStatus(string $status): string {
+    global $LANG;
     return $status === 'active'
-        ? '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"><span class="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span>Active</span>'
-        : '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600"><span class="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block"></span>Inactive</span>';
+        ? '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"><span class="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span>' . e($LANG['active'] ?? 'Active') . '</span>'
+        : '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600"><span class="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block"></span>' . e($LANG['inactive'] ?? 'Inactive') . '</span>';
 }
 
 function iconSvg(string $name, string $class = 'w-5 h-5'): string {
@@ -106,10 +153,11 @@ function iconSvg(string $name, string $class = 'w-5 h-5'): string {
 }
 
 function moduleBadge(string $module): string {
+    global $LANG;
     return match($module) {
-        'academic'      => '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-cyan-100 text-cyan-800">📚 Academic</span>',
-        'student_affairs' => '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">🛡️ Student Affairs</span>',
-        'administration'  => '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">🏢 Administration</span>',
+        'academic'      => '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-cyan-100 text-cyan-800">📚 ' . e($LANG['academic_feedback'] ?? 'Academic') . '</span>',
+        'student_affairs' => '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">🛡️ ' . e($LANG['student_affairs_section'] ?? 'Student Affairs') . '</span>',
+        'administration'  => '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">🏢 ' . e($LANG['administration_section'] ?? 'Administration') . '</span>',
         default           => '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">' . e($module) . '</span>',
     };
 }

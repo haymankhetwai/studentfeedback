@@ -11,14 +11,39 @@ function isLoggedIn(): bool {
 
 function requireLogin(): void {
     if (!isLoggedIn()) {
-        header('Location: /studentfeedback/auth/login.php');
+        $redirect = '/studentfeedbackucsh/auth/login.php';
+        if (!empty($_SERVER['REQUEST_URI'])) {
+            $uri = $_SERVER['REQUEST_URI'];
+            if (str_contains($uri, '/admin/')) {
+                $redirect .= '?role=admin';
+            } elseif (str_contains($uri, '/teacher/')) {
+                $redirect .= '?role=teacher';
+            } elseif (str_contains($uri, '/student/')) {
+                $redirect .= '?role=student';
+            }
+        }
+        header("Location: $redirect");
         exit;
     }
 }
 
 function requireRole(string $role): void {
-    requireLogin();
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Pragma: no-cache');
+    header('Expires: Thu, 01 Jan 1970 00:00:00 GMT');
+
+    if (!isLoggedIn()) {
+        $redirect = match ($role) {
+            'admin'   => '/studentfeedbackucsh/admin/',
+            'teacher' => '/studentfeedbackucsh/teacher/',
+            'student' => '/studentfeedbackucsh/student/',
+            default   => '/studentfeedbackucsh/auth/login.php',
+        };
+        header("Location: $redirect");
+        exit;
+    }
     if ($_SESSION['role'] !== $role) {
+        setFlash('error', 'You are not authorized to access that page.');
         redirectToDashboard();
     }
 }
@@ -26,10 +51,10 @@ function requireRole(string $role): void {
 function redirectToDashboard(): void {
     $role = $_SESSION['role'] ?? '';
     match ($role) {
-        'admin'   => header('Location: /studentfeedback/admin/index.php'),
-        'teacher' => header('Location: /studentfeedback/teacher/index.php'),
-        'student' => header('Location: /studentfeedback/student/index.php'),
-        default   => header('Location: /studentfeedback/auth/login.php'),
+        'admin'   => header('Location: /studentfeedbackucsh/admin/dashboard.php'),
+        'teacher' => header('Location: /studentfeedbackucsh/teacher/dashboard.php'),
+        'student' => header('Location: /studentfeedbackucsh/student/dashboard.php'),
+        default   => header('Location: /studentfeedbackucsh/auth/login.php'),
     };
     exit;
 }

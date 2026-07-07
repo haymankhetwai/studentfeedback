@@ -6,15 +6,16 @@ session_start();
 if (isset($_SESSION['user_id'])) {
     $role = $_SESSION['role'];
     match ($role) {
-        'admin' => header('Location: /studentfeedback/admin/index.php'),
-        'teacher' => header('Location: /studentfeedback/teacher/index.php'),
-        'student' => header('Location: /studentfeedback/student/index.php'),
+        'admin' => header('Location: /studentfeedbackucsh/admin/dashboard.php'),
+        'teacher' => header('Location: /studentfeedbackucsh/teacher/dashboard.php'),
+        'student' => header('Location: /studentfeedbackucsh/student/dashboard.php'),
         default => null,
     };
     exit;
 }
 
 $error = '';
+$expectedRole = clean($_GET['role'] ?? '');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
@@ -28,24 +29,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->close();
 
         if ($user && password_verify($password, $user['password'])) {
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['name'] = $user['name'];
-            $_SESSION['email'] = $user['email'];
-            $_SESSION['role'] = $user['role'];
-            $_SESSION['profile_image'] = $user['profile_image'] ?? null;
+            if ($expectedRole !== '' && $user['role'] !== $expectedRole) {
+                $error = $LANG['error_not_authorized'] ?? 'You are not authorized to log in from this page.';
+            } else {
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['name'] = $user['name'];
+                $_SESSION['email'] = $user['email'];
+                $_SESSION['role'] = $user['role'];
+                $_SESSION['profile_image'] = $user['profile_image'] ?? null;
 
-            match ($user['role']) {
-                'admin' => header('Location: /studentfeedback/admin/index.php'),
-                'teacher' => header('Location: /studentfeedback/teacher/index.php'),
-                'student' => header('Location: /studentfeedback/student/index.php'),
-                default => header('Location: /studentfeedback/auth/login.php'),
-            };
-            exit;
+                match ($user['role']) {
+                    'admin' => header('Location: /studentfeedbackucsh/admin/dashboard.php'),
+                    'teacher' => header('Location: /studentfeedbackucsh/teacher/dashboard.php'),
+                    'student' => header('Location: /studentfeedbackucsh/student/dashboard.php'),
+                    default => header('Location: /studentfeedbackucsh/auth/login.php'),
+                };
+                exit;
+            }
         } else {
-            $error = 'Invalid email or password. Please try again.';
+            $error = $LANG['error_invalid_credentials'] ?? 'Invalid email or password. Please try again.';
         }
     } else {
-        $error = 'Please fill in all fields.';
+        $error = $LANG['error_fill_fields'] ?? 'Please fill in all fields.';
     }
 }
 
@@ -73,19 +78,27 @@ include '../includes/header.php';
                         stroke="currentColor" class="w-6 h-6 text-white">
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5" />
-                    </svg>
+                    </svg> 
+
+                   
+
+
                 </div>
-                <h1 class="text-xl font-bold text-white tracking-wide">SFMS</h1>
-                <p class="text-cyan-100 text-xs mt-0.5">Student Feedback Management System</p>
+                <h1 class="text-xl font-bold text-white tracking-wide"><?= $LANG['sfms'] ?? 'SFMS' ?></h1>
+                <p class="text-cyan-100 text-xs mt-0.5">
+                    <?= $LANG['sfms_full'] ?? 'Student Feedback Management System' ?>
+                </p>
             </div>
 
             <div class="px-6 py-5">
-                <h2 class="text-lg font-bold text-slate-900 mb-0.5">Welcome back</h2>
-                <p class="text-xs text-slate-500 mb-4">Sign in to your account to continue</p>
+                <h2 class="text-lg font-bold text-slate-900 mb-0.5"><?= $LANG['welcome_back'] ?? 'Welcome back' ?></h2>
+                <p class="text-xs text-slate-500 mb-4">
+                    <?= $LANG['sign_in_to_continue'] ?? 'Sign in to your account to continue' ?>
+                </p>
 
                 <?php if ($error): ?>
                     <div
-                        class="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 mb-3 text-xs">
+                        class="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 mb-3 text-xs">❌
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                             stroke="currentColor" class="w-4 h-4 flex-shrink-0">
                             <path stroke-linecap="round" stroke-linejoin="round"
@@ -98,8 +111,8 @@ include '../includes/header.php';
                 <form method="POST" novalidate>
                     <div class="space-y-4">
                         <div>
-                            <label for="email" class="block text-xs font-medium text-slate-700 mb-1">Email
-                                Address</label>
+                            <label for="email"
+                                class="block text-xs font-medium text-slate-700 mb-1"><?= $LANG['email_address'] ?? 'Email Address' ?></label>
                             <div class="relative">
                                 <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-400">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
@@ -116,7 +129,8 @@ include '../includes/header.php';
                         </div>
 
                         <div>
-                            <label for="password" class="block text-xs font-medium text-slate-700 mb-1">Password</label>
+                            <label for="password"
+                                class="block text-xs font-medium text-slate-700 mb-1"><?= $LANG['password'] ?? 'Password' ?></label>
                             <div class="relative">
                                 <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-400">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
@@ -149,7 +163,7 @@ include '../includes/header.php';
 
                         <button type="submit"
                             class="w-full bg-cyan-600 hover:bg-cyan-700 active:bg-cyan-800 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-all hover:shadow-lg hover:-translate-y-0.5 text-sm">
-                            Sign In
+                            <?= $LANG['sign_in'] ?? 'Sign In' ?>
                         </button>
                     </div>
                 </form>

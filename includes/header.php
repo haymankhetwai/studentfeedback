@@ -39,13 +39,18 @@
             </div>
 
             <ul class="hidden md:flex gap-10 items-center font-medium">
-                <li><a href="/studentfeedback/index.php" class="hover:text-cyan-300 transition">Home</a></li>
-                <li><a href="#" class="hover:text-cyan-300 transition">About</a></li>
+                <li><a href="/studentfeedbackucsh/index.php" class="hover:text-cyan-300 transition"><?= $LANG['home'] ?? 'Home' ?></a></li>
+                <li><a href="#" class="hover:text-cyan-300 transition"><?= $LANG['about'] ?? 'About' ?></a></li>
                 <?php if (empty($isLoginPage)): ?>
+                <li>
+                    <a href="?lang=<?= ($_SESSION['lang'] ?? 'en') === 'en' ? 'mm' : 'en' ?>" class="border border-white px-3 py-1.5 rounded-lg hover:bg-cyan-500 hover:text-cyan-950 transition text-xs font-bold">
+                        <?= ($_SESSION['lang'] ?? 'en') === 'en' ? 'မြန်မာ' : 'ENG' ?>
+                    </a>
+                </li>
                 <li>
                     <button onclick="openLoginModal()"
                         class="border border-white px-5 py-2 rounded-lg hover:bg-cyan-500 hover:text-cyan-950 transition focus:outline-none">
-                        Login
+                        <?= $LANG['login'] ?? 'Login' ?>
                     </button>
                 </li>
                 <?php endif; ?>

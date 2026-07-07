@@ -1,6 +1,6 @@
 <?php if ($showFooterContent ?? true): ?>
     <footer class="bg-cyan-600 text-white text-center py-5">
-        © <?= date("Y") ?> UCSH - Student Feedback Management System. All Rights Reserved.
+        © <?= date("Y") ?> UCSH - <?= $LANG['footer_system'] ?? 'Student Feedback Management System' ?>. <?= $LANG['footer_rights'] ?? 'All Rights Reserved' ?>.
     </footer>
 <?php endif; ?>
 
@@ -17,7 +17,7 @@
             </button>
 
             <h2 class="text-cyan-900 text-2xl md:text-3xl font-bold mb-10 tracking-tight">
-                Choose Your Login Role
+                <?= $LANG['choose_login_role'] ?? 'Choose Your Login Role' ?>
             </h2>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -27,10 +27,10 @@
                     <div class="w-[80px] h-[80px] rounded-full bg-cyan-50 flex items-center justify-center mb-6">
                         <i class="fa-solid fa-key text-3xl text-cyan-600"></i>
                     </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-6">Admin Login</h3>
-                    <a href="/studentfeedback/auth/login.php?role=admin"
+                    <h3 class="text-xl font-semibold text-gray-900 mb-6"><?= $LANG['admin_login'] ?? 'Admin Login' ?></h3>
+                    <a href="/studentfeedbackucsh/auth/login.php?role=admin"
                         class="w-full py-3 px-4 bg-cyan-600  hover:bg-cyan-700 text-white font-medium text-sm rounded-lg transition-all duration-200 text-center block">
-                        Login as Administrator
+                        <?= $LANG['login_as_admin'] ?? 'Login as Administrator' ?>
                     </a>
                 </div>
 
@@ -39,10 +39,10 @@
                     <div class="w-[80px] h-[80px] rounded-full bg-cyan-50 flex items-center justify-center mb-6">
                         <i class="fa-solid fa-graduation-cap text-3xl text-cyan-600"></i>
                     </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-6">Teachers Login</h3>
-                    <a href="/studentfeedback/auth/login.php?role=teacher"
+                    <h3 class="text-xl font-semibold text-gray-900 mb-6"><?= $LANG['teachers_login'] ?? 'Teachers Login' ?></h3>
+                    <a href="/studentfeedbackucsh/auth/login.php?role=teacher"
                         class="w-full py-3 px-4 bg-cyan-600 hover:bg-cyan-700 text-white font-medium text-sm rounded-lg transition-all duration-200 text-center block">
-                        Login as Teacher
+                        <?= $LANG['login_as_teacher'] ?? 'Login as Teacher' ?>
                     </a>
                 </div>
 
@@ -51,10 +51,10 @@
                     <div class="w-[80px] h-[80px] rounded-full bg-cyan-50 flex items-center justify-center mb-6">
                         <i class="fa-solid fa-users text-3xl text-cyan-600"></i>
                     </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-6">Students Login</h3>
-                    <a href="/studentfeedback/auth/login.php?role=student"
+                    <h3 class="text-xl font-semibold text-gray-900 mb-6"><?= $LANG['students_login'] ?? 'Students Login' ?></h3>
+                    <a href="/studentfeedbackucsh/auth/login.php?role=student"
                         class="w-full py-3 px-4 bg-cyan-600  hover:bg-cyan-700 text-white font-medium text-sm rounded-lg transition-all duration-200 text-center block">
-                        Login as Student
+                        <?= $LANG['login_as_student'] ?? 'Login as Student' ?>
                     </a>
                 </div>
 

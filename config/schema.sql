@@ -1,5 +1,6 @@
 -- ============================================================
--- SFMS v6 — Final Database Schema
+-- SFMS v8 — Final Database Schema
+-- Shared questions per module + form_id on ratings/comments
 -- ============================================================
 CREATE DATABASE IF NOT EXISTS studentfeedbackintern CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE studentfeedbackintern;
@@ -31,7 +32,6 @@ CREATE TABLE IF NOT EXISTS teachers (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     department_id INT DEFAULT NULL,
-    teacher_code VARCHAR(50) NOT NULL UNIQUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
@@ -85,6 +85,7 @@ CREATE TABLE IF NOT EXISTS feedback_forms (
     id INT AUTO_INCREMENT PRIMARY KEY,
     module ENUM('academic','student_affairs','administration') NOT NULL DEFAULT 'academic',
     section_id INT DEFAULT NULL,
+    academic_year VARCHAR(20) DEFAULT NULL,
     title VARCHAR(150) NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
@@ -100,9 +101,11 @@ CREATE TABLE IF NOT EXISTS feedback_questions (
     module ENUM('academic','student_affairs','administration') NOT NULL,
     question_no INT NOT NULL,
     question_text TEXT NOT NULL,
-    question_type ENUM('rating','comment') NOT NULL DEFAULT 'rating',
+    options_json TEXT NULL,
+    question_type ENUM('rating','comment','survey') NOT NULL DEFAULT 'rating',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_module_qno (module, question_no),
+
+    UNIQUE KEY uq_module_qno (module, question_type, question_no),
     INDEX idx_fq_module (module)
 ) ENGINE=InnoDB;
 
@@ -120,26 +123,39 @@ CREATE TABLE IF NOT EXISTS feedback_submissions (
 
 CREATE TABLE IF NOT EXISTS feedback_ratings (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    form_id INT NOT NULL,
+    form_id INT DEFAULT NULL,
     question_id INT NOT NULL,
     rating ENUM('Good','Fair','Bad') NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (form_id) REFERENCES feedback_forms(id) ON DELETE CASCADE,
-    FOREIGN KEY (question_id) REFERENCES feedback_questions(id) ON DELETE CASCADE,
-    INDEX idx_fb_ratings_form (form_id),
+    FOREIGN KEY (question_id) REFERENCES feedback_questions(id)  ON DELETE CASCADE,
+    INDEX idx_fr_form (form_id),
     INDEX idx_fb_ratings_question (question_id)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS feedback_comments (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    form_id INT NOT NULL,
+    form_id INT DEFAULT NULL,
     question_id INT NOT NULL,
     comment_text TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (form_id) REFERENCES feedback_forms(id) ON DELETE CASCADE,
     FOREIGN KEY (question_id) REFERENCES feedback_questions(id) ON DELETE CASCADE,
-    INDEX idx_fb_comments_form (form_id),
+    INDEX idx_fc_form (form_id),
     INDEX idx_fb_comments_question (question_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS feedback_survey_answers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    submission_id INT NOT NULL,
+    question_id INT NOT NULL,
+    selected_option_index INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (submission_id) REFERENCES feedback_submissions(id) ON DELETE CASCADE,
+    FOREIGN KEY (question_id) REFERENCES feedback_questions(id) ON DELETE CASCADE,
+    INDEX idx_fsa_submission (submission_id),
+    INDEX idx_fsa_question (question_id),
+    INDEX idx_fsa_question_option (question_id, selected_option_index)
 ) ENGINE=InnoDB;
 
 INSERT IGNORE INTO users (name, username, email, password, role)
