@@ -80,7 +80,7 @@ foreach ($academicHistory as $r) {
         'module' => 'academic',
         'submitted_at' => $r['submitted_at'],
         'form_title' => $r['form_title'],
-        'detail' => e($r['course_name']) . ' (' . e($r['course_code']) . ') — Sec ' . e($r['section']) . ' · ' . e($r['academic_year']) . ' ' . e(formatSemester($r['semester'])) . ' · ' . formatDate($r['start_date']) . ' – ' . formatDate($r['end_date'])
+        'detail' => e($r['course_name']) . ' (' . e($r['course_code']) . ') — Sec ' . e($r['section']) . ' · ' . e($r['academic_year']) . ' ' . e(formatSemester($r['semester'])) . ' · ' . formatDateTime($r['start_date']) . ' – ' . formatDateTime($r['end_date'])
     ];
 }
 foreach ($saHistory as $r) {
@@ -88,7 +88,7 @@ foreach ($saHistory as $r) {
         'module' => 'student_affairs',
         'submitted_at' => $r['submitted_at'],
         'form_title' => $r['form_title'],
-        'detail' => 'Student Affairs · ' . formatDate($r['start_date']) . ' – ' . formatDate($r['end_date'])
+        'detail' => 'Student Affairs · ' . formatDateTime($r['start_date']) . ' – ' . formatDateTime($r['end_date'])
     ];
 }
 foreach ($admHistory as $r) {
@@ -96,7 +96,7 @@ foreach ($admHistory as $r) {
         'module' => 'administration',
         'submitted_at' => $r['submitted_at'],
         'form_title' => $r['form_title'],
-        'detail' => 'Administration · ' . formatDate($r['start_date']) . ' – ' . formatDate($r['end_date'])
+        'detail' => 'Administration · ' . formatDateTime($r['start_date']) . ' – ' . formatDateTime($r['end_date'])
     ];
 }
 usort($allHistory, fn($a, $b) => strtotime($b['submitted_at']) - strtotime($a['submitted_at']));
@@ -112,7 +112,7 @@ $navItems = [
 $initials = avatarInitials($user['name']);
 ?>
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="<?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'my' : 'en' ?>" class="h-full">
 
 <head>
     <meta charset="UTF-8">
@@ -124,7 +124,7 @@ $initials = avatarInitials($user['name']);
     <link rel="stylesheet" href="/studentfeedbackucsh/assets/css/custom.css">
 </head>
 
-<body class="h-full bg-slate-50 font-inter">
+<body class="h-full bg-slate-50 font-inter <?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'lang-mm' : '' ?>">
     <div id="overlay" class="fixed inset-0 bg-black/40 z-30 hidden lg:hidden" onclick="closeSidebar()"></div>
     <div class="flex h-screen overflow-hidden">
 
@@ -136,8 +136,12 @@ $initials = avatarInitials($user['name']);
                     <?= iconSvg('academic', 'w-5 h-5 text-white') ?>
                 </div>
                 <div>
-                    <p class="text-sm font-bold">SFMS Student</p>
-                    <p class="text-[10px] text-cyan-100">Student Portal</p>
+                    <p class="text-sm font-bold">
+                        <?= $LANG['student_portal'] ?? 'SFMS Student' ?>
+                    </p>
+                    <p class="text-[10px] text-cyan-100">
+                        <?= $LANG['student_portal_sub'] ?? 'Student Portal' ?>
+                    </p>
                 </div>
                 <button onclick="closeSidebar()" class="ml-auto lg:hidden text-cyan-100 hover:text-white">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
@@ -158,7 +162,7 @@ $initials = avatarInitials($user['name']);
             </nav>
             <a href="/studentfeedbackucsh/auth/logout.php" title="<?= $LANG['logout'] ?? 'Logout' ?>"
                 class="block border-t border-white/15 bg-red-500 text-gray-50 hover:text-gray-200 transition-colors px-4 py-4 cursor-pointer">
-                <div class="flex items-center gap-3">
+                <div class="flex items-center justify-center gap-3">
 
                     <div class="min-w-0 ">
                         <p class="text-xl h-8"><?= $LANG['logout'] ?? 'Logout' ?></p>
@@ -230,19 +234,19 @@ $initials = avatarInitials($user['name']);
                     <?php if ($allHistory): ?>
                         <div class="overflow-x-auto">
                             <table>
-                                <thead class="bg-slate-50 border-b border-slate-200">
+                                <thead class="bg-slate-200 border-b border-slate-200">
                                     <tr>
-                                        <th class="text-left px-5 py-3 text-slate-500">#</th>
-                                        <th class="text-left px-5 py-3 text-slate-500">
+                                        <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">#</th>
+                                        <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
                                             <?= $LANG['module_label'] ?? 'Module' ?>
                                         </th>
-                                        <th class="text-left px-5 py-3 text-slate-500">
+                                        <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
                                             <?= $LANG['form_course_label'] ?? 'Form / Course' ?>
                                         </th>
-                                        <th class="text-left px-5 py-3 text-slate-500">
+                                        <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
                                             <?= $LANG['details_label'] ?? 'Details' ?>
                                         </th>
-                                        <th class="text-left px-5 py-3 text-slate-500">
+                                        <th class="text-left px-7 py-3 text-slate-500 text-sm font-semibold">
                                             <?= $LANG['submitted_label'] ?? 'Submitted' ?>
                                         </th>
                                     </tr>

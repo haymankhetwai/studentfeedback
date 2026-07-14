@@ -4,6 +4,8 @@ require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 requireRole('admin');
 
+updateAllFeedbackStatuses($conn);
+
 $pageTitle  = $LANG['reports_title'] ?? 'Reports & Analytics';
 $activeMenu = 'reports';
 
@@ -651,7 +653,18 @@ document.addEventListener('DOMContentLoaded', function() {
     var chartDefaults = {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { labels: { font: { family: 'Inter', size: 11 } } } }
+        plugins: {
+            legend: { labels: { font: { family: 'Inter', size: 11 } } },
+            tooltip: {
+                callbacks: {
+                    label: function(ctx) {
+                        var total = ctx.dataset.data.reduce(function(a, b) { return a + b; }, 0);
+                        var pct = total > 0 ? Math.round((ctx.raw / total) * 100) : 0;
+                        return pct + '%';
+                    }
+                }
+            }
+        }
     };
 
     // ─── Per-Teacher Pie Charts ────────────────────────────────
@@ -677,7 +690,16 @@ document.addEventListener('DOMContentLoaded', function() {
         options: Object.assign({}, chartDefaults, {
             cutout: '50%',
             plugins: {
-                legend: { position: 'bottom', labels: { font: { size: 9 }, padding: 8 } }
+                legend: { position: 'bottom', labels: { font: { size: 9 }, padding: 8 } },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            var total = ctx.dataset.data.reduce(function(a, b) { return a + b; }, 0);
+                            var pct = total > 0 ? Math.round((ctx.raw / total) * 100) : 0;
+                            return pct + '%';
+                        }
+                    }
+                }
             }
         })
     });
@@ -697,7 +719,18 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         options: Object.assign({}, chartDefaults, {
             cutout: '55%',
-            plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 16 } } }
+            plugins: {
+                legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 16 } },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            var total = ctx.dataset.data.reduce(function(a, b) { return a + b; }, 0);
+                            var pct = total > 0 ? Math.round((ctx.raw / total) * 100) : 0;
+                            return pct + '%';
+                        }
+                    }
+                }
+            }
         })
     });
 
@@ -715,7 +748,18 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         options: Object.assign({}, chartDefaults, {
             cutout: '55%',
-            plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 16 } } }
+            plugins: {
+                legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 16 } },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            var total = ctx.dataset.data.reduce(function(a, b) { return a + b; }, 0);
+                            var pct = total > 0 ? Math.round((ctx.raw / total) * 100) : 0;
+                            return pct + '%';
+                        }
+                    }
+                }
+            }
         })
     });
 

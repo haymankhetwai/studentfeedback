@@ -7,6 +7,8 @@ requireRole('admin');
 $pageTitle  = $LANG['feedback_forms_title'] ?? 'Feedback Forms';
 $activeMenu = 'forms';
 
+updateAllFeedbackStatuses($conn);
+
 $sectionList = $conn->query("SELECT s.id, c.course_name, c.course_code, s.section, s.academic_year, u.name AS teacher_name FROM sections s JOIN courses c ON s.course_id=c.id JOIN teachers t ON s.teacher_id=t.id JOIN users u ON t.user_id=u.id ORDER BY c.course_name, s.section")->fetch_all(MYSQLI_ASSOC);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
@@ -16,10 +18,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         $title  = clean($_POST['title'] ?? '');
         $start  = clean($_POST['start_date'] ?? '');
         $end    = clean($_POST['end_date'] ?? '');
-        $status = in_array($_POST['status'],['active','inactive']) ? $_POST['status'] : 'active';
         if ($sec && $title && $start && $end) {
-            $stmt = $conn->prepare("INSERT INTO feedback_forms (section_id,title,start_date,end_date,status) VALUES (?,?,?,?,?)");
-            $stmt->bind_param('issss',$sec,$title,$start,$end,$status);
+            $formStatus = calculateFormStatus($start, $end);
+            // FIX: Explicitly set module='academic' so new forms are tagged correctly
+            $stmt = $conn->prepare("INSERT INTO feedback_forms (module,section_id,title,start_date,end_date,status) VALUES ('academic',?,?,?,?,?)");
+            $stmt->bind_param('issss',$sec,$title,$start,$end,$formStatus);
             $stmt->execute() ? setFlash('success','Feedback form created.') : setFlash('error','Failed.');
             $stmt->close();
         } else { setFlash('error','All fields required.'); }
@@ -30,10 +33,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         $title  = clean($_POST['title'] ?? '');
         $start  = clean($_POST['start_date'] ?? '');
         $end    = clean($_POST['end_date'] ?? '');
-        $status = in_array($_POST['status'],['active','inactive']) ? $_POST['status'] : 'active';
         if ($id && $sec && $title) {
+            $formStatus = calculateFormStatus($start, $end);
             $stmt = $conn->prepare("UPDATE feedback_forms SET section_id=?,title=?,start_date=?,end_date=?,status=? WHERE id=?");
-            $stmt->bind_param('issssi',$sec,$title,$start,$end,$status,$id);
+            $stmt->bind_param('issssi',$sec,$title,$start,$end,$formStatus,$id);
             $stmt->execute() ? setFlash('success','Form updated.') : setFlash('error','Update failed.');
             $stmt->close();
         }
@@ -54,21 +57,27 @@ $search  = clean($_GET['search'] ?? '');
 $perPage = 10;
 $page    = max(1,(int)($_GET['page'] ?? 1));
 
+// FIX: Filter by module='academic' so only academic forms are counted and listed.
+// Previously, COUNT(*) and the base query included ALL modules (student_affairs,
+// administration), inflating the total and showing non-academic forms on this page.
+
 if ($search) {
     $s2="%$search%";
-    $c=$conn->prepare("SELECT COUNT(*) AS c FROM feedback_forms ff JOIN sections s ON ff.section_id=s.id JOIN courses c2 ON s.course_id=c2.id WHERE ff.title LIKE ? OR c2.course_name LIKE ?");
+    $c=$conn->prepare("SELECT COUNT(*) AS c FROM feedback_forms ff JOIN sections s ON ff.section_id=s.id JOIN courses c2 ON s.course_id=c2.id WHERE ff.module='academic' AND (ff.title LIKE ? OR c2.course_name LIKE ?)");
     $c->bind_param('ss',$s2,$s2); $c->execute();
     $total=(int)$c->get_result()->fetch_assoc()['c']; $c->close();
 } else {
-    $total=(int)$conn->query("SELECT COUNT(*) AS c FROM feedback_forms")->fetch_assoc()['c'];
+    // FIX: Added WHERE module='academic' to count only academic forms
+    $total=(int)$conn->query("SELECT COUNT(*) AS c FROM feedback_forms WHERE module='academic'")->fetch_assoc()['c'];
 }
 $pg=paginate($total,$perPage,$page); $off=$pg['offset'];
 
-$baseSQL="SELECT ff.*, c2.course_name, c2.course_code, s.section, s.academic_year, (SELECT COUNT(*) FROM feedback_submissions fs WHERE fs.form_id=ff.id) AS submission_count, (SELECT COUNT(*) FROM feedback_questions WHERE module='academic') AS question_count FROM feedback_forms ff JOIN sections s ON ff.section_id=s.id JOIN courses c2 ON s.course_id=c2.id";
+$baseSQL="SELECT ff.*, c2.course_name, c2.course_code, s.section, s.academic_year, (SELECT COUNT(*) FROM feedback_submissions fs WHERE fs.form_id=ff.id) AS submission_count, (SELECT COUNT(*) FROM feedback_questions WHERE module='academic') AS question_count FROM feedback_forms ff JOIN sections s ON ff.section_id=s.id JOIN courses c2 ON s.course_id=c2.id WHERE ff.module='academic'";
 
 if ($search) {
     $s2="%$search%";
-    $stmt=$conn->prepare("$baseSQL WHERE ff.title LIKE ? OR c2.course_name LIKE ? ORDER BY ff.id DESC LIMIT ? OFFSET ?");
+    // FIX: Added module filter — append AND to existing WHERE clause
+    $stmt=$conn->prepare("$baseSQL AND (ff.title LIKE ? OR c2.course_name LIKE ?) ORDER BY ff.id DESC LIMIT ? OFFSET ?");
     $stmt->bind_param('ssii',$s2,$s2,$perPage,$off);
 } else {
     $stmt=$conn->prepare("$baseSQL ORDER BY ff.id DESC LIMIT ? OFFSET ?");
@@ -97,20 +106,20 @@ include '../includes/admin_sidebar.php';
             <button type="submit" class="px-3 py-2 text-sm bg-cyan-600 text-white rounded-xl hover:bg-cyan-700"><?= $LANG['search'] ?? 'Search' ?></button>
             <?php if ($search): ?><a href="feedback_forms.php" class="px-3 py-2 text-sm border border-slate-200 rounded-xl text-slate-600"><?= $LANG['clear'] ?? 'Clear' ?></a><?php endif ?>
         </form>
-        <span class="text-xs text-slate-400"><?= $total ?> <?= $LANG['records'] ?? 'form' ?><?= $total!==1?'s':'' ?></span>
+        <span class="text-xs text-slate-400"><?= $total ?> <?= $LANG['records'] ?? 'form' ?></span>
     </div>
     <div class="overflow-x-auto">
         <table>
-            <thead class="bg-slate-50 border-b border-slate-200">
+            <thead class="bg-slate-200 border-b border-slate-200">
                 <tr>
-                    <th class="text-left px-5 py-3 text-slate-500">#</th>
-                    <th class="text-left px-5 py-3 text-slate-500"><?= $LANG['form_title_label'] ?? 'Form Title' ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500"><?= $LANG['select_section'] ?? 'Section' ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500"><?= $LANG['col_duration'] ?? 'Duration' ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500"><?= $LANG['questions_label'] ?? 'Questions' ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500"><?= $LANG['col_submissions'] ?? 'Submissions' ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500"><?= $LANG['status'] ?? 'Status' ?></th>
-                    <th class="text-right px-5 py-3 text-slate-500"><?= $LANG['col_actions'] ?? 'Actions' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">#</th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['form_title_label'] ?? 'Form Title' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['select_section'] ?? 'Section' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['col_duration'] ?? 'Duration' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['questions_label'] ?? 'Questions' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['col_submissions'] ?? 'Submissions' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['col_status'] ?? 'Status' ?></th>
+                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['col_actions'] ?? 'Actions' ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -119,10 +128,10 @@ include '../includes/admin_sidebar.php';
                     <td class="px-5 py-3 text-sm text-slate-400"><?= $pg['offset']+$i+1 ?></td>
                     <td class="px-5 py-3 text-sm font-medium text-slate-800"><?= e($row['title']) ?></td>
                     <td class="px-5 py-3"><p class="text-sm text-slate-700"><?= e($row['course_name']) ?></p><p class="text-xs text-slate-400">Sec <?= e($row['section']) ?> · <?= e($row['academic_year']) ?></p></td>
-                    <td class="px-5 py-3 text-xs text-slate-500"><?= formatDate($row['start_date']) ?><br><?= formatDate($row['end_date']) ?></td>
-                    <td class="px-5 py-3"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-cyan-100 text-cyan-700"><?= $row['question_count'] ?> Questions</span></td>
+                    <td class="px-5 py-3 text-xs text-slate-500"><?= formatDateTime($row['start_date']) ?> — <?= formatDateTime($row['end_date']) ?><br><span class="text-[10px] font-semibold"><?= badgeStatus($row['status']) ?></span></td>
+                    <td class="px-5 py-3"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-cyan-100 text-cyan-700"><?= $row['question_count'] ?> <?= $LANG['questions_label'] ?? 'Questions' ?></span></td>
                     <td class="px-5 py-3"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700"><?= $row['submission_count'] ?> <?= $LANG['submitted_label'] ?? 'submitted' ?></span></td>
-                    <td class="px-5 py-3"><?= badgeStatus($row['status']) ?></td>
+                    <td class="px-5 py-3 text-xs text-slate-500"><?= getTimeRemaining($row['end_date']) ?></td>
                     <td class="px-5 py-3 text-right">
                         <div class="flex items-center justify-end gap-1.5">
                             <a href="feedback_questions.php" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg">
@@ -167,18 +176,12 @@ include '../includes/admin_sidebar.php';
                     <input type="text" name="title" required placeholder="e.g. Midterm Evaluation" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
-                    <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['start_date'] ?? 'Start Date' ?> <span class="text-red-500">*</span></label>
-                        <input type="date" name="start_date" required class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
+                    <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['start_date'] ?? 'Start Date & Time' ?> <span class="text-red-500">*</span></label>
+                        <input type="datetime-local" name="start_date" required class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
                     </div>
-                    <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['end_date'] ?? 'End Date' ?> <span class="text-red-500">*</span></label>
-                        <input type="date" name="end_date" required class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
+                    <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['end_date'] ?? 'End Date & Time' ?> <span class="text-red-500">*</span></label>
+                        <input type="datetime-local" name="end_date" required class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
                     </div>
-                </div>
-                <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['status'] ?? 'Status' ?></label>
-                    <select name="status" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
-                        <option value="active"><?= $LANG['active'] ?? 'Active' ?></option>
-                        <option value="inactive"><?= $LANG['inactive'] ?? 'Inactive' ?></option>
-                    </select>
                 </div>
             </div>
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
@@ -207,13 +210,8 @@ include '../includes/admin_sidebar.php';
                     <input type="text" name="title" id="edit_title" required class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
-                    <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['start_date'] ?? 'Start Date' ?></label><input type="date" name="start_date" id="edit_start" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none"></div>
-                    <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['end_date'] ?? 'End Date' ?></label><input type="date" name="end_date" id="edit_end" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none"></div>
-                </div>
-                <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['status'] ?? 'Status' ?></label>
-                    <select name="status" id="edit_status" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
-                        <option value="active"><?= $LANG['active'] ?? 'Active' ?></option><option value="inactive"><?= $LANG['inactive'] ?? 'Inactive' ?></option>
-                    </select>
+                    <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['start_date'] ?? 'Start Date & Time' ?></label><input type="datetime-local" name="start_date" id="edit_start" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none"></div>
+                    <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['end_date'] ?? 'End Date & Time' ?></label><input type="datetime-local" name="end_date" id="edit_end" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none"></div>
                 </div>
             </div>
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
@@ -246,9 +244,8 @@ function openEdit(row) {
     document.getElementById('edit_id').value      = row.id;
     document.getElementById('edit_section').value = row.section_id;
     document.getElementById('edit_title').value   = row.title;
-    document.getElementById('edit_start').value   = row.start_date;
-    document.getElementById('edit_end').value     = row.end_date;
-    document.getElementById('edit_status').value  = row.status;
+    document.getElementById('edit_start').value   = row.start_date.replace(' ', 'T').substring(0, 16);
+    document.getElementById('edit_end').value     = row.end_date.replace(' ', 'T').substring(0, 16);
     openModal('editModal');
 }
 function openDelete(id,name) {

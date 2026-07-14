@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                 setFlash('error', ucfirst($qtype) . ' Question #' . $qno . ' already exists for Administration. Use a different number.');
             } else {
                 $stmt = $conn->prepare("UPDATE feedback_questions SET question_no=?,question_text=?,question_type=?,options_json=? WHERE id=?");
-                $stmt->bind_param('issii', $qno, $qtext, $qtype, $optionsJson, $id);
+                $stmt->bind_param('isssi', $qno, $qtext, $qtype, $optionsJson, $id);
                 $stmt->execute() ? setFlash('success','Question updated.') : setFlash('error','Update failed.');
                 $stmt->close();
             }
@@ -139,16 +139,16 @@ include '../includes/admin_sidebar.php';
             <button type="submit" class="px-3 py-2 text-sm bg-orange-600 text-white rounded-xl hover:bg-orange-700"><?= $LANG['search'] ?? 'Search' ?></button>
             <?php if ($search): ?><a href="adm_questions.php" class="px-3 py-2 text-sm border border-slate-200 rounded-xl text-slate-600"><?= $LANG['clear'] ?? 'Clear' ?></a><?php endif ?>
         </form>
-        <span class="text-xs text-slate-400"><?= $total ?> <?= $LANG['questions'] ?? 'questions' ?><?= $total !== 1 ? 's' : '' ?></span>
+        <span class="text-xs text-slate-400"><?= $total ?> <?= $LANG['questions'] ?? 'questions' ?></span>
     </div>
     <div class="overflow-x-auto">
         <table>
-            <thead class="bg-slate-50 border-b border-slate-200">
+            <thead class="bg-slate-200 border-b border-slate-200">
                 <tr>
-                    <th class="text-left px-5 py-3 text-slate-500 w-12"><?= $LANG['question_no'] ?? 'Question #' ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500"><?= $LANG['question_text'] ?? 'Question' ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500"><?= $LANG['question_type'] ?? 'Type' ?></th>
-                    <th class="text-right px-5 py-3 text-slate-500"><?= $LANG['col_actions'] ?? 'Actions' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 w-12 text-sm font-semibold"><?= $LANG['question_no'] ?? 'Question #' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['question_text'] ?? 'Question' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['question_type'] ?? 'Type' ?></th>
+                    <th class="text-right px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['col_actions'] ?? 'Actions' ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -165,7 +165,7 @@ include '../includes/admin_sidebar.php';
                         </span>
                         <?php elseif ($row['question_type'] === 'survey'): ?>
                         <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-violet-100 text-violet-800">
-                            <?= iconSvg('clipboard','w-3.5 h-3.5') ?> Survey (MCQ)
+                            <?= iconSvg('clipboard','w-3.5 h-3.5') ?> <?= $LANG['survey_mcq'] ?? 'Survey (MCQ)' ?>
                         </span>
                         <?php else: ?>
                         <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800">
@@ -212,7 +212,7 @@ include '../includes/admin_sidebar.php';
                         <select name="question_type" id="add_qtype" required class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none bg-white">
                             <option value="rating"><?= $LANG['rating'] ?? 'Rating' ?></option>
                             <option value="comment"><?= $LANG['comment'] ?? 'Comment' ?></option>
-                            <option value="survey">Survey (MCQ)</option>
+                            <option value="survey"><?= $LANG['survey_mcq'] ?? 'Survey (MCQ)' ?></option>
                         </select>
                     </div>
                 </div>
@@ -220,7 +220,7 @@ include '../includes/admin_sidebar.php';
                     <textarea name="question_text" required rows="3" placeholder="<?= $LANG['question_placeholder'] ?? 'Enter the question...' ?>" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none resize-none"></textarea>
                 </div>
                 <div id="add_survey_options" class="hidden space-y-3">
-                    <label class="block text-sm font-medium text-slate-700">Survey Options (4 choices) <span class="text-red-500">*</span></label>
+                    <label class="block text-sm font-medium text-slate-700"><?= $LANG['survey_options'] ?? 'Survey Options (4 choices)' ?> <span class="text-red-500">*</span></label>
                     <?php for ($i = 1; $i <= 4; $i++): ?>
                     <input type="text" name="survey_option_<?= $i ?>" maxlength="255" placeholder="Option <?= $i ?>" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none">
                     <?php endfor; ?>
@@ -249,7 +249,7 @@ include '../includes/admin_sidebar.php';
                     </div>
                     <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['question_type'] ?? 'Type' ?></label>
                         <select name="question_type" id="edit_qtype" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none bg-white">
-                            <option value="rating"><?= $LANG['rating'] ?? 'Rating' ?></option><option value="comment"><?= $LANG['comment'] ?? 'Comment' ?></option><option value="survey">Survey (MCQ)</option>
+                            <option value="rating"><?= $LANG['rating'] ?? 'Rating' ?></option><option value="comment"><?= $LANG['comment'] ?? 'Comment' ?></option><option value="survey"><?= $LANG['survey_mcq'] ?? 'Survey (MCQ)' ?></option>
                         </select>
                     </div>
                 </div>
@@ -257,7 +257,7 @@ include '../includes/admin_sidebar.php';
                     <textarea name="question_text" id="edit_qtext" rows="3" required class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none resize-none"></textarea>
                 </div>
                 <div id="edit_survey_options" class="hidden space-y-3">
-                    <label class="block text-sm font-medium text-slate-700">Survey Options (4 choices) <span class="text-red-500">*</span></label>
+                    <label class="block text-sm font-medium text-slate-700"><?= $LANG['survey_options'] ?? 'Survey Options (4 choices)' ?> <span class="text-red-500">*</span></label>
                     <?php for ($i = 1; $i <= 4; $i++): ?>
                     <input type="text" name="survey_option_<?= $i ?>" id="edit_survey_opt_<?= $i ?>" maxlength="255" placeholder="Option <?= $i ?>" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none">
                     <?php endfor; ?>

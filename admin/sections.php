@@ -22,10 +22,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         if ($course && $teacher && $year && $semester && $section) {
             $stmt = $conn->prepare("INSERT INTO sections (course_id,teacher_id,academic_year,semester,section) VALUES (?,?,?,?,?)");
             $stmt->bind_param('iisss', $course, $teacher, $year, $semester, $section);
-            $stmt->execute() ? setFlash('success', 'Section added.') : setFlash('error', 'Failed to add section.');
+            $stmt->execute() ? setFlash('success', $LANG['flash_section_added'] ?? 'Section added.') : setFlash('error', $LANG['flash_section_add_failed'] ?? 'Failed to add section.');
             $stmt->close();
         } else {
-            setFlash('error', 'All fields required.');
+            setFlash('error', $LANG['flash_all_fields_required'] ?? 'All fields required.');
         }
     }
     if ($action === 'edit') {
@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         if ($id && $course && $teacher && $year && $sem && $sec) {
             $stmt = $conn->prepare("UPDATE sections SET course_id=?,teacher_id=?,academic_year=?,semester=?,section=? WHERE id=?");
             $stmt->bind_param('iisssi', $course, $teacher, $year, $sem, $sec, $id);
-            $stmt->execute() ? setFlash('success', 'Section updated.') : setFlash('error', 'Update failed.');
+            $stmt->execute() ? setFlash('success', $LANG['flash_section_updated'] ?? 'Section updated.') : setFlash('error', $LANG['flash_update_failed'] ?? 'Update failed.');
             $stmt->close();
         }
     }
@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         if ($id) {
             $stmt = $conn->prepare("DELETE FROM sections WHERE id=?");
             $stmt->bind_param('i', $id);
-            $stmt->execute() ? setFlash('success', 'Section deleted.') : setFlash('error', 'Cannot delete (has assignments).');
+            $stmt->execute() ? setFlash('success', $LANG['flash_section_deleted'] ?? 'Section deleted.') : setFlash('error', $LANG['flash_has_assignments'] ?? 'Cannot delete (has assignments).');
             $stmt->close();
         }
     }
@@ -160,7 +160,7 @@ include '../includes/admin_sidebar.php';
                 class="px-3 py-2 text-sm border border-slate-200 rounded-xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
                 <option value=""><?= $LANG['all_semesters'] ?? 'All Semesters' ?></option>
                 <?php foreach ($semesterValues as $num => $val): ?>
-                    <option value="<?= $num ?>" <?= $filterSem == $num ? ' selected' : '' ?>>Semester
+                    <option value="<?= $num ?>" <?= $filterSem == $num ? ' selected' : '' ?>><?= $LANG['semester_prefix'] ?? 'Semester' ?>
                         <?= ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][$num - 1] ?>
                     </option>
                 <?php endforeach ?>
@@ -169,7 +169,7 @@ include '../includes/admin_sidebar.php';
                 class="px-3 py-2 text-sm border border-slate-200 rounded-xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
                 <option value=""><?= $LANG['all_sections'] ?? 'All Sections' ?></option>
                 <?php foreach (['A', 'B', 'C'] as $secLetter): ?>
-                    <option value="<?= $secLetter ?>" <?= strtoupper($filterSec) === $secLetter ? ' selected' : '' ?>>Section
+                    <option value="<?= $secLetter ?>" <?= strtoupper($filterSec) === $secLetter ? ' selected' : '' ?>><?= $LANG['section_label'] ?? 'Section' ?>
                         <?= $secLetter ?>
                     </option>
                 <?php endforeach ?>
@@ -184,15 +184,15 @@ include '../includes/admin_sidebar.php';
     </div>
     <div class="overflow-x-auto">
         <table>
-            <thead class="bg-slate-50 border-b border-slate-200">
+            <thead class="bg-slate-200 border-b border-slate-200">
                 <tr>
-                    <th class="text-left px-5 py-3 text-slate-500">#</th>
-                    <th class="text-left px-5 py-3 text-slate-500"><?= $LANG['select_course'] ?? 'Course' ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500"><?= $LANG['section_name'] ?? 'Section' ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500"><?= $LANG['select_teacher'] ?? 'Teacher' ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500"><?= $LANG['year_semester'] ?? 'Year / Semester' ?>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">#</th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['select_course'] ?? 'Course' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['section_name'] ?? 'Section' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['select_teacher'] ?? 'Teacher' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['year_semester'] ?? 'Year / Semester' ?>
                     </th>
-                    <th class="text-right px-5 py-3 text-slate-500"><?= $LANG['col_actions'] ?? 'Actions' ?></th>
+                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['col_actions'] ?? 'Actions' ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -283,7 +283,7 @@ include '../includes/admin_sidebar.php';
                         </option>
                         <?php foreach (['A', 'B', 'C'] as $secLetter): ?>
                             <option value="<?= $secLetter ?>" <?= strtoupper($filterSec) === $secLetter ? ' selected' : '' ?>>
-                                Section
+                                <?= $LANG['section_label'] ?? 'Section' ?>
                                 <?= $secLetter ?>
                             </option>
                         <?php endforeach ?>
@@ -324,14 +324,14 @@ include '../includes/admin_sidebar.php';
     data-modal-backdrop>
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg modal-box">
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-            <h3 class="font-semibold text-slate-800">Edit Section</h3>
+            <h3 class="font-semibold text-slate-800"><?= $LANG['edit_section_modal'] ?? 'Edit Section' ?></h3>
             <button onclick="closeModal('editModal')"
                 class="text-slate-400 hover:text-slate-600"><?= iconSvg('x', 'w-5 h-5') ?></button>
         </div>
         <form method="POST"><?= csrfField() ?><input type="hidden" name="action" value="edit"><input type="hidden"
                 name="id" id="edit_id">
             <div class="px-6 py-5 grid grid-cols-2 gap-4">
-                <div class="col-span-2"><label class="block text-sm font-medium text-slate-700 mb-1">Course</label>
+                <div class="col-span-2"><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['select_course'] ?? 'Course' ?></label>
                     <select name="course_id" id="edit_course" required
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
                         <?php foreach ($courseList as $c): ?>
@@ -339,7 +339,7 @@ include '../includes/admin_sidebar.php';
                             </option><?php endforeach ?>
                     </select>
                 </div>
-                <div class="col-span-2"><label class="block text-sm font-medium text-slate-700 mb-1">Teacher</label>
+                <div class="col-span-2"><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['select_teacher'] ?? 'Teacher' ?></label>
                     <select name="teacher_id" id="edit_teacher" required
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
                         <?php foreach ($teacherList as $t): ?>
@@ -363,7 +363,7 @@ include '../includes/admin_sidebar.php';
                         </option>
                         <?php foreach (['A', 'B', 'C'] as $secLetter): ?>
                             <option value="<?= $secLetter ?>" <?= strtoupper($filterSec) === $secLetter ? ' selected' : '' ?>>
-                                Section
+                                <?= $LANG['section_label'] ?? 'Section' ?>
                                 <?= $secLetter ?>
                             </option>
                         <?php endforeach ?>
@@ -371,11 +371,11 @@ include '../includes/admin_sidebar.php';
                 </div>
 
 
-                <div><label class="block text-sm font-medium text-slate-700 mb-1">Academic Year</label>
+                <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['academic_year'] ?? 'Academic Year' ?></label>
                     <input type="text" name="academic_year" id="edit_year" required
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
                 </div>
-                <div class="col-span-2"><label class="block text-sm font-medium text-slate-700 mb-1">Semester</label>
+                <div class="col-span-2"><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['semester'] ?? 'Semester' ?></label>
                     <select name="semester" id="edit_semester" required
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
                         <?php foreach ($semesters as $s): ?>
@@ -401,17 +401,17 @@ include '../includes/admin_sidebar.php';
             <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
                 <?= iconSvg('trash', 'w-7 h-7 text-red-600') ?>
             </div>
-            <h3 class="text-lg font-semibold text-slate-800">Delete Section</h3>
-            <p class="text-sm text-slate-500 mt-2">Delete section <strong id="delete_name"
+            <h3 class="text-lg font-semibold text-slate-800"><?= $LANG['delete_section_modal'] ?? 'Delete Section' ?></h3>
+            <p class="text-sm text-slate-500 mt-2"><?= $LANG['delete'] ?? 'Delete' ?> <strong id="delete_name"
                     class="text-slate-700"></strong>?</p>
         </div>
         <form method="POST"><?= csrfField() ?><input type="hidden" name="action" value="delete"><input type="hidden"
                 name="id" id="delete_id">
             <div class="flex gap-3 px-6 pb-6">
                 <button type="button" onclick="closeModal('deleteModal')"
-                    class="flex-1 px-4 py-2.5 text-sm border border-slate-200 rounded-xl">Cancel</button>
+                    class="flex-1 px-4 py-2.5 text-sm border border-slate-200 rounded-xl"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
                 <button type="submit"
-                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl">Delete</button>
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl"><?= $LANG['delete'] ?? 'Delete' ?></button>
             </div>
         </form>
     </div>

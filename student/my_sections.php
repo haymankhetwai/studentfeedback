@@ -4,6 +4,8 @@ require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 requireRole('student');
 
+updateAllFeedbackStatuses($conn);
+
 $user = getCurrentUser();
 $stmt = $conn->prepare("SELECT st.id FROM students st WHERE st.user_id=?");
 $stmt->bind_param('i', $user['id']);
@@ -37,7 +39,7 @@ $navItems = [
 $initials = avatarInitials($user['name']);
 ?>
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="<?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'my' : 'en' ?>" class="h-full">
 
 <head>
     <meta charset="UTF-8">
@@ -57,7 +59,7 @@ $initials = avatarInitials($user['name']);
     <link rel="stylesheet" href="/studentfeedbackucsh/assets/css/custom.css">
 </head>
 
-<body class="h-full bg-slate-50 font-inter">
+<body class="h-full bg-slate-50 font-inter <?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'lang-mm' : '' ?>">
     <div id="overlay" class="fixed inset-0 bg-black/40 z-30 hidden lg:hidden" onclick="closeSidebar()"></div>
     <div class="flex h-screen overflow-hidden">
 
@@ -67,8 +69,12 @@ $initials = avatarInitials($user['name']);
                 <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center font-bold text-white">S
                 </div>
                 <div>
-                    <p class="text-sm font-bold">SFMS Student</p>
-                    <p class="text-[10px] text-cyan-100">Student Portal</p>
+                    <p class="text-sm font-bold">
+                        <?= $LANG['student_portal'] ?? 'SFMS Student' ?>
+                    </p>
+                    <p class="text-[10px] text-cyan-100">
+                        <?= $LANG['student_portal_sub'] ?? 'Student Portal' ?>
+                    </p>
                 </div>
                 <button onclick="closeSidebar()" class="ml-auto lg:hidden text-cyan-100">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
@@ -92,7 +98,7 @@ $initials = avatarInitials($user['name']);
 
             <a href="/studentfeedbackucsh/auth/logout.php" title="<?= $LANG['logout'] ?? 'Logout' ?>"
                 class="block border-t border-white/15 bg-red-500 text-gray-50 hover:text-gray-200 transition-colors px-4 py-4 cursor-pointer">
-                <div class="flex items-center gap-3">
+                <div class="flex items-center justify-center gap-3">
 
                     <div class="min-w-0 ">
                         <p class="text-xl h-8"><?= $LANG['logout'] ?? 'Logout' ?></p>
@@ -142,15 +148,17 @@ $initials = avatarInitials($user['name']);
                             <?php if ($forms): ?>
                                 <div class="divide-y divide-slate-100">
                                     <?php foreach ($forms as $f):
-                                        $isActive = $f['status'] === 'active' && $f['start_date'] <= $today && $f['end_date'] >= $today;
+                                        $fStatus = $f['status'];
+                                        $isActive = $fStatus === 'Active';
                                         $submitted = (bool) $f['submitted'];
-                                        $expired = $f['end_date'] < $today;
+                                        $expired = $fStatus === 'Expired';
+                                        $upcoming = $fStatus === 'Upcoming';
                                         ?>
                                         <div class="px-6 py-4 flex items-center justify-between">
                                             <div>
                                                 <p class="text-sm font-medium text-slate-800"><?= e($f['title']) ?></p>
-                                                <p class="text-xs text-slate-400"><?= formatDate($f['start_date']) ?> —
-                                                    <?= formatDate($f['end_date']) ?>
+                                                <p class="text-xs text-slate-400"><?= formatDateTime($f['start_date']) ?> —
+                                                    <?= formatDateTime($f['end_date']) ?>
                                                 </p>
                                             </div>
                                             <div class="flex items-center gap-3">
@@ -162,8 +170,8 @@ $initials = avatarInitials($user['name']);
                                                     </span>
                                                 <?php elseif ($isActive): ?>
                                                     <span
-                                                        class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-700"><?= $LANG['open_status'] ?? 'Open' ?>
-                                                        <?= $LANG['until_label'] ?? 'until' ?>                     <?= formatDate($f['end_date']) ?></span>
+                                                        class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-700"><?= $LANG['active'] ?? 'Active' ?>
+                                                        · <?= getTimeRemaining($f['end_date']) ?></span>
                                                     <a href="/studentfeedbackucsh/student/feedback_form.php?form_id=<?= $f['id'] ?>"
                                                         class="inline-flex items-center gap-1 px-4 py-2 text-xs font-semibold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl transition-all hover:-translate-y-0.5">
                                                         <?= iconSvg('clipboard', 'w-3.5 h-3.5') ?>                     <?= $LANG['fill_form'] ?? 'Fill Form' ?>
@@ -171,11 +179,11 @@ $initials = avatarInitials($user['name']);
                                                 <?php elseif ($expired): ?>
                                                     <span
                                                         class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-slate-500 bg-slate-100 rounded-xl"><?= $LANG['expired_status'] ?? 'Expired' ?></span>
-                                                <?php elseif ($f['start_date'] > $today): ?>
-                                                    <span class="text-xs text-slate-400"><?= $LANG['starts_label'] ?? 'Starts' ?>
-                                                        <?= formatDate($f['start_date']) ?></span>
+                                                <?php elseif ($upcoming): ?>
+                                                    <span class="text-xs text-blue-500 font-medium"><?= $LANG['starts_label'] ?? 'Opens' ?>
+                                                        <?= formatDateTimeShort($f['start_date']) ?></span>
                                                 <?php else: ?>
-                                                    <?= badgeStatus($f['status']) ?>
+                                                    <?= badgeStatus($fStatus) ?>
                                                 <?php endif ?>
                                             </div>
                                         </div>

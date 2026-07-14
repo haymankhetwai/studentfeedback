@@ -21,9 +21,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             $stmt->bind_param('ssi', $name, $email, $user['id']);
             if ($stmt->execute()) {
                 $_SESSION['name'] = $name; $_SESSION['email'] = $email;
-                setFlash('success', 'Profile updated successfully.');
+                setFlash('success', $LANG['flash_profile_updated'] ?? 'Profile updated successfully.');
             } else {
-                setFlash('error', 'Email already in use.');
+                setFlash('error', $LANG['flash_email_in_use'] ?? 'Email already in use.');
             }
             $stmt->close();
         }
@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         $confirm = $_POST['confirm_password'] ?? '';
         if ($current && $new && $confirm) {
             if ($new !== $confirm) {
-                setFlash('error', 'New passwords do not match.');
+                setFlash('error', $LANG['flash_passwords_no_match'] ?? 'New passwords do not match.');
             } else {
                 $stmt = $conn->prepare("SELECT password FROM users WHERE id=?");
                 $stmt->bind_param('i', $user['id']); $stmt->execute();
@@ -44,12 +44,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                     $hash = password_hash($new, PASSWORD_DEFAULT);
                     $stmt2 = $conn->prepare("UPDATE users SET password=? WHERE id=?");
                     $stmt2->bind_param('si', $hash, $user['id']); $stmt2->execute(); $stmt2->close();
-                    setFlash('success', 'Password changed successfully.');
+                    setFlash('success', $LANG['flash_password_changed'] ?? 'Password changed successfully.');
                 } else {
-                    setFlash('error', 'Current password is incorrect.');
+                    setFlash('error', $LANG['flash_wrong_password'] ?? 'Current password is incorrect.');
                 }
             }
-        } else { setFlash('error', 'All password fields are required.'); }
+        } else { setFlash('error', $LANG['flash_password_fields_required'] ?? 'All password fields are required.'); }
         header('Location: profile.php'); exit;
     }
 }
@@ -64,8 +64,8 @@ include '../includes/admin_sidebar.php';
 ?>
 
 <div class="mb-6">
-    <h2 class="text-xl font-bold text-slate-800">My Profile</h2>
-    <p class="text-sm text-slate-500 mt-0.5">Manage your account information and password</p>
+    <h2 class="text-xl font-bold text-slate-800"><?= $LANG['my_profile'] ?? 'My Profile' ?></h2>
+    <p class="text-sm text-slate-500 mt-0.5"><?= $LANG['profile_subtitle'] ?? 'Manage your account information and password' ?></p>
 </div>
 
 <?php renderFlash() ?>
@@ -80,8 +80,8 @@ include '../includes/admin_sidebar.php';
         <p class="text-sm text-slate-500 mt-1"><?= e($userData['email']) ?></p>
         <div class="mt-3"><?= badgeRole($userData['role']) ?></div>
         <div class="w-full border-t border-slate-100 mt-5 pt-5">
-            <div class="flex justify-between text-sm"><span class="text-slate-500">Username</span><span class="font-medium text-slate-700 font-mono"><?= e($userData['username']) ?></span></div>
-            <div class="flex justify-between text-sm mt-2"><span class="text-slate-500">Member Since</span><span class="font-medium text-slate-700"><?= formatDate($userData['created_at']) ?></span></div>
+            <div class="flex justify-between text-sm"><span class="text-slate-500"><?= $LANG['username_label'] ?? 'Username' ?></span><span class="font-medium text-slate-700 font-mono"><?= e($userData['username']) ?></span></div>
+            <div class="flex justify-between text-sm mt-2"><span class="text-slate-500"><?= $LANG['member_since'] ?? 'Member Since' ?></span><span class="font-medium text-slate-700"><?= formatDate($userData['created_at']) ?></span></div>
         </div>
     </div>
 
@@ -89,39 +89,39 @@ include '../includes/admin_sidebar.php';
     <div class="lg:col-span-2 space-y-5">
         <!-- Update Info -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-100"><h3 class="font-semibold text-slate-800">Update Information</h3></div>
+            <div class="px-6 py-4 border-b border-slate-100"><h3 class="font-semibold text-slate-800"><?= $LANG['update_information'] ?? 'Update Information' ?></h3></div>
             <form method="POST" class="px-6 py-5 space-y-4">
                 <?= csrfField() ?><input type="hidden" name="action" value="update_info">
-                <div><label class="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+                <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['full_name_label'] ?? 'Full Name' ?></label>
                     <input type="text" name="name" required value="<?= e($userData['name']) ?>" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
                 </div>
-                <div><label class="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
+                <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['email_address_label'] ?? 'Email Address' ?></label>
                     <input type="email" name="email" required value="<?= e($userData['email']) ?>" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
                 </div>
                 <div class="flex justify-end">
-                    <button type="submit" class="px-6 py-2.5 text-sm font-semibold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl shadow-sm">Save Changes</button>
+                    <button type="submit" class="px-6 py-2.5 text-sm font-semibold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl shadow-sm"><?= $LANG['save_changes_btn'] ?? 'Save Changes' ?></button>
                 </div>
             </form>
         </div>
 
         <!-- Change Password -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-100"><h3 class="font-semibold text-slate-800">Change Password</h3></div>
+            <div class="px-6 py-4 border-b border-slate-100"><h3 class="font-semibold text-slate-800"><?= $LANG['change_password'] ?? 'Change Password' ?></h3></div>
             <form method="POST" class="px-6 py-5 space-y-4">
                 <?= csrfField() ?><input type="hidden" name="action" value="change_password">
-                <div><label class="block text-sm font-medium text-slate-700 mb-1">Current Password</label>
+                <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['current_password'] ?? 'Current Password' ?></label>
                     <input type="password" name="current_password" required placeholder="••••••••" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
-                    <div><label class="block text-sm font-medium text-slate-700 mb-1">New Password</label>
+                    <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['new_password_label'] ?? 'New Password' ?></label>
                         <input type="password" name="new_password" required placeholder="••••••••" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
                     </div>
-                    <div><label class="block text-sm font-medium text-slate-700 mb-1">Confirm Password</label>
+                    <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['confirm_password_label'] ?? 'Confirm Password' ?></label>
                         <input type="password" name="confirm_password" required placeholder="••••••••" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
                     </div>
                 </div>
                 <div class="flex justify-end">
-                    <button type="submit" class="px-6 py-2.5 text-sm font-semibold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl shadow-sm">Update Password</button>
+                    <button type="submit" class="px-6 py-2.5 text-sm font-semibold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl shadow-sm"><?= $LANG['update_password_btn'] ?? 'Update Password' ?></button>
                 </div>
             </form>
         </div>

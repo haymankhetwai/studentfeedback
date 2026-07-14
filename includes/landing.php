@@ -16,14 +16,14 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['role'])) {
 
 require_once __DIR__ . '/functions.php';
 
-$badgeText = "Your Opinion, Our Improvement";
+$badgeText = $LANG['badge_text'] ?? "Your Opinion, Our Improvement";
 $buttonText = "Get Started";
 $showBadge = true;
 
 $heroDescriptions = [
-    'admin' => 'Admin can review reports and manage feedback efficiently.',
-    'teacher' => 'Teachers can review reports and feedback results.',
-    'student' => 'Students can submit feedback only for the semester assigned by the admin.',
+    'admin' => $LANG['hero_admin_desc'] ?? 'Admin can review reports and manage feedback efficiently.',
+    'teacher' => $LANG['hero_teacher_desc'] ?? 'Teachers can review reports and feedback results.',
+    'student' => $LANG['hero_student_desc'] ?? 'Students can submit feedback only for the semester assigned by the admin.',
 ];
 $heroDescription = $heroDescriptions[$loginType] ?? '';
 
@@ -98,7 +98,7 @@ if ($r)
     $stats['departments'] = (int) $r->fetch_assoc()['c'];
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'my' : 'en' ?>">
 
 <head>
     <meta charset="UTF-8">
@@ -229,6 +229,7 @@ if ($r)
             letter-spacing: 0.06em;
             min-height: 1.4em;
         }
+
         .tw-cursor {
             display: inline-block;
             width: 3px;
@@ -241,50 +242,46 @@ if ($r)
     </style>
 </head>
 
-<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+<body
+    class="text-slate-800 antialiased min-h-screen flex flex-col <?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'lang-mm' : '' ?>">
 
     <!-- ─── Navigation ──────────────────────────────────────── -->
-    <nav class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200/60 shadow-sm">
+    <nav
+        class="sticky top-0 z-50 backdrop-blur-md border-b border-blue-100/50 shadow-lg shadow-blue-500/5 transition-all duration-300"
+        style="background: linear-gradient(135deg, rgba(219,234,254,0.92) 0%, rgba(191,219,254,0.88) 40%, rgba(224,242,254,0.90) 100%);">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16 lg:h-20">
                 <div class="flex items-center gap-3">
-                    <!-- <div
-                            class="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-blue-800 flex items-center justify-center text-white font-bold text-sm shadow-md flex-shrink-0">
-                        
-                            <img src="../assets/uploads/profiles/image.png" alt="uscsh_logo" class="object-contain">
-                        </div> -->
-
                     <div
-                        class="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center text-white font-bold text-sm shadow-md flex-shrink-0">
-                        <!-- U -->
-                        <img src="../assets/uploads/profiles/image.png" alt="uscsh_logo" class="object-contain">
+                        class="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 ">
+                        <img src="../assets/uploads/profiles/image.png" alt="uscsh_logo" class="object-contain rounded-lg">
                     </div>
                     <div>
-                        <h1 class="text-lg font-bold tracking-tight text-slate-900 leading-none">UCSH</h1>
-                        <p class="text-xs text-slate-500 leading-tight hidden sm:block">
+                        <h1 class="text-lg font-bold tracking-tight text-blue-900 leading-none">UCSH</h1>
+                        <p class="text-xs text-blue-500/80 leading-tight hidden sm:block font-medium">
                             <?= $LANG['university_name'] ?? 'University of Computer Studies (Hinthada)' ?>
                         </p>
                     </div>
                 </div>
-                <div class="flex items-center gap-3">
-                    <span class="text-xs text-slate-500 hidden md:block font-medium capitalize"><?= e($loginType) ?>
+                <div class="flex items-center gap-5">
+                    <span class="text-xs text-blue-700/70 hidden md:block font-semibold capitalize tracking-wide"><?= e($loginType) ?>
                         <?= $LANG['portal'] ?? 'Portal' ?></span>
 
                     <?php $currentLang = $_SESSION['lang'] ?? 'en'; ?>
                     <div
-                        class="flex items-center gap-0.5 bg-slate-100 rounded-lg p-0.5 text-xs font-semibold border border-slate-200 shadow-sm">
+                        class="flex items-center gap-0.5 bg-white/70 backdrop-blur-sm rounded-xl p-0.5 text-xs font-semibold border border-blue-200/60 shadow-sm">
                         <a href="?lang=en" id="lang-btn-en"
-                            class="px-3 py-1 rounded-md transition-all <?= $currentLang === 'en' ? 'bg-white shadow text-blue-700 font-bold' : 'text-slate-400 hover:text-slate-600' ?>">
+                            class="px-3 py-1.5 rounded-lg transition-all duration-200 <?= $currentLang === 'en' ? 'bg-blue-500 shadow-md shadow-blue-500/25 text-white font-bold' : 'text-blue-400 hover:text-blue-600 hover:bg-blue-50/50' ?>">
                             ENG
                         </a>
                         <a href="?lang=mm" id="lang-btn-mm"
-                            class="px-3 py-1 rounded-md transition-all <?= $currentLang === 'mm' ? 'bg-white shadow text-blue-700 font-bold' : 'text-slate-400 hover:text-slate-600' ?>">
+                            class="px-3 py-1.5 rounded-lg transition-all duration-200 <?= $currentLang === 'mm' ? 'bg-blue-500 shadow-md shadow-blue-500/25 text-white font-bold' : 'text-blue-400 hover:text-blue-600 hover:bg-blue-50/50' ?>">
                             မြန်မာ
                         </a>
                     </div>
 
                     <button type="button" id="navLoginBtn"
-                        class="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-md shadow-blue-600/20 transition-all hover:shadow-lg hover:-translate-y-0.5 cursor-pointer">
+                        class="inline-flex items-center gap-2 bg-white/80 text-blue-600 px-5 py-2.5 rounded-xl font-semibold text-sm shadow-lg shadow-blue-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/40 hover:-translate-y-0.5 hover:from-blue-600 hover:to-blue-700 cursor-pointer ring-1 ring-blue-400/30">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -297,37 +294,55 @@ if ($r)
     </nav>
 
     <!-- ─── Hero Section ────────────────────────────────────────── -->
-    <header
-        class="relative bg-gradient-to-br from-blue-900 via-blue-700 to-blue-950 text-white min-h-screen flex flex-col">
-        <div
-            class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItSDI0di0yaDEyek0zNiAyNHYySDI0di0yaDEyeiIvPjwvZz48L2c+PC9zdmc+')] opacity-40">
+    <header class="relative min-h-screen flex flex-col overflow-hidden">
+
+        <!-- Background (blurred hero image) -->
+        <div class="absolute inset-0 -z-30 overflow-hidden">
+            <img src="../assets/uploads/ucsh_logo.jpg"
+                class="w-full h-full object-cover scale-110 blur-xs brightness-75" alt="ucsh">
         </div>
+
+        <!-- Modern Gradient Overlay -->
+        <div
+            class="absolute inset-0 -z-20 bg-gradient-to-br from-blue-950/50 via-blue-900/40 to-slate-900/50 backdrop-blur-xs">
+        </div>
+
+        <!-- Decorative Blur -->
+        <div class="absolute top-20 left-10 w-72 h-72 bg-blue-300/20 rounded-full blur-3xl animate-pulse"></div>
+
+        <div class="absolute bottom-10 right-10 w-96 h-96 bg-cyan-300/20 rounded-full blur-3xl"></div>
+
+
+
+        <!-- <div
+            class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItSDI0di0yaDEyek0zNiAyNHYySDI0di0yaDEyeiIvPjwvZz48L2c+PC9zdmc+')] opacity-40">
+        </div> -->
         <!-- <div
             class="w-4 h-4 rounded-2xl bg-gradient-to-br from-white/20 to-white/5 flex items-center justify-center mb-5 shadow-lg animate-float">
-            
-            <img src="../assets/uploads/profiles/image.png" alt="uscsh_logo" class="object-contain">
+
+            <img src="../assets/uploads/profiles/ucshlogo.jpg" alt="uscsh_logo" class="object-contain">
         </div> -->
 
-        <div class="absolute top-20 left-10 w-72 h-72 bg-white/5 rounded-full blur-3xl animate-pulse"></div>
-        <div class="absolute bottom-10 right-10 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl"></div>
+        <!-- <div class="absolute top-20 left-10 w-72 h-72 bg-white/5 rounded-full blur-3xl animate-pulse"></div>
+        <div class="absolute bottom-10 right-10 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl"></div> -->
 
-        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20 flex-1 flex items-center w-full">
-            <div class="grid lg:grid-cols-12 gap-10 lg:gap-16 items-center w-full">
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20 flex items-center w-full">
+            <div class="grid lg:grid-cols-12 gap-10 lg:gap-20 items-center w-full">
 
                 <!-- Left: Hero Text -->
                 <div class="lg:col-span-7 space-y-6 lg:space-y-8">
                     <?php if ($showBadge && !empty($badgeText)): ?>
                         <div
-                            class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/20 text-sm font-medium">
+                            class="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full border border-white/20 text-sm font-medium">
                             <span class="text-sky-300">🎓</span>
-                            <span><?= htmlspecialchars($badgeText) ?></span>
+                            <span class="text-white/80"><?= htmlspecialchars($badgeText) ?></span>
                         </div>
                     <?php endif; ?>
 
-                    <h2 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight">
+                    <h2 class="text-4xl sm:text-5xl lg:text-6xl text-white font-bold tracking-tight leading-[1.4]">
                         <?= $LANG['welcome_to'] ?? 'Welcome to' ?> <br>
                         <span
-                            class="text-sky-300"><?= $LANG['student_feedback_system'] ?? 'Student Feedback Management System' ?></span>
+                            class="block mt-3 text-sky-300"><?= $LANG['student_feedback_system'] ?? 'Student Feedback Management System' ?></span>
                     </h2>
 
                     <p class="text-lg sm:text-xl text-blue-50/80 font-light max-w-xl leading-relaxed">
@@ -336,7 +351,7 @@ if ($r)
 
                     <div class="flex flex-wrap gap-4 pt-2">
                         <button type="button" id="loginTriggerBtn"
-                            class="inline-flex items-center gap-2 bg-white text-blue-800 font-semibold px-6 py-3 rounded-xl shadow-xl shadow-black/10 hover:shadow-2xl hover:-translate-y-0.5 transition-all cursor-pointer">
+                            class="inline-flex items-center gap-2 bg-white/90 text-blue-800 font-semibold px-6 py-3 rounded-xl shadow-xl shadow-black/10 hover:shadow-2xl hover:-translate-y-0.5 transition-all cursor-pointer">
                             <span><?= htmlspecialchars($buttonText) ?></span>
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -353,7 +368,7 @@ if ($r)
                         </a> -->
 
                         <a href="#stats" onclick="smoothScrollToStats(); return false;"
-                            class="inline-flex items-center gap-2 border border-white/30 text-white/90 hover:bg-white/10 px-6 py-3 rounded-xl font-medium transition-all">
+                            class="inline-flex items-center gap-2 border-2 border-white/70 text-white/90 bg-white/10 hover:bg-white/30 px-6 py-3 rounded-xl font-medium transition-all">
                             <?= $LANG['view_statistics'] ?? 'View Statistics' ?>
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -368,8 +383,7 @@ if ($r)
 
                     <div id="universityBox"
                         class="absolute inset-0 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 flex flex-col items-center justify-center p-8 text-center transition-all duration-500 <?= $showLoginOnLoad ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100' ?> z-10">
-                        <div
-                            class="w-24 h-24 rounded-2xl  bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center mb-5 shadow-lg animate-float">
+                        <div class="w-24 h-24 rounded-2xl  flex items-center justify-center mb-5 animate-float">
                             <img src="../assets/uploads/profiles/image.png" alt="uscsh_logo" class="object-contain">
                         </div>
                         <?php
@@ -578,29 +592,27 @@ if ($r)
 
 
     <!-- ─── Footer ──────────────────────────────────────────────── -->
-    <footer class="bg-slate-200/50 backdrop-blur-md text-gray mt-auto">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <footer class="backdrop-blur-md border-t border-blue-100/50 mt-auto relative overflow-hidden"
+        style="background: linear-gradient(135deg, rgba(219,234,254,0.95) 0%, rgba(191,219,254,0.90) 40%, rgba(224,242,254,0.93) 100%);">
+        <!-- Decorative top gradient line -->
+        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-400/40 to-transparent"></div>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div class="flex flex-col md:flex-row items-center justify-between gap-4">
                 <div class="flex items-center gap-3">
-                    <!-- <div
-                        class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-white font-bold text-xs">
-                        U
-                    </div> -->
                     <div
-                        class="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center text-white font-bold text-sm shadow-md flex-shrink-0">
-                        <!-- U -->
-                        <img src="../assets/uploads/profiles/image.png" alt="uscsh_logo" class="object-contain">
+                        class="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                        <img src="../assets/uploads/profiles/image.png" alt="uscsh_logo" class="object-contain rounded-lg">
                     </div>
                     <div>
-                        <p class="text-sm font-semibold">
+                        <p class="text-sm font-bold text-blue-900">
                             <?= $LANG['footer_system'] ?? 'Student Feedback Management System' ?>
                         </p>
-                        <p class="text-xs text-slate-400">
+                        <p class="text-xs text-blue-500/70 font-medium">
                             <?= $LANG['footer_university'] ?? 'University of Computer Studies (Hinthada)' ?>
                         </p>
                     </div>
                 </div>
-                <p class="text-xs text-slate-500">
+                <p class="text-xs text-blue-600/60 font-medium">
                     &copy; <?= date("Y") ?> UCSH. <?= $LANG['footer_rights'] ?? 'All Rights Reserved' ?>.
                 </p>
             </div>

@@ -43,7 +43,7 @@ function requireRole(string $role): void {
         exit;
     }
     if ($_SESSION['role'] !== $role) {
-        setFlash('error', 'You are not authorized to access that page.');
+        setFlash('error', $LANG['error_not_authorized'] ?? 'You are not authorized to access that page.');
         redirectToDashboard();
     }
 }

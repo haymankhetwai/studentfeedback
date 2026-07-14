@@ -4,6 +4,8 @@ require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 requireRole('student');
 
+updateAllFeedbackStatuses($conn);
+
 $user      = getCurrentUser();
 $stmt      = $conn->prepare("SELECT id FROM students WHERE user_id=?");
 $stmt->bind_param('i', $user['id']); $stmt->execute();
@@ -48,16 +50,16 @@ $alreadySubmitted = (bool)$sub->get_result()->num_rows;
 $sub->close();
 
 // ─── Step 3: Determine form open status
-$today     = date('Y-m-d');
-$isActive  = ($form['status'] === 'active');
-$inDateRange = ($form['start_date'] <= $today && $form['end_date'] >= $today);
-$canSubmit = $isActive && $inDateRange && !$alreadySubmitted;
+$now      = date('Y-m-d H:i:s');
+$today    = date('Y-m-d');
+$status   = $form['status'];
+$isActive = ($status === 'Active');
+$canSubmit = $isActive && !$alreadySubmitted;
 
 $statusNote = '';
 if ($alreadySubmitted) { $statusNote = 'already_submitted'; } 
-elseif (!$isActive)    { $statusNote = 'inactive'; } 
-elseif ($form['start_date'] > $today) { $statusNote = 'not_started'; } 
-elseif ($form['end_date'] < $today)   { $statusNote = 'expired'; }
+elseif ($status === 'Upcoming') { $statusNote = 'not_started'; } 
+elseif ($status === 'Expired') { $statusNote = 'expired'; }
 
 // ─── Step 4: Load Questions (shared per module)
 $qStmt = $conn->prepare("SELECT * FROM feedback_questions WHERE module='academic' ORDER BY question_no ASC");
@@ -114,6 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                     header('Location: my_sections.php'); exit;
                 }
                 $ins->close();
+                $submissionId = $conn->insert_id;
 
                 // Save dynamic ratings
                 foreach ($ratingQuestions as $q) {
@@ -136,7 +139,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                 }
 
                 // Save survey answers
-                $lastSubId = $conn->insert_id;
                 foreach ($surveyQuestions as $q) {
                     $selectedOptions = $_POST['survey'][$q['id']] ?? [];
                     if (!is_array($selectedOptions)) $selectedOptions = [$selectedOptions];
@@ -144,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                         $selected = (int)$sel;
                         if ($selected >= 0 && $selected <= 3) {
                             $si = $conn->prepare("INSERT INTO feedback_survey_answers (submission_id, question_id, selected_option_index) VALUES (?,?,?)");
-                            $si->bind_param('iii', $lastSubId, $q['id'], $selected);
+                            $si->bind_param('iii', $submissionId, $q['id'], $selected);
                             $si->execute(); $si->close();
                         }
                     }
@@ -167,7 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 $initials = avatarInitials($user['name']);
 ?>
 <!DOCTYPE html>
-<html lang="my" class="h-full">
+<html lang="<?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'my' : 'en' ?>" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -182,16 +184,21 @@ $initials = avatarInitials($user['name']);
     <style>
         @import url('https://cdn.jsdelivr.net/css-myanmar-fonts/v1/pyidaungsu.css');
         body { font-family: 'Pyidaungsu', 'Inter', sans-serif; }
+        body.lang-mm th { font-size: 0.8125rem; line-height: 1.6; }
+        body.lang-mm td { font-size: 0.8125rem; line-height: 1.6; }
     </style>
 </head>
-<body class="h-full bg-slate-100">
+<body class="h-full bg-slate-100 <?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'lang-mm' : '' ?>">
 <div id="overlay" class="fixed inset-0 bg-black/40 z-30 hidden lg:hidden" onclick="closeSidebar()"></div>
 
 <div class="flex h-screen overflow-hidden">
     <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 bg-gradient-to-b from-cyan-600 to-cyan-700 text-white flex flex-col z-40 transform -translate-x-full transition-transform duration-300 lg:relative lg:translate-x-0 lg:flex-shrink-0">
         <div class="flex items-center gap-3 px-5 py-5 border-b border-cyan-500">
             <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center font-bold text-white">S</div>
-            <div><p class="text-sm font-bold">SFMS Student</p><p class="text-[10px] text-cyan-100"><?= $LANG['student_portal'] ?? 'Student Portal' ?></p></div>
+             <div>
+                    <p class="text-sm font-bold"><?= $LANG['student_portal'] ?? 'SFMS Student' ?></p>
+                    <p class="text-[10px] text-cyan-100"><?= $LANG['student_portal_sub'] ?? 'Student Portal' ?></p>
+                </div>
             <button onclick="closeSidebar()" class="ml-auto lg:hidden text-cyan-200 hover:text-white">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
@@ -200,7 +207,7 @@ $initials = avatarInitials($user['name']);
             <a href="/studentfeedbackucsh/student/dashboard.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('home','w-4 h-4 flex-shrink-0') ?> <?= $LANG['nav_dashboard'] ?? 'Dashboard' ?></a>
             <a href="/studentfeedbackucsh/student/my_sections.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm bg-white/20 text-white font-semibold"><?= iconSvg('grid','w-4 h-4 flex-shrink-0') ?> <?= $LANG['nav_my_sections'] ?? 'My Sections' ?></a>
             <a href="/studentfeedbackucsh/student/sa_feedback.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('shield','w-4 h-4 flex-shrink-0') ?> <?= $LANG['nav_student_affairs_link'] ?? 'Student Affairs' ?></a>
-            <a href="/studentfeedbackucsh/student/adm_feedback.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('office','w-4 h-4 flex-shrink-0') ?> <?= $LANG['nav_administration_link'] ?? 'Administration' ?></a>
+            <a href="/studentfeedbackucsh/student/adm_feedback.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('office','w-4 h-4 flex-shrink-0') ?> <?= $LANG['nav_administration'] ?? 'Administration' ?></a>
             <a href="/studentfeedbackucsh/student/feedback_history.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('history','w-4 h-4 flex-shrink-0') ?> <?= $LANG['nav_history'] ?? 'History' ?></a>
             <a href="/studentfeedbackucsh/student/profile.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('user','w-4 h-4 flex-shrink-0') ?> <?= $LANG['nav_profile'] ?? 'Profile' ?></a>
         </nav>
@@ -208,7 +215,7 @@ $initials = avatarInitials($user['name']);
 
        <a href="/studentfeedbackucsh/auth/logout.php" title="<?= $LANG['logout'] ?? 'Logout' ?>"
                 class="block border-t border-white/15 bg-red-500 text-gray-50 hover:text-gray-200 transition-colors px-4 py-4 cursor-pointer">
-            <div class="flex items-center gap-3">
+            <div class="flex items-center justify-center gap-3">
 
                 <div class="min-w-0 ">
                         <p class="text-xl h-8"><?= $LANG['logout'] ?? 'Logout' ?></p>
@@ -227,14 +234,15 @@ $initials = avatarInitials($user['name']);
             <a href="my_sections.php" class="text-sm font-medium text-emerald-600 hover:underline">← <?= $LANG['back'] ?? 'Back' ?></a>
         </header>
 
-        <main class="flex-1 overflow-y-auto p-4 md:p-8 max-w-5xl mx-auto w-full">
+        <main class="flex-1 overflow-y-auto p-4 md:p-8 mx-auto w-full">
             <?php renderFlash() ?>
 
             <div class="bg-white shadow-xl rounded-xl border border-slate-200 p-6 md:p-10 mb-8">
                 <div class="text-center border-b-2 border-slate-800 pb-6 mb-6">
                     <h2 class="text-xl md:text-2xl font-bold text-slate-900 mb-2"><?= e($form['title'] ?? ($LANG['course_eval_form'] ?? 'Course Evaluation Form')) ?></h2>
                     <p class="text-sm text-slate-500 font-mono"><?= $LANG['student_course_feedback'] ?? 'Student Course Feedback Questionnaire' ?></p>
-                    <p class="text-xs text-slate-400 mt-1"><?= $LANG['feedback_period'] ?? 'Feedback Period' ?>: <?= formatDate($form['start_date']) ?> — <?= formatDate($form['end_date']) ?></p>
+                    <p class="text-xs text-slate-400 mt-1"><?= $LANG['feedback_period'] ?? 'Feedback Period' ?>: <?= formatDateTime($form['start_date']) ?> — <?= formatDateTime($form['end_date']) ?></p>
+                    <p class="text-xs mt-1"><?= badgeStatus($status) ?> <?php if ($status === 'Active'): ?><span class="text-slate-500"><?= getTimeRemaining($form['end_date']) ?></span><?php elseif ($status === 'Upcoming'): ?><span class="text-slate-500"><?= getTimeUntilStart($form['start_date']) ?></span><?php endif ?></p>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm">
@@ -261,17 +269,14 @@ $initials = avatarInitials($user['name']);
                     <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl mb-6 text-sm font-semibold">
                         ✓ <?= $LANG['survey_completed_thanks'] ?? 'Survey completed. Thank you.' ?>
                     </div>
-                <?php elseif ($form['start_date'] > $today): ?>
+                <?php elseif ($status === 'Upcoming'): ?>
                     <div class="bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-xl mb-6 text-sm font-semibold">
-                        ⏳ <?= $LANG['form_not_available_yet'] ?? 'Feedback form is not available yet. It will open on' ?> <strong><?= formatDate($form['start_date']) ?></strong>.
+                        ⏳ <?= $LANG['form_not_available_yet'] ?? 'Feedback form is not available yet. It will open on' ?> <strong><?= formatDateTime($form['start_date']) ?></strong>.
+                        <br><span class="text-xs mt-1 block"><?= getTimeUntilStart($form['start_date']) ?></span>
                     </div>
-                <?php elseif ($form['end_date'] < $today): ?>
+                <?php elseif ($status === 'Expired'): ?>
                     <div class="bg-slate-100 border border-slate-300 text-slate-700 p-4 rounded-xl mb-6 text-sm font-semibold">
-                        🔒 <?= $LANG['form_closed_ended'] ?? 'Feedback form has been closed. It ended on' ?> <strong><?= formatDate($form['end_date']) ?></strong>.
-                    </div>
-                <?php elseif (!$isActive): ?>
-                    <div class="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl mb-6 text-sm font-semibold">
-                        ⚠️ <?= $LANG['form_inactive'] ?? 'This feedback form is currently inactive.' ?>
+                        🔒 <?= $LANG['form_closed_ended'] ?? 'Feedback form has been closed. It ended on' ?> <strong><?= formatDateTime($form['end_date']) ?></strong>.
                     </div>
                 <?php endif ?>
 
@@ -281,18 +286,18 @@ $initials = avatarInitials($user['name']);
 
                     <?php if (!empty($ratingQuestions)): ?>
                     <div>
-                        <h3 class="text-base font-bold text-slate-900 mb-3 bg-cyan-600 text-white px-4 py-2 rounded-lg rounded-t-lg">
+                        <h3 class="font-bold text-slate-900 mb-3  underline  py-2 rounded-lg rounded-t-lg">
                             <?= $LANG['overall_evaluation_table'] ?? 'Overall Evaluation Table' ?>
                         </h3>
                         <div class="overflow-x-auto border border-slate-300 rounded-b-lg">
                             <table class="w-full text-left border-collapse min-w-[600px]">
                                 <thead>
-                                    <tr class="bg-slate-100 border-b border-slate-300 text-slate-800 font-bold text-sm">
+                                    <tr class="bg-slate-200 border-b border-slate-300 text-slate-800 font-bold text-sm">
                                         <th class="p-3 border-r border-slate-300 w-12 text-center"><?= $LANG['col_no_short'] ?? 'No' ?></th>
                                         <th class="p-3 border-r border-slate-300"><?= $LANG['col_questions'] ?? 'Questions' ?></th>
-                                        <th class="p-3 border-r border-slate-300 w-24 text-center bg-emerald-50 text-emerald-900"><?= $LANG['good'] ?? 'Good' ?></th>
-                                        <th class="p-3 border-r border-slate-300 w-24 text-center bg-amber-50 text-amber-900"><?= $LANG['fair'] ?? 'Fair' ?></th>
-                                        <th class="p-3 w-24 text-center bg-red-50 text-red-900"><?= $LANG['bad'] ?? 'Bad' ?></th>
+                                        <th class="p-3 border-r border-slate-300 w-24 text-center bg-emerald-200 text-emerald-900"><?= $LANG['good'] ?? 'Good' ?></th>
+                                        <th class="p-3 border-r border-slate-300 w-24 text-center bg-amber-200 text-amber-900"><?= $LANG['fair'] ?? 'Fair' ?></th>
+                                        <th class="p-3 w-24 text-center bg-red-200 text-red-900"><?= $LANG['bad'] ?? 'Bad' ?></th>
                                     </tr>
                                 </thead>
                                 <tbody class="text-sm divide-y divide-slate-200 text-slate-800">
@@ -344,7 +349,7 @@ $initials = avatarInitials($user['name']);
 
                     <?php if (!empty($surveyQuestions)): ?>
                     <div class="space-y-6 pt-4 border-t-2 border-violet-200">
-                        <h3 class="text-base font-bold text-slate-900 mb-2">Survey Questions (MCQ)</h3>
+                        <h3 class="text-base font-bold text-slate-900 mb-2"><?= $LANG['survey_questions_mcq'] ?? 'Survey Questions (MCQ)' ?></h3>
                         <?php foreach ($surveyQuestions as $q):
                             $opts = json_decode($q['options_json'] ?? '[]', true) ?: [];
                             ?>
@@ -353,7 +358,7 @@ $initials = avatarInitials($user['name']);
                                     <?= e($q['question_no']) ?>။ <?= e($q['question_text']) ?>
                                     <span class="text-red-500 text-xs font-normal">*</span>
                                 </label>
-                                <div class="space-y-2">
+                                <div class="space-y-2 px-4">
                                     <?php foreach ($opts as $idx => $opt): ?>
                                     <label class="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 cursor-pointer hover:bg-violet-50 transition-colors <?= !$canSubmit ? 'opacity-60 pointer-events-none' : '' ?>">
                                         <input type="checkbox" name="survey[<?= $q['id'] ?>][]" value="<?= $idx ?>"
@@ -363,7 +368,7 @@ $initials = avatarInitials($user['name']);
                                     </label>
                                     <?php endforeach ?>
                                 </div>
-                                <p class="text-xs text-red-500 hidden survey-error">Please select at least one option.</p>
+                                <p class="text-xs text-red-500 hidden survey-error"><?= $LANG['survey_select_one'] ?? 'Please select at least one option.' ?></p>
                             </div>
                         <?php endforeach ?>
                     </div>
@@ -382,13 +387,13 @@ $initials = avatarInitials($user['name']);
                                     class="w-full md:w-auto px-8 py-2.5 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl shadow-md transition-all">
                                 <?= $LANG['submit_form'] ?? 'Submit Form' ?>
                             </button>
-                            <?php elseif ($form['start_date'] > $today): ?>
+                            <?php elseif ($status === 'Upcoming'): ?>
                             <button type="button" disabled class="w-full md:w-auto px-8 py-2.5 text-sm font-bold text-slate-400 bg-slate-200 rounded-xl cursor-not-allowed">
                                 <?= $LANG['not_yet_available'] ?? 'Not Yet Available' ?>
                             </button>
-                            <?php elseif ($form['end_date'] < $today): ?>
+                            <?php elseif ($status === 'Expired'): ?>
                             <button type="button" disabled class="w-full md:w-auto px-8 py-2.5 text-sm font-bold text-slate-400 bg-slate-200 rounded-xl cursor-not-allowed">
-                                <?= $LANG['form_closed'] ?? 'Form Closed' ?>
+                                <?= $LANG['form_closed'] ?? 'Feedback Closed' ?>
                             </button>
                             <?php else: ?>
                             <button type="button" disabled class="w-full md:w-auto px-8 py-2.5 text-sm font-bold text-slate-400 bg-slate-200 rounded-xl cursor-not-allowed">

@@ -17,18 +17,23 @@ $navItems = [
 $initials = avatarInitials($user['name']);
 
 // ─── Validation helpers (same rules as admin/users.php) ──────────────────────
-function isValidEmail($email) {
-    return preg_match('/^[a-zA-Z0-9._]+@ucsh\.edu\.mm$/', $email);
+function isValidEmail($email)
+{
+    return preg_match('/^[a-zA-Z0-9._]+@(ucsh\.edu\.mm|gmail\.com)$/', $email);
 }
-function isValidPassword($password) {
+function isValidPassword($password)
+{
     return strlen($password) >= 6 && preg_match('/^[a-zA-Z0-9@]+$/', $password);
 }
-function isValidName($name) {
+function isValidName($name)
+{
     $name = trim($name);
-    if (strlen($name) < 2 || strlen($name) > 100) return false;
+    if (strlen($name) < 2 || strlen($name) > 100)
+        return false;
     return preg_match('/^(?:(?:Dr|Prof|U|Daw)\.\s)?[A-Za-z]+(?: [A-Za-z]+)*$/i', $name);
 }
-function formatName($name) {
+function formatName($name)
+{
     $name = trim($name);
     $name = ucwords(strtolower($name));
     $name = preg_replace('/\b(Dr|Prof|U|Daw)\b\.(\s)/', '$1.$2', $name);
@@ -48,19 +53,19 @@ $userData = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
 // ─── Inline error state ───────────────────────────────────────────────────────
-$formErrors     = $_SESSION['profile_errors']  ?? [];
-$formValues     = $_SESSION['profile_values']  ?? [];
+$formErrors = $_SESSION['profile_errors'] ?? [];
+$formValues = $_SESSION['profile_values'] ?? [];
 unset($_SESSION['profile_errors'], $_SESSION['profile_values']);
 
-$nameErr        = in_array('name_invalid',  $formErrors);
-$emailErr       = in_array('email_invalid', $formErrors) || in_array('email_domain', $formErrors);
-$emailExistsErr = in_array('email_exists',  $formErrors);
-$passwordErr    = in_array('password',      $formErrors);
-$requiredErr    = in_array('required',      $formErrors);
-$hasErrors      = !empty($formErrors);
+$nameErr = in_array('name_invalid', $formErrors);
+$emailErr = in_array('email_invalid', $formErrors) || in_array('email_domain', $formErrors);
+$emailExistsErr = in_array('email_exists', $formErrors);
+$passwordErr = in_array('password', $formErrors);
+$requiredErr = in_array('required', $formErrors);
+$hasErrors = !empty($formErrors);
 
 // Restore previously submitted values on validation failure
-$prevName  = $hasErrors ? ($formValues['name']  ?? $userData['name'])  : $userData['name'];
+$prevName = $hasErrors ? ($formValues['name'] ?? $userData['name']) : $userData['name'];
 $prevEmail = $hasErrors ? ($formValues['email'] ?? $userData['email']) : $userData['email'];
 
 $borderRed = 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20';
@@ -68,8 +73,8 @@ $borderRed = 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-50
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     $action = $_POST['action'] ?? '';
     if ($action === 'update_info') {
-        $rawName  = clean($_POST['name']  ?? '');
-        $email    = strtolower(clean($_POST['email'] ?? ''));
+        $rawName = clean($_POST['name'] ?? '');
+        $email = strtolower(clean($_POST['email'] ?? ''));
         $password = $_POST['password'] ?? '';
 
         $errors = [];
@@ -86,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             $errors[] = 'required';
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $errors[] = 'email_invalid';
-        } elseif (!preg_match('/@ucsh\.edu\.mm$/', $email)) {
+        } elseif (!preg_match('/@(ucsh\.edu\.mm|gmail\.com)$/', $email)) {
             $errors[] = 'email_domain';
         } elseif (!isValidEmail($email)) {
             $errors[] = 'email_invalid';
@@ -124,11 +129,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         $profileImage = $userData['profile_image'] ?? null;
         if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] === UPLOAD_ERR_OK) {
             $file = $_FILES['profile_image'];
-            $ext  = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+            $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
             $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
             if (in_array($ext, $allowed) && $file['size'] <= 5 * 1024 * 1024) {
                 $uploadDir = __DIR__ . '/../assets/uploads/profiles';
-                if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+                if (!is_dir($uploadDir))
+                    mkdir($uploadDir, 0755, true);
                 $filename = 'profile_' . $user['id'] . '_' . time() . '.' . $ext;
                 $filepath = $uploadDir . '/' . $filename;
                 if (move_uploaded_file($file['tmp_name'], $filepath)) {
@@ -138,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                     $profileImage = 'assets/uploads/profiles/' . $filename;
                 }
             } else {
-                setFlash('error', 'Image must be JPG, PNG, GIF, or WebP and under 5MB.');
+                setFlash('error', $LANG['flash_image_invalid'] ?? 'Image must be JPG, PNG, GIF, or WebP and under 5MB.');
                 header('Location: profile.php');
                 exit;
             }
@@ -155,11 +161,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         }
 
         if ($stmt->execute()) {
-            $_SESSION['name']  = $name;
+            $_SESSION['name'] = $name;
             $_SESSION['email'] = $email;
-            setFlash('success', 'Profile updated successfully.');
+            setFlash('success', $LANG['flash_profile_updated'] ?? 'Profile updated successfully.');
         } else {
-            setFlash('error', 'Failed to update profile.');
+            setFlash('error', $LANG['flash_profile_failed'] ?? 'Failed to update profile.');
         }
         $stmt->close();
     }
@@ -168,7 +174,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="<?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'my' : 'en' ?>" class="h-full">
 
 <head>
     <meta charset="UTF-8">
@@ -180,11 +186,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     <link rel="stylesheet" href="/studentfeedbackucsh/assets/css/custom.css">
     <style>
         input[type="password"]::-ms-reveal,
-        input[type="password"]::-ms-clear { display: none; }
+        input[type="password"]::-ms-clear {
+            display: none;
+        }
     </style>
 </head>
 
-<body class="h-full bg-slate-50 font-inter">
+<body class="h-full bg-slate-50 font-inter <?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'lang-mm' : '' ?>">
     <div id="overlay" class="fixed inset-0 bg-black/40 z-30 hidden lg:hidden" onclick="closeSidebar()"></div>
     <div class="flex h-screen overflow-hidden">
         <aside id="sidebar"
@@ -194,7 +202,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                     <?= iconSvg('academic', 'w-5 h-5 text-white') ?>
                 </div>
                 <div>
-                    <p class="text-sm font-bold">SFMS Student</p>
+                    <p class="text-sm font-bold"><?= $LANG['student_portal'] ?? 'SFMS Student' ?></p>
                 </div><button onclick="closeSidebar()" class="ml-auto lg:hidden text-cyan-100"><svg
                         xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
                         stroke="currentColor" class="w-5 h-5">
@@ -207,7 +215,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                         <?= e($n['label']) ?></a><?php endforeach ?></nav>
             <a href="/studentfeedbackucsh/auth/logout.php" title="<?= $LANG['logout'] ?? 'Logout' ?>"
                 class="block border-t border-white/15 bg-red-500 text-gray-50 hover:text-gray-200 transition-colors px-4 py-4 cursor-pointer">
-                <div class="flex items-center gap-3">
+                <div class="flex items-center justify-center gap-3">
 
                     <div class="min-w-0 ">
                         <p class="text-xl h-8"><?= $LANG['logout'] ?? 'Logout' ?></p>
@@ -254,7 +262,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                                     <?= $LANG['update_profile'] ?? 'Update Profile' ?>
                                 </h3>
                             </div>
-                            <form id="profileForm" method="POST" enctype="multipart/form-data" class="px-6 py-5 space-y-4" novalidate>
+                            <form id="profileForm" method="POST" enctype="multipart/form-data"
+                                class="px-6 py-5 space-y-4" novalidate>
                                 <?= csrfField() ?>
                                 <input type="hidden" name="action" value="update_info">
 
@@ -284,16 +293,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                                 <!-- Full Name -->
                                 <div>
                                     <label class="block text-sm font-medium text-slate-700 mb-1">
-                                        <?= $LANG['full_name_label'] ?? 'Full Name' ?> <span class="text-red-500">*</span>
+                                        <?= $LANG['full_name_label'] ?? 'Full Name' ?> <span
+                                            class="text-red-500">*</span>
                                     </label>
-                                    <input type="text" name="name" id="profileName" required
-                                        value="<?= e($prevName) ?>"
+                                    <input type="text" name="name" id="profileName" required value="<?= e($prevName) ?>"
                                         class="w-full border <?= $nameErr || $requiredErr ? $borderRed : 'border-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20' ?> rounded-xl px-4 py-2.5 text-sm outline-none">
-                                    <p id="nameErrMsg" class="text-red-500 text-xs mt-1.5<?= ($nameErr || ($requiredErr && !$prevName)) ? '' : ' hidden' ?>">
+                                    <p id="nameErrMsg"
+                                        class="text-red-500 text-xs mt-1.5<?= ($nameErr || ($requiredErr && !$prevName)) ? '' : ' hidden' ?>">
                                         <?php if ($nameErr): ?>
                                             <?= $LANG['val_name_invalid'] ?? 'Full Name may contain only letters, single spaces, and a period (.) for titles such as Dr. or Prof.' ?>
                                         <?php elseif ($requiredErr && !$prevName): ?>
-                                            Full Name is required.
+                                            <?= $LANG['val_name_required'] ?? 'Full Name is required.' ?>
                                         <?php endif; ?>
                                     </p>
                                 </div>
@@ -301,16 +311,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                                 <!-- Email Address -->
                                 <div>
                                     <label class="block text-sm font-medium text-slate-700 mb-1">
-                                        <?= $LANG['email_address_label'] ?? 'Email Address' ?> <span class="text-red-500">*</span>
+                                        <?= $LANG['email_address_label'] ?? 'Email Address' ?> <span
+                                            class="text-red-500">*</span>
                                     </label>
                                     <input type="email" name="email" id="profileEmail" required
                                         value="<?= e($prevEmail) ?>"
                                         class="w-full border <?= $emailErr || $emailExistsErr ? $borderRed : 'border-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20' ?> rounded-xl px-4 py-2.5 text-sm outline-none">
-                                    <p id="emailErrMsg" class="text-red-500 text-xs mt-1.5<?= ($emailErr || $emailExistsErr) ? '' : ' hidden' ?>">
+                                    <p id="emailErrMsg"
+                                        class="text-red-500 text-xs mt-1.5<?= ($emailErr || $emailExistsErr) ? '' : ' hidden' ?>">
                                         <?php if ($emailExistsErr): ?>
                                             <?= $LANG['val_email_taken'] ?? 'This email address is already registered.' ?>
                                         <?php elseif (in_array('email_domain', $formErrors)): ?>
-                                            <?= $LANG['val_email_domain'] ?? 'Only @ucsh.edu.mm email addresses are allowed.' ?>
+                                            <?= $LANG['val_email_domain'] ?? 'Only @ucsh.edu.mm and @gmail.com email addresses are allowed.' ?>
                                         <?php elseif ($emailErr): ?>
                                             <?= $LANG['val_email_invalid'] ?? 'Please enter a valid email address.' ?>
                                         <?php endif; ?>
@@ -321,21 +333,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                                 <div>
                                     <label class="block text-sm font-medium text-slate-700 mb-1">
                                         <?= $LANG['password_field'] ?? 'New Password' ?>
-                                        <span class="text-xs text-slate-400">(<?= $LANG['new_password_hint'] ?? 'leave blank to keep current' ?>)</span>
+                                        <span
+                                            class="text-xs text-slate-400">(<?= $LANG['new_password_hint'] ?? 'leave blank to keep current' ?>)</span>
                                     </label>
                                     <div class="relative">
                                         <input type="password" name="password" id="profilePassword" minlength="6"
-                                            placeholder="Letters, numbers, or @"
+                                            placeholder="<?= $LANG['password_placeholder'] ?? 'Letters, numbers, or @' ?>"
                                             class="w-full border <?= $passwordErr ? $borderRed : 'border-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20' ?> rounded-xl px-4 py-2.5 pr-10 text-sm outline-none">
                                         <button type="button" onclick="togglePassword('profilePassword', this)"
                                             class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600">
                                             <?= iconSvg('eye', 'w-4 h-4') ?>
                                         </button>
                                     </div>
-                                    <p id="pwErrMsg" class="text-red-500 text-xs mt-1.5<?= $passwordErr ? '' : ' hidden' ?>">
+                                    <p id="pwErrMsg"
+                                        class="text-red-500 text-xs mt-1.5<?= $passwordErr ? '' : ' hidden' ?>">
                                         <?= $passwordErr ? ($LANG['val_password_invalid'] ?? 'Password must be at least 6 characters. Only letters, numbers, and @ are allowed.') : '' ?>
                                     </p>
-                                    <p id="pwHintMsg" class="text-xs text-slate-400 mt-1<?= $passwordErr ? ' hidden' : '' ?>">At least 6 characters. Only letters, numbers, and @ allowed.</p>
+                                    <p id="pwHintMsg"
+                                        class="text-xs text-slate-400 mt-1<?= $passwordErr ? ' hidden' : '' ?>">At least
+                                        6 characters. Only letters, numbers, and @ allowed.</p>
                                 </div>
 
                                 <div class="flex justify-end">
@@ -350,12 +366,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         </div>
     </div>
     <script>
-        function openSidebar()  { document.getElementById('sidebar').classList.remove('-translate-x-full'); document.getElementById('overlay').classList.remove('hidden'); }
-        function closeSidebar() { document.getElementById('sidebar').classList.add('-translate-x-full');    document.getElementById('overlay').classList.add('hidden'); }
+        function openSidebar() { document.getElementById('sidebar').classList.remove('-translate-x-full'); document.getElementById('overlay').classList.remove('hidden'); }
+        function closeSidebar() { document.getElementById('sidebar').classList.add('-translate-x-full'); document.getElementById('overlay').classList.add('hidden'); }
 
         // ── Show/hide password toggle ─────────────────────────────────────────
         function togglePassword(id, btn) {
-            var inp  = document.getElementById(id);
+            var inp = document.getElementById(id);
             var show = inp.type === 'password';
             inp.type = show ? 'text' : 'password';
             btn.innerHTML = show
@@ -369,9 +385,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function (ev) {
-                    const preview  = document.getElementById('imagePreview');
+                    const preview = document.getElementById('imagePreview');
                     const initials = document.getElementById('initialsPreview');
-                    preview.src    = ev.target.result;
+                    preview.src = ev.target.result;
                     preview.classList.remove('hidden');
                     initials.classList.add('hidden');
                 };
@@ -381,12 +397,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
         // ── Frontend validation (same rules as admin) ────────────────────────
         var msgs = {
-            name_required : 'Full Name is required.',
-            name_invalid  : <?= json_encode($LANG['val_name_invalid'] ?? 'Full Name may contain only letters, single spaces, and a period (.) for titles such as Dr. or Prof.') ?>,
-            email_required: 'Email Address is required.',
-            email_invalid : <?= json_encode($LANG['val_email_invalid'] ?? 'Please enter a valid email address.') ?>,
-            email_domain  : <?= json_encode($LANG['val_email_domain'] ?? 'Only @ucsh.edu.mm email addresses are allowed.') ?>,
-            password      : <?= json_encode($LANG['val_password_invalid'] ?? 'Password must be at least 6 characters. Only letters, numbers, and @ are allowed.') ?>
+            name_required: <?= json_encode($LANG['val_name_required'] ?? 'Full Name is required.') ?>,
+            name_invalid: <?= json_encode($LANG['val_name_invalid'] ?? 'Full Name may contain only letters, single spaces, and a period (.) for titles such as Dr. or Prof.') ?>,
+            email_required: <?= json_encode($LANG['val_email_required'] ?? 'Email Address is required.') ?>,
+            email_invalid: <?= json_encode($LANG['val_email_invalid'] ?? 'Please enter a valid email address.') ?>,
+            email_domain: <?= json_encode($LANG['val_email_domain'] ?? 'Only @ucsh.edu.mm and @gmail.com email addresses are allowed.') ?>,
+            password: <?= json_encode($LANG['val_password_invalid'] ?? 'Password must be at least 6 characters. Only letters, numbers, and @ are allowed.') ?>
         };
 
         function showError(inputEl, msgEl, msg) {
@@ -403,13 +419,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         document.getElementById('profileForm').addEventListener('submit', function (e) {
             var valid = true;
 
-            var nameEl     = document.getElementById('profileName');
-            var emailEl    = document.getElementById('profileEmail');
-            var pwEl       = document.getElementById('profilePassword');
-            var nameErrEl  = document.getElementById('nameErrMsg');
+            var nameEl = document.getElementById('profileName');
+            var emailEl = document.getElementById('profileEmail');
+            var pwEl = document.getElementById('profilePassword');
+            var nameErrEl = document.getElementById('nameErrMsg');
             var emailErrEl = document.getElementById('emailErrMsg');
-            var pwErrEl    = document.getElementById('pwErrMsg');
-            var pwHintEl   = document.getElementById('pwHintMsg');
+            var pwErrEl = document.getElementById('pwErrMsg');
+            var pwHintEl = document.getElementById('pwHintMsg');
 
             // --- Name ---
             var nameVal = nameEl.value.trim();
@@ -417,7 +433,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                 showError(nameEl, nameErrEl, msgs.name_required);
                 valid = false;
             } else if (nameVal.length < 2 || nameVal.length > 100 ||
-                       !/^(?:(?:Dr|Prof|U|Daw)\.\s)?[A-Za-z]+(?: [A-Za-z]+)*$/i.test(nameVal)) {
+                !/^(?:(?:Dr|Prof|U|Daw)\.\s)?[A-Za-z]+(?: [A-Za-z]+)*$/i.test(nameVal)) {
                 showError(nameEl, nameErrEl, msgs.name_invalid);
                 valid = false;
             } else {
@@ -430,8 +446,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             if (!emailVal) {
                 showError(emailEl, emailErrEl, msgs.email_required);
                 valid = false;
-            } else if (!/^[a-zA-Z0-9._]+@ucsh\.edu\.mm$/.test(emailVal)) {
-                var emsg = emailVal.indexOf('@') >= 0 && !emailVal.endsWith('@ucsh.edu.mm')
+            } else if (!/^[a-zA-Z0-9._]+@(ucsh\.edu\.mm|gmail\.com)$/.test(emailVal)) {
+                var emsg = emailVal.indexOf('@') >= 0 && !(/@(ucsh\.edu\.mm|gmail\.com)$/.test(emailVal))
                     ? msgs.email_domain : msgs.email_invalid;
                 showError(emailEl, emailErrEl, emsg);
                 valid = false;

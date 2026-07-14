@@ -45,8 +45,8 @@ if ($teacherId) {
 } else { $rows = []; }
 
 ?>
-<!DOCTYPE html><html lang="en" class="h-full"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?= e($pageTitle) ?> — SFMS</title><script src="https://cdn.tailwindcss.com"></script><script>tailwind.config={theme:{extend:{fontFamily:{inter:['Inter','sans-serif']}}}}</script><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/studentfeedbackucsh/assets/css/custom.css"></head>
-<body class="h-full bg-gradient-to-br from-slate-50 via-blue-50 to-sky-50 font-inter antialiased">
+<!DOCTYPE html><html lang="<?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'my' : 'en' ?>" class="h-full"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?= e($pageTitle) ?> — SFMS</title><script src="https://cdn.tailwindcss.com"></script><script>tailwind.config={theme:{extend:{fontFamily:{inter:['Inter','sans-serif']}}}}</script><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/studentfeedbackucsh/assets/css/custom.css"></head>
+<body class="h-full bg-gradient-to-br from-slate-50 via-blue-50 to-sky-50 font-inter antialiased <?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'lang-mm' : '' ?>">
 <?php require_once '../includes/teacher_sidebar.php'; ?>
 
 <div class="mb-6"><h2 class="text-xl font-bold text-slate-800"><?= $LANG['nav_my_sections'] ?? 'My Sections' ?></h2><p class="text-sm text-slate-500"><?= $LANG['my_sections_subtitle'] ?? 'Your assigned course sections' ?></p></div>
@@ -64,14 +64,14 @@ if ($teacherId) {
     </div>
     <div class="overflow-x-auto">
         <table>
-            <thead class="bg-blue-50/50 border-b border-blue-200/50"><tr>
-                <th class="text-left px-5 py-3 text-blue-500 text-xs font-semibold uppercase tracking-wider">#</th>
-                <th class="text-left px-5 py-3 text-blue-500 text-xs font-semibold uppercase tracking-wider"><?= $LANG['col_course'] ?? 'Course' ?></th>
-                <th class="text-left px-5 py-3 text-blue-500 text-xs font-semibold uppercase tracking-wider"><?= $LANG['col_section'] ?? 'Section' ?></th>
-                <th class="text-left px-5 py-3 text-blue-500 text-xs font-semibold uppercase tracking-wider"><?= $LANG['year_semester'] ?? 'Year / Semester' ?></th>
-                <th class="text-left px-5 py-3 text-blue-500 text-xs font-semibold uppercase tracking-wider"><?= $LANG['students_label'] ?? 'Students' ?></th>
-                <th class="text-left px-5 py-3 text-blue-500 text-xs font-semibold uppercase tracking-wider"><?= $LANG['forms'] ?? 'Forms' ?></th>
-                <th class="text-right px-5 py-3 text-blue-500 text-xs font-semibold uppercase tracking-wider"><?= $LANG['col_actions'] ?? 'Actions' ?></th>
+            <thead class="bg-blue-200 border-b border-blue-200/50"><tr>
+                <th class="text-left px-5 py-3 text-blue-500 text-sm font-semibold uppercase tracking-wider">#</th>
+                <th class="text-left px-5 py-3 text-blue-500 text-sm font-semibold uppercase tracking-wider"><?= $LANG['col_course'] ?? 'Course' ?></th>
+                <th class="text-left px-5 py-3 text-blue-500 text-sm font-semibold uppercase tracking-wider"><?= $LANG['col_section'] ?? 'Section' ?></th>
+                <th class="text-left px-5 py-3 text-blue-500 text-sm font-semibold uppercase tracking-wider"><?= $LANG['year_semester'] ?? 'Year / Semester' ?></th>
+                <th class="text-left px-5 py-3 text-blue-500 text-sm font-semibold uppercase tracking-wider"><?= $LANG['students_label'] ?? 'Students' ?></th>
+                <th class="text-left px-5 py-3 text-blue-500 text-sm font-semibold uppercase tracking-wider"><?= $LANG['forms'] ?? 'Forms' ?></th>
+                <th class="text-right px-5 py-3 text-blue-500 text-sm font-semibold uppercase tracking-wider"><?= $LANG['col_actions'] ?? 'Actions' ?></th>
             </tr></thead>
             <tbody class="divide-y divide-blue-100/40">
             <?php if($rows): foreach($rows as $i => $row): ?>
