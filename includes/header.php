@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en" class="<?= e($htmlClass ?? '') ?>">
+<html lang="<?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'my' : 'en' ?>" class="<?= e($htmlClass ?? '') ?>">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= e($pageTitle ?? 'Student Feedback Management System') ?></title>
+    <title><?= e($pageTitle ?? ($LANG['sfms_full'] ?? 'Student Feedback Management System')) ?></title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -27,7 +27,7 @@
     </script>
 </head>
 
-<body class="<?= e($bodyClass ?? 'bg-gray-100 relative') ?>">
+<body class="<?= e($bodyClass ?? 'bg-gray-100 relative') ?> <?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'lang-mm' : '' ?>">
 
 <?php if (!empty($showNav)): ?>
     <nav class="sticky top-0 z-40 bg-cyan-600 text-white shadow-lg">
@@ -35,7 +35,7 @@
 
             <div>
                 <h1 class="text-3xl font-bold">UCSH</h1>
-                <p class="text-sm">University of Computer Studies (Hinthada)</p>
+                <p class="text-sm"><?= $LANG['university_name'] ?? 'University of Computer Studies (Hinthada)' ?></p>
             </div>
 
             <ul class="hidden md:flex gap-10 items-center font-medium">

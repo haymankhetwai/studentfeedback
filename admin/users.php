@@ -9,7 +9,7 @@ $activeMenu = 'users';
 
 function isValidEmail($email)
 {
-    return preg_match('/^[a-zA-Z0-9._]+@ucsh\.edu\.mm$/', $email);
+    return preg_match('/^[a-zA-Z0-9._]+@(ucsh\.edu\.mm|gmail\.com)$/', $email);
 }
 
 function isValidPassword($password)
@@ -38,8 +38,247 @@ function formatName($name)
     return $name;
 }
 
+// ─── Template Download ─────────────────────────────────────────
+if (isset($_GET['action']) && $_GET['action'] === 'download_template' && isset($_SESSION['csrf_token'])) {
+    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    header('Content-Disposition: attachment; filename="student_import_template.xlsx"');
+    // Build minimal .xlsx template with headers
+    $tmp = tempnam(sys_get_temp_dir(), 'tpl');
+    $zip = new ZipArchive();
+    $zip->open($tmp, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+    $zip->addFromString('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/xl/workbooks.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+  <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+  <Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>
+</Types>');
+    $zip->addFromString('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>');
+    $zip->addFromString('xl/workbook.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheets><sheet name="Students" sheetId="1" r:id="rId1"/></sheets>
+</workbook>');
+    $zip->addFromString('xl/_rels/workbook.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/>
+</Relationships>');
+    $headers = ['Name', 'Username', 'Email', 'Password', 'Roll No'];
+    $shared = '';
+    foreach ($headers as $h) $shared .= '<si><t>' . htmlspecialchars($h) . '</t></si>';
+    $zip->addFromString('xl/sharedStrings.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="5" uniqueCount="5">' . $shared . '</sst>');
+    $zip->addFromString('xl/styles.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <fonts><font><sz val="11"/><name val="Calibri"/></font></fonts>
+  <fills><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>
+  <borders><border><left/><right/><top/><bottom/><diagonal/></border></borders>
+  <cellXfs><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellXfs>
+</styleSheet>');
+    $rows = '<row r="1">';
+    for ($c = 0; $c < 5; $c++) {
+        $col = chr(65 + $c);
+        $rows .= '<c r="' . $col . '1" t="s"><v>' . $c . '</v></c>';
+    }
+    $rows .= '</row>';
+    $zip->addFromString('xl/worksheets/sheet1.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <sheetData>' . $rows . '</sheetData>
+</worksheet>');
+    $zip->close();
+    readfile($tmp);
+    unlink($tmp);
+    exit;
+}
+
+// ─── Import Handler ────────────────────────────────────────────
+$importResults = null;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf() && ($_POST['action'] ?? '') === 'import_students') {
+    $allowed = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'];
+    $file = $_FILES['import_file'] ?? null;
+    $importErrors = [];
+
+    if (!$file || $file['error'] !== UPLOAD_ERR_OK) {
+        $importErrors[] = 'File upload failed. Please try again.';
+    } else {
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if (!in_array($ext, ['xlsx', 'xls'])) {
+            $importErrors[] = 'Only .xlsx and .xls files are allowed.';
+        } elseif ($ext === 'xls') {
+            $importErrors[] = '.xls format is not supported. Please save as .xlsx and try again.';
+        }
+    }
+
+    if (!$importErrors) {
+        // Read .xlsx file
+        $zip = new ZipArchive();
+        if ($zip->open($file['tmp_name']) !== true) {
+            $importErrors[] = 'Unable to read the Excel file. It may be corrupted.';
+        } else {
+            // Load shared strings
+            $sharedStrings = [];
+            if ($zip->locateName('xl/sharedStrings.xml')) {
+                $xml = simplexml_load_string($zip->getFromName('xl/sharedStrings.xml'));
+                if ($xml) {
+                    foreach ($xml->si as $si) {
+                        $sharedStrings[] = (string) ($si->t ?? $si->r->t ?? '');
+                    }
+                }
+            }
+
+            // Load sheet data
+            $sheetData = $zip->getFromName('xl/worksheets/sheet1.xml');
+            $zip->close();
+
+            if (!$sheetData) {
+                $importErrors[] = 'No worksheet found in the Excel file.';
+            } else {
+                $xml = simplexml_load_string($sheetData);
+                if (!$xml) {
+                    $importErrors[] = 'Unable to parse worksheet data.';
+                } else {
+                    $rows = [];
+                    foreach ($xml->sheetData->row as $row) {
+                        $rowData = [];
+                        $maxCol = 0;
+                        foreach ($row->c as $cell) {
+                            $ref = (string) $cell['r'];
+                            preg_match('/([A-Z]+)/', $ref, $m);
+                            $colIdx = 0;
+                            foreach (str_split($m[1]) as $ch) {
+                                $colIdx = $colIdx * 26 + (ord($ch) - 64);
+                            }
+                            $colIdx--;
+                            $val = (string) ($cell->v ?? '');
+                            if ((string) ($cell['t'] ?? '') === 's' && isset($sharedStrings[(int) $val])) {
+                                $val = $sharedStrings[(int) $val];
+                            }
+                            $rowData[$colIdx] = trim($val);
+                            if ($colIdx > $maxCol) $maxCol = $colIdx;
+                        }
+                        $rows[] = $rowData;
+                    }
+
+                    // Skip header row (first row)
+                    $dataRows = array_slice($rows, 1);
+
+                    $totalRows = count($dataRows);
+                    $imported = 0;
+                    $skipped = 0;
+                    $skipDetails = [];
+
+                    foreach ($dataRows as $rowIdx => $rowData) {
+                        $excelRow = $rowIdx + 2; // +2 because 0-indexed + header
+                        $name = $rowData[0] ?? '';
+                        $username = strtolower(trim($rowData[1] ?? ''));
+                        $email = strtolower(trim($rowData[2] ?? ''));
+                        $password = $rowData[3] ?? '';
+                        $rollNo = trim($rowData[4] ?? '');
+
+                        // Skip completely empty rows
+                        if (!$name && !$username && !$email && !$password && !$rollNo) {
+                            continue;
+                        }
+
+                        $rowErrors = [];
+                        if (!$name) $rowErrors[] = 'Missing name';
+                        if (!$username) $rowErrors[] = 'Missing username';
+                        if (!$email) $rowErrors[] = 'Missing email';
+                        if (!$password) $rowErrors[] = 'Missing password';
+                        if (!$rollNo) $rowErrors[] = 'Missing roll number';
+
+                        if ($name && !isValidName($name)) $rowErrors[] = 'Invalid name format';
+                        if ($username && !isValidUsername($username)) $rowErrors[] = 'Invalid username (4-30 chars, lowercase, numbers, underscore)';
+                        if ($email && !filter_var($email, FILTER_VALIDATE_EMAIL)) $rowErrors[] = 'Invalid email format';
+                        if ($email && !preg_match('/@(ucsh\.edu\.mm|gmail\.com)$/', $email)) $rowErrors[] = 'Unsupported email domain';
+                        if ($password && !isValidPassword($password)) $rowErrors[] = 'Invalid password (min 6 chars, letters/numbers/@)';
+
+                        // Check DB duplicates
+                        if (!$rowErrors) {
+                            $chk = $conn->prepare("SELECT id FROM users WHERE username = ?");
+                            $chk->bind_param('s', $username);
+                            $chk->execute();
+                            if ($chk->get_result()->num_rows > 0) $rowErrors[] = 'Duplicate username';
+                            $chk->close();
+                        }
+                        if (!$rowErrors) {
+                            $chk = $conn->prepare("SELECT id FROM users WHERE email = ?");
+                            $chk->bind_param('s', $email);
+                            $chk->execute();
+                            if ($chk->get_result()->num_rows > 0) $rowErrors[] = 'Duplicate email';
+                            $chk->close();
+                        }
+                        if (!$rowErrors) {
+                            $chk = $conn->prepare("SELECT id FROM students WHERE roll_no = ?");
+                            $chk->bind_param('s', $rollNo);
+                            $chk->execute();
+                            if ($chk->get_result()->num_rows > 0) $rowErrors[] = 'Duplicate roll number';
+                            $chk->close();
+                        }
+
+                        if ($rowErrors) {
+                            $skipped++;
+                            $skipDetails[] = ['row' => $excelRow, 'name' => $name, 'username' => $username, 'email' => $email, 'roll_no' => $rollNo, 'reasons' => $rowErrors];
+                            continue;
+                        }
+
+                        // Insert with transaction
+                        $conn->begin_transaction();
+                        try {
+                            $hash = password_hash($password, PASSWORD_DEFAULT);
+                            $stmt = $conn->prepare("INSERT INTO users (name, username, email, password, role, profile_image, created_at, updated_at) VALUES (?, ?, ?, ?, 'student', NULL, NOW(), NOW())");
+                            $formattedName = formatName($name);
+                            $stmt->bind_param('ssss', $formattedName, $username, $email, $hash);
+                            $stmt->execute();
+                            $userId = $stmt->insert_id;
+                            $stmt->close();
+
+                            $stmt2 = $conn->prepare("INSERT INTO students (user_id, roll_no, created_at, updated_at) VALUES (?, ?, NOW(), NOW())");
+                            $stmt2->bind_param('is', $userId, $rollNo);
+                            $stmt2->execute();
+                            $stmt2->close();
+
+                            $conn->commit();
+                            $imported++;
+                        } catch (\Exception $e) {
+                            $conn->rollback();
+                            $skipped++;
+                            $skipDetails[] = ['row' => $excelRow, 'name' => $name, 'reasons' => ['Database error: ' . $e->getMessage()]];
+                        }
+                    }
+
+                    $importResults = [
+                        'total' => $totalRows,
+                        'imported' => $imported,
+                        'skipped' => $skipped,
+                        'details' => $skipDetails,
+                    ];
+                }
+            }
+        }
+    }
+
+    if ($importErrors) {
+        $importResults = ['error' => $importErrors];
+    }
+
+    $_SESSION['import_results'] = $importResults;
+    header('Location: users.php');
+    exit;
+}
+
+// Read import results from session
+$importResults = $_SESSION['import_results'] ?? null;
+unset($_SESSION['import_results']);
+
 // ─── POST Handlers ────────────────────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf() && ($_POST['action'] ?? '') !== 'import_students') {
     $action = $_POST['action'] ?? '';
 
     if ($action === 'add') {
@@ -64,7 +303,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         if ($email) {
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $errors[] = 'email_invalid';
-            } elseif (!preg_match('/@ucsh\.edu\.mm$/', $email)) {
+            } elseif (!preg_match('/@(ucsh\.edu\.mm|gmail\.com)$/', $email)) {
                 $errors[] = 'email_domain';
             } elseif (!isValidEmail($email)) {
                 $errors[] = 'email_invalid';
@@ -143,7 +382,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         if ($email) {
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $errors[] = 'email_invalid';
-            } elseif (!preg_match('/@ucsh\.edu\.mm$/', $email)) {
+            } elseif (!preg_match('/@(ucsh\.edu\.mm|gmail\.com)$/', $email)) {
                 $errors[] = 'email_domain';
             } elseif (!isValidEmail($email)) {
                 $errors[] = 'email_invalid';
@@ -303,10 +542,19 @@ include '../includes/admin_sidebar.php';
         <h2 class="text-xl font-bold text-slate-800"><?= $LANG['users_title'] ?? 'Users' ?></h2>
         <p class="text-sm text-slate-500 mt-0.5"><?= $LANG['users_subtitle'] ?? 'Manage all system users' ?></p>
     </div>
-    <button onclick="openModal('addModal')"
-        class="inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm shadow-cyan-600/20 transition-all hover:-translate-y-0.5">
-        <?= iconSvg('plus', 'w-4 h-4') ?> <?= $LANG['add_user'] ?? 'Add User' ?>
-    </button>
+    <div class="flex items-center gap-3">
+        <button onclick="openModal('importModal')"
+            class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm shadow-emerald-600/20 transition-all hover:-translate-y-0.5">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+            </svg>
+            Import Students (Excel)
+        </button>
+        <button onclick="openModal('addModal')"
+            class="inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm shadow-cyan-600/20 transition-all hover:-translate-y-0.5">
+            <?= iconSvg('plus', 'w-4 h-4') ?> <?= $LANG['add_user'] ?? 'Add User' ?>
+        </button>
+    </div>
 </div>
 
 <?php renderFlash() ?>
@@ -344,15 +592,15 @@ include '../includes/admin_sidebar.php';
 
     <div class="overflow-x-auto">
         <table>
-            <thead class="bg-slate-50 border-b border-slate-200">
+            <thead class="bg-slate-200 border-b border-slate-200">
                 <tr>
-                    <th class="text-left px-5 py-3 text-slate-500">#</th>
-                    <th class="text-left px-5 py-3 text-slate-500"><?= $LANG['col_name'] ?? 'Name' ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500"><?= $LANG['col_username'] ?? 'Username' ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500"><?= $LANG['col_email'] ?? 'Email' ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500"><?= $LANG['col_role'] ?? 'Role' ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500"><?= $LANG['col_created'] ?? 'Created' ?></th>
-                    <th class="text-right px-5 py-3 text-slate-500"><?= $LANG['col_actions'] ?? 'Actions' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">#</th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['col_name'] ?? 'Name' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['col_username'] ?? 'Username' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['col_email'] ?? 'Email' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['col_role'] ?? 'Role' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['col_created'] ?? 'Created' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['col_actions'] ?? 'Actions' ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -466,7 +714,7 @@ include '../includes/admin_sidebar.php';
                             <?php if ($emailExistsErr): ?>
                                 <?= $LANG['val_email_taken'] ?? 'This email address is already registered.' ?>
                             <?php elseif ($emailDomainErr): ?>
-                                <?= $LANG['val_email_domain'] ?? 'Only @ucsh.edu.mm email addresses are allowed.' ?>
+                                <?= $LANG['val_email_domain'] ?? 'Only @ucsh.edu.mm and @gmail.com email addresses are allowed.' ?>
                             <?php else: ?>
                                 <?= $LANG['val_email_invalid'] ?? 'Please enter a valid email address.' ?>
                             <?php endif ?>
@@ -578,7 +826,7 @@ include '../includes/admin_sidebar.php';
                             <?php if ($emailExistsErr): ?>
                                 <?= $LANG['val_email_taken'] ?? 'This email address is already registered.' ?>
                             <?php elseif ($emailDomainErr): ?>
-                                <?= $LANG['val_email_domain'] ?? 'Only @ucsh.edu.mm email addresses are allowed.' ?>
+                                <?= $LANG['val_email_domain'] ?? 'Only @ucsh.edu.mm and @gmail.com email addresses are allowed.' ?>
                             <?php else: ?>
                                 <?= $LANG['val_email_invalid'] ?? 'Please enter a valid email address.' ?>
                             <?php endif ?>
@@ -639,6 +887,128 @@ include '../includes/admin_sidebar.php';
     </div>
 </div>
 
+<!-- Import Students Modal -->
+<div id="importModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4 modal-backdrop" data-modal-backdrop>
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg modal-box">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+            <h3 class="font-semibold text-slate-800">Import Students (Excel)</h3>
+            <button onclick="closeModal('importModal')" class="text-slate-400 hover:text-slate-600"><?= iconSvg('x', 'w-5 h-5') ?></button>
+        </div>
+        <form method="POST" enctype="multipart/form-data" id="importForm">
+            <?= csrfField() ?><input type="hidden" name="action" value="import_students">
+            <div class="px-6 py-5 space-y-4">
+                <p class="text-sm text-slate-500">Upload an Excel file (.xlsx) with student data. The file must have these columns in order:</p>
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                    <p class="text-xs font-mono text-slate-600">Name &nbsp;|&nbsp; Username &nbsp;|&nbsp; Email &nbsp;|&nbsp; Password &nbsp;|&nbsp; Roll No</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Select Excel File <span class="text-red-500">*</span></label>
+                    <input type="file" name="import_file" id="import_file" accept=".xlsx,.xls" required
+                        class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
+                </div>
+                <!-- <div class="flex items-center gap-2">
+                    <a href="users.php?action=download_template&csrf_token=<?= csrfToken() ?>"
+                        class="inline-flex items-center gap-1.5 text-xs font-medium text-cyan-700 bg-cyan-50 hover:bg-cyan-100 px-3 py-1.5 rounded-lg transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                        </svg>
+                        Download Excel Template
+                    </a>
+                </div> -->
+            </div>
+            <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
+                <button type="button" onclick="closeModal('importModal')"
+                    class="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-100"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
+                <button type="submit" id="importBtn"
+                    class="px-5 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl inline-flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                    </svg>
+                    Import Students
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Import Results Modal -->
+<?php if ($importResults): ?>
+<div id="importResultModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4 modal-backdrop" data-modal-backdrop>
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl modal-box max-h-[85vh] flex flex-col">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
+            <h3 class="font-semibold text-slate-800">Import Results</h3>
+            <button onclick="closeModal('importResultModal')" class="text-slate-400 hover:text-slate-600"><?= iconSvg('x', 'w-5 h-5') ?></button>
+        </div>
+        <div class="px-6 py-5 overflow-y-auto">
+            <?php if (!empty($importResults['error'])): ?>
+                <div class="bg-red-50 border border-red-200 rounded-xl p-4">
+                    <p class="text-sm font-semibold text-red-700 mb-2">Import Failed</p>
+                    <?php foreach ($importResults['error'] as $err): ?>
+                        <p class="text-sm text-red-600"><?= e($err) ?></p>
+                    <?php endforeach ?>
+                </div>
+            <?php else: ?>
+                <div class="grid grid-cols-3 gap-4 mb-5">
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center">
+                        <p class="text-2xl font-black text-slate-800"><?= $importResults['total'] ?></p>
+                        <p class="text-xs font-bold text-slate-400 uppercase mt-1">Total Rows</p>
+                    </div>
+                    <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
+                        <p class="text-2xl font-black text-emerald-600"><?= $importResults['imported'] ?></p>
+                        <p class="text-xs font-bold text-emerald-500 uppercase mt-1">Imported</p>
+                    </div>
+                    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+                        <p class="text-2xl font-black text-amber-600"><?= $importResults['skipped'] ?></p>
+                        <p class="text-xs font-bold text-amber-500 uppercase mt-1">Skipped</p>
+                    </div>
+                </div>
+                <?php if (!empty($importResults['details'])): ?>
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Failed Records</p>
+                        <button onclick="downloadFailedRecords()" class="inline-flex items-center gap-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                            </svg>
+                            Download Failed Records
+                        </button>
+                    </div>
+                    <div class="border border-slate-200 rounded-xl overflow-hidden">
+                        <table class="w-full text-xs" id="failedRecordsTable">
+                            <thead class="bg-slate-100">
+                                <tr>
+                                    <th class="px-3 py-2 text-left font-semibold text-slate-600">Row</th>
+                                    <th class="px-3 py-2 text-left font-semibold text-slate-600">Name</th>
+                                    <th class="px-3 py-2 text-left font-semibold text-slate-600">Username</th>
+                                    <th class="px-3 py-2 text-left font-semibold text-slate-600">Email</th>
+                                    <th class="px-3 py-2 text-left font-semibold text-slate-600">Roll No</th>
+                                    <th class="px-3 py-2 text-left font-semibold text-slate-600">Reason</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <?php foreach ($importResults['details'] as $d): ?>
+                                    <tr class="hover:bg-slate-50">
+                                        <td class="px-3 py-2 font-mono text-slate-500"><?= $d['row'] ?></td>
+                                        <td class="px-3 py-2 text-slate-700 font-medium"><?= e($d['name']) ?></td>
+                                        <td class="px-3 py-2 text-slate-600 font-mono"><?= e($d['username']) ?></td>
+                                        <td class="px-3 py-2 text-slate-600"><?= e($d['email']) ?></td>
+                                        <td class="px-3 py-2 text-slate-600 font-mono"><?= e($d['roll_no']) ?></td>
+                                        <td class="px-3 py-2 text-red-600"><?= e(implode(', ', $d['reasons'])) ?></td>
+                                    </tr>
+                                <?php endforeach ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php endif ?>
+            <?php endif ?>
+        </div>
+        <div class="flex justify-end px-6 py-4 border-t border-slate-100 shrink-0">
+            <button onclick="closeModal('importResultModal')"
+                class="px-5 py-2 text-sm font-semibold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl">Close</button>
+        </div>
+    </div>
+</div>
+<?php endif ?>
+
 <script>
     (function () { var s = document.createElement('style'); s.textContent = 'input[type="password"]::-ms-reveal,input[type="password"]::-ms-clear{display:none}'; document.head.appendChild(s) })();
     function togglePassword(id, btn) {
@@ -653,7 +1023,7 @@ include '../includes/admin_sidebar.php';
         name_invalid: <?= json_encode($LANG['val_name_invalid'] ?? 'Full Name may contain only letters, single spaces, and a period (.) for titles such as Dr. or Prof.') ?>,
         username_invalid: <?= json_encode($LANG['val_username_invalid'] ?? 'Username must be 4-30 characters. Only lowercase letters, numbers, and underscore allowed.') ?>,
         email_invalid: <?= json_encode($LANG['val_email_invalid'] ?? 'Please enter a valid email address.') ?>,
-        email_domain: <?= json_encode($LANG['val_email_domain'] ?? 'Only @ucsh.edu.mm email addresses are allowed.') ?>
+        email_domain: <?= json_encode($LANG['val_email_domain'] ?? 'Only @ucsh.edu.mm and @gmail.com email addresses are allowed.') ?>
     };
     function validateName(name) {
         name = name.trim();
@@ -666,7 +1036,7 @@ include '../includes/admin_sidebar.php';
         return '';
     }
     function validateEmail(email) {
-        if (!/^[a-zA-Z0-9._]+@ucsh\.edu\.mm$/.test(email)) return msgs.email_invalid;
+        if (!/^[a-zA-Z0-9._]+@(ucsh\.edu\.mm|gmail\.com)$/.test(email)) return msgs.email_invalid;
         return '';
     }
     document.addEventListener('DOMContentLoaded', function () {
@@ -721,6 +1091,42 @@ include '../includes/admin_sidebar.php';
             openModal('<?= $reopenModal ?>');
         });
     <?php endif ?>
+    <?php if ($importResults): ?>
+        document.addEventListener('DOMContentLoaded', function () {
+            openModal('importResultModal');
+        });
+    <?php endif ?>
+    var importForm = document.getElementById('importForm');
+    if (importForm) {
+        importForm.addEventListener('submit', function () {
+            var btn = document.getElementById('importBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<svg class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Importing...';
+        });
+    }
+    function downloadFailedRecords() {
+        var table = document.getElementById('failedRecordsTable');
+        if (!table) return;
+        var rows = [];
+        var headers = ['Row', 'Name', 'Username', 'Email', 'Roll No', 'Reason'];
+        rows.push(headers.join(','));
+        var trs = table.querySelectorAll('tbody tr');
+        trs.forEach(function (tr) {
+            var cells = [];
+            tr.querySelectorAll('td').forEach(function (td) {
+                var val = td.textContent.trim().replace(/"/g, '""');
+                cells.push('"' + val + '"');
+            });
+            rows.push(cells.join(','));
+        });
+        var csv = rows.join('\n');
+        var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+        var link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'failed_import_records.csv';
+        link.click();
+        URL.revokeObjectURL(link.href);
+    }
 </script>
 
 <?php include '../includes/admin_footer.php'; ?>

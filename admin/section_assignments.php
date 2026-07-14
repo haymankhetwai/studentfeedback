@@ -8,7 +8,7 @@ $pageTitle = $LANG['assignments_title'] ?? 'Section Assignments';
 $activeMenu = 'assignments';
 
 $sectionList = $conn->query("SELECT s.id, c.course_name, c.course_code, s.section, s.academic_year, s.semester FROM sections s JOIN courses c ON s.course_id=c.id ORDER BY c.course_name, s.section")->fetch_all(MYSQLI_ASSOC);
-$studentList = $conn->query("SELECT st.id, u.name, st.roll_no FROM students st JOIN users u ON st.user_id=u.id ORDER BY u.name")->fetch_all(MYSQLI_ASSOC);
+$studentList = $conn->query("SELECT st.id, u.name, st.roll_no FROM students st JOIN users u ON st.user_id=u.id ORDER BY st.roll_no")->fetch_all(MYSQLI_ASSOC);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     $action = $_POST['action'] ?? '';
@@ -24,26 +24,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         $sectionIds = array_map('intval', array_filter($sectionIds));
 
         if ($roll_from && $roll_to && count($sectionIds) > 0) {
-            // Roll Number အပိုင်းအခြားကြားရှိသော ကျောင်းသားများကို ရှာဖွေခြင်း
-            $stStmt = $conn->prepare("SELECT id FROM students WHERE roll_no BETWEEN ? AND ?");
-            $stStmt->bind_param('ss', $roll_from, $roll_to);
-            $stStmt->execute();
-            $matchedStudents = $stStmt->get_result()->fetch_all(MYSQLI_ASSOC);
-            $stStmt->close();
+            // Parse prefix and numeric suffix from both roll numbers
+            $fromParts = explode('-', $roll_from, 2);
+            $toParts = explode('-', $roll_to, 2);
+            $fromPrefix = $fromParts[0];
+            $fromNum = isset($fromParts[1]) ? (int) $fromParts[1] : 0;
+            $toPrefix = $toParts[0];
+            $toNum = isset($toParts[1]) ? (int) $toParts[1] : 0;
+
+            // Fetch ALL students, then filter by prefix + numeric range in PHP
+            // (MySQL BETWEEN does string comparison which breaks "5CT1-2" vs "5CT1-10")
+            $allStudents = $conn->query("SELECT id, roll_no FROM students")->fetch_all(MYSQLI_ASSOC);
+            $matchedStudents = [];
+            foreach ($allStudents as $stud) {
+                $parts = explode('-', $stud['roll_no'], 2);
+                $prefix = $parts[0];
+                $num = isset($parts[1]) ? (int) $parts[1] : 0;
+                if ($prefix === $fromPrefix && $prefix === $toPrefix && $num >= $fromNum && $num <= $toNum) {
+                    $matchedStudents[] = $stud;
+                }
+            }
 
             if (count($matchedStudents) > 0) {
-                $added = 0;
-                $stmt = $conn->prepare("INSERT IGNORE INTO section_assignments (student_id, section_id) VALUES (?,?)");
-                foreach ($matchedStudents as $stud) {
-                    foreach ($sectionIds as $secId) {
-                        $stmt->bind_param('ii', $stud['id'], $secId);
-                        $stmt->execute();
-                        if ($stmt->affected_rows > 0)
+                // ── Duplicate range check: block entirely if any student already assigned ──
+                $studentIds = array_column($matchedStudents, 'id');
+                $ph = implode(',', array_fill(0, count($studentIds), '?'));
+                $sph = implode(',', array_fill(0, count($sectionIds), '?'));
+                $eStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM section_assignments WHERE student_id IN ($ph) AND section_id IN ($sph)");
+                $eTypes = str_repeat('i', count($studentIds)) . str_repeat('i', count($sectionIds));
+                $eStmt->bind_param($eTypes, ...array_merge($studentIds, $sectionIds));
+                $eStmt->execute();
+                $duplicateCount = (int) $eStmt->get_result()->fetch_assoc()['cnt'];
+                $eStmt->close();
+
+                if ($duplicateCount > 0) {
+                    // Block the entire assignment — do NOT insert anything
+                    setFlash('error', $LANG['duplicate_range_error'] ?? 'This student range has already been assigned. Duplicate assignments are not allowed.');
+                } else {
+                    // No duplicates — safe to insert all assignments
+                    $added = 0;
+                    $stmt = $conn->prepare("INSERT INTO section_assignments (student_id, section_id) VALUES (?,?)");
+                    foreach ($matchedStudents as $stud) {
+                        foreach ($sectionIds as $secId) {
+                            $stmt->bind_param('ii', $stud['id'], $secId);
+                            $stmt->execute();
                             $added++;
+                        }
                     }
+                    $stmt->close();
+                    setFlash('success', "ကိုက်ညီသော ကျောင်းသား " . count($matchedStudents) . " ယောက်ကို ရွေးချယ်ထားသော ဘာသာရပ်များထဲသို့ အစုလိုက် အောင်မြင်စွာ ထည့်သွင်းပြီးပါပြီ။");
                 }
-                $stmt->close();
-                setFlash('success', "ကိုက်ညီသော ကျောင်းသား " . count($matchedStudents) . " ယောက်ကို ရွေးချယ်ထားသော ဘာသာရပ်များထဲသို့ အစုလိုက် အောင်မြင်စွာ ထည့်သွင်းပြီးပါပြီ။");
             } else {
                 setFlash('error', 'ရိုက်ထည့်ထားသော Roll နံပါတ် အပိုင်းအခြားအတွင်း မည်သည့်ကျောင်းသားမှ မရှိပါ။');
             }
@@ -150,94 +180,102 @@ $selectColumns = "SELECT sa.id AS assignment_id, sa.student_id, u.name, st.roll_
                   c.course_name, c.course_code, s.section, s.academic_year, s.semester,
                   s.id AS section_id, sa.created_at";
 
-if ($hasFilters) {
-    $whereClauses = [];
-    $bindParams = [];
-    $bindTypes = "";
+$whereClauses = [];
+$bindParams = [];
+$bindTypes = "";
 
-    if ($search) {
-        $whereClauses[] = "(u.name LIKE ? OR st.roll_no LIKE ? OR c.course_name LIKE ? OR c.course_code LIKE ?)";
-        $s = "%$search%";
-        $bindParams[] = $s;
-        $bindParams[] = $s;
-        $bindParams[] = $s;
-        $bindParams[] = $s;
-        $bindTypes .= "ssss";
-    }
-    if ($filter_semester) {
-        $whereClauses[] = "LOWER(s.semester) = LOWER(?)";
-        $bindParams[] = $filter_semester;
-        $bindTypes .= "s";
-    }
-    if ($filter_section) {
-        $whereClauses[] = "s.section = ?";
-        $bindParams[] = $filter_section;
-        $bindTypes .= "s";
-    }
-
-    $whereStr = count($whereClauses) > 0 ? "WHERE " . implode(" AND ", $whereClauses) : "";
-
-    $countQuery = "SELECT COUNT(*) AS c $selectFrom $whereStr";
-    $cStmt = $conn->prepare($countQuery);
-    if ($bindParams) {
-        $cStmt->bind_param($bindTypes, ...$bindParams);
-    }
-    $cStmt->execute();
-    $total = (int) $cStmt->get_result()->fetch_assoc()['c'];
-    $cStmt->close();
-
-    $perPage = 10;
-    $page = max(1, (int) ($_GET['page'] ?? 1));
-    $pg = paginate($total, $perPage, $page);
-    $off = $pg['offset'];
-
-    $query = "$selectColumns $selectFrom $whereStr ORDER BY u.name, c.course_name LIMIT ? OFFSET ?";
-    $stmt = $conn->prepare($query);
-    $mBindTypes = $bindTypes . "ii";
-    $mBindParams = array_merge($bindParams, [$perPage, $off]);
-    $stmt->bind_param($mBindTypes, ...$mBindParams);
-} else {
-    $total = (int) $conn->query("SELECT COUNT(*) AS c FROM section_assignments")->fetch_assoc()['c'];
-    $perPage = 10;
-    $page = 1;
-    $pg = paginate($total, $perPage, $page);
-    $off = 0;
-
-    $query = "$selectColumns $selectFrom ORDER BY u.name, c.course_name LIMIT 50";
-    $stmt = $conn->prepare($query);
+if ($search) {
+    $whereClauses[] = "(u.name LIKE ? OR st.roll_no LIKE ? OR c.course_name LIKE ? OR c.course_code LIKE ?)";
+    $s = "%$search%";
+    $bindParams[] = $s;
+    $bindParams[] = $s;
+    $bindParams[] = $s;
+    $bindParams[] = $s;
+    $bindTypes .= "ssss";
+}
+if ($filter_semester) {
+    $whereClauses[] = "LOWER(s.semester) = LOWER(?)";
+    $bindParams[] = $filter_semester;
+    $bindTypes .= "s";
+}
+if ($filter_section) {
+    $whereClauses[] = "s.section = ?";
+    $bindParams[] = $filter_section;
+    $bindTypes .= "s";
 }
 
-$stmt->execute();
-$allRows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-$stmt->close();
+$whereStr = count($whereClauses) > 0 ? "WHERE " . implode(" AND ", $whereClauses) : "";
 
+// Step 1: Fetch ALL assignment rows matching filters — one row per (student, course)
+$assignmentQuery = "$selectColumns $selectFrom $whereStr";
+$aStmt = $conn->prepare($assignmentQuery);
+if ($bindParams) {
+    $aStmt->bind_param($bindTypes, ...$bindParams);
+}
+$aStmt->execute();
+$allAssignmentRows = $aStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$aStmt->close();
+
+// Step 2: Group by student_id (int), deduplicate courses by assignment_id
 $grouped = [];
-foreach ($allRows as $r) {
-    $sid = $r['student_id'];
+foreach ($allAssignmentRows as $r) {
+    $sid = (int) $r['student_id'];
     if (!isset($grouped[$sid])) {
         $grouped[$sid] = [
             'student_id' => $sid,
-            'name'       => $r['name'],
-            'roll_no'    => $r['roll_no'],
-            'courses'    => [],
+            'name' => $r['name'],
+            'roll_no' => $r['roll_no'],
+            'courses' => [],
             'latest_enrolled' => $r['created_at'],
         ];
     }
-    $grouped[$sid]['courses'][] = [
-        'assignment_id' => (int) $r['assignment_id'],
-        'course_name'   => $r['course_name'],
-        'course_code'   => $r['course_code'],
-        'section'       => $r['section'],
-        'academic_year' => $r['academic_year'],
-        'semester'      => $r['semester'],
-        'section_id'    => (int) $r['section_id'],
-        'created_at'    => $r['created_at'],
-    ];
+    $aid = (int) $r['assignment_id'];
+    if (!isset($grouped[$sid]['_seen'][$aid])) {
+        $grouped[$sid]['_seen'][$aid] = true;
+        $grouped[$sid]['courses'][] = [
+            'assignment_id' => $aid,
+            'course_name' => $r['course_name'],
+            'course_code' => $r['course_code'],
+            'section' => $r['section'],
+            'academic_year' => $r['academic_year'],
+            'semester' => $r['semester'],
+            'section_id' => (int) $r['section_id'],
+            'created_at' => $r['created_at'],
+        ];
+    }
     if ($r['created_at'] > $grouped[$sid]['latest_enrolled']) {
         $grouped[$sid]['latest_enrolled'] = $r['created_at'];
     }
 }
-$rows = array_values($grouped);
+
+// Remove internal dedup keys
+foreach ($grouped as &$st) {
+    unset($st['_seen']);
+}
+unset($st);
+
+// Step 3: Sort all students by roll_no — prefix first, then numeric suffix
+$allStudents = array_values($grouped);
+usort($allStudents, function ($a, $b) {
+    $posA = strrpos($a['roll_no'], '-');
+    $posB = strrpos($b['roll_no'], '-');
+    $prefixA = $posA !== false ? substr($a['roll_no'], 0, $posA) : $a['roll_no'];
+    $prefixB = $posB !== false ? substr($b['roll_no'], 0, $posB) : $b['roll_no'];
+    $cmp = strcmp($prefixA, $prefixB);
+    if ($cmp !== 0)
+        return $cmp;
+    $numA = $posA !== false ? (int) substr($a['roll_no'], $posA + 1) : 0;
+    $numB = $posB !== false ? (int) substr($b['roll_no'], $posB + 1) : 0;
+    return $numA <=> $numB;
+});
+
+// Step 4: Paginate at student level (after grouping — each student appears once)
+$totalStudents = count($allStudents);
+$total = $totalStudents;
+$perPage = 15;
+$page = max(1, (int) ($_GET['page'] ?? 1));
+$pg = paginate($totalStudents, $perPage, $page);
+$rows = array_slice($allStudents, $pg['offset'], $perPage);
 
 include '../includes/admin_header.php';
 include '../includes/admin_sidebar.php';
@@ -274,7 +312,8 @@ include '../includes/admin_sidebar.php';
                 <?php for ($m = 1; $m <= 10; $m++): ?>
                     <?php $semVal = $m . ($m == 1 ? 'st' : ($m == 2 ? 'nd' : ($m == 3 ? 'rd' : 'th'))) . ' Semester'; ?>
                     <option value="<?= $semVal ?>" <?= $filter_semester === $semVal ? 'selected' : '' ?>>
-                        <?= e(formatSemester($semVal)) ?></option>
+                        <?= e(formatSemester($semVal)) ?>
+                    </option>
                 <?php endfor; ?>
             </select>
 
@@ -284,7 +323,7 @@ include '../includes/admin_sidebar.php';
                 <option value="A" <?= $filter_section === 'A' ? 'selected' : '' ?>>Section A</option>
                 <option value="B" <?= $filter_section === 'B' ? 'selected' : '' ?>>Section B</option>
                 <option value="C" <?= $filter_section === 'C' ? 'selected' : '' ?>>Section C</option>
-                <option value="D" <?= $filter_section === 'D' ? 'selected' : '' ?>>Section D</option>
+                <!-- <option value="D" <?= $filter_section === 'D' ? 'selected' : '' ?>>Section D</option> -->
             </select>
 
             <button type="submit"
@@ -295,32 +334,40 @@ include '../includes/admin_sidebar.php';
             <?php endif ?>
         </form>
         <span class="text-xs text-slate-400 shrink-0"><?= $total ?>
-            <?= $LANG['records'] ?? 'student' ?><?= $total !== 1 ? 's' : '' ?> listed</span>
+            <?= $LANG['records'] ?? 'student' ?>listed</span>
     </div>
 
     <div class="overflow-x-auto">
         <table class="w-full border-collapse">
-            <thead class="bg-slate-50 border-b border-slate-200">
+            <thead class="bg-slate-200 border-b border-slate-200">
                 <tr>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">#</th>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
-                        <?= $LANG['col_student'] ?? 'Student' ?></th>
+                        <?= $LANG['col_student'] ?? 'Student' ?>
+                    </th>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
-                        <?= $LANG['col_course'] ?? 'Course' ?></th>
+                        <?= $LANG['col_course'] ?? 'Course' ?>
+                    </th>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
-                        <?= $LANG['section_name'] ?? 'Section' ?></th>
+                        <?= $LANG['section_name'] ?? 'Section' ?>
+                    </th>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
-                        <?= $LANG['year_semester'] ?? 'Year / Semester' ?></th>
+                        <?= $LANG['year_semester'] ?? 'Year / Semester' ?>
+                    </th>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
-                        <?= $LANG['col_enrolled'] ?? 'Enrolled' ?></th>
+                        <?= $LANG['col_enrolled'] ?? 'Enrolled' ?>
+                    </th>
                     <th class="text-right px-5 py-3 text-slate-500 text-sm font-semibold">
-                        <?= $LANG['col_actions'] ?? 'Actions' ?></th>
+                        <?= $LANG['col_actions'] ?? 'Actions' ?>
+                    </th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
                 <?php if ($rows): ?>
                     <?php foreach ($rows as $i => $row): ?>
-                        <?php $courses = $row['courses'] ?? []; $cnt = count($courses); $first = $courses[0] ?? null; ?>
+                        <?php $courses = $row['courses'] ?? [];
+                        $cnt = count($courses);
+                        $first = $courses[0] ?? null; ?>
                         <tr class="summary-row hover:bg-slate-50/80 transition-colors">
                             <td class="px-5 py-3 text-sm text-slate-400"><?= $pg['offset'] + $i + 1 ?></td>
                             <td class="px-5 py-3 min-w-[140px]">
@@ -330,15 +377,21 @@ include '../includes/admin_sidebar.php';
                             <td class="px-5 py-3">
                                 <button type="button" onclick="toggleCourses(this)"
                                     class="flex items-center gap-1.5 text-sm font-medium text-slate-700 hover:text-cyan-600 cursor-pointer transition-colors group">
-                                    <span class="inline-flex items-center px-2 py-0.5 font-bold rounded-md bg-cyan-50 text-cyan-700 border border-cyan-200/50 text-xs"><?= $cnt ?> course<?= $cnt !== 1 ? 's' : '' ?></span>
-                                    <svg class="w-4 h-4 transition-transform duration-200 text-slate-400 group-hover:text-cyan-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <span
+                                        class="inline-flex items-center px-2 py-0.5 font-bold rounded-md bg-cyan-50 text-cyan-700 border border-cyan-200/50 text-xs"><?= $cnt ?>
+                                        course<?= $cnt !== 1 ? 's' : '' ?></span>
+                                    <svg class="w-4 h-4 transition-transform duration-200 text-slate-400 group-hover:text-cyan-600"
+                                        xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                                        stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                                     </svg>
                                 </button>
                             </td>
                             <td class="px-5 py-3">
                                 <?php if ($first): ?>
-                                    <span class="inline-flex items-center px-2 py-0.5 font-bold rounded-md bg-cyan-50 text-cyan-700 border border-cyan-200/50 text-xs">Section <?= e($first['section']) ?></span>
+                                    <span
+                                        class="inline-flex items-center px-2 py-0.5 font-bold rounded-md bg-cyan-50 text-cyan-700 border border-cyan-200/50 text-xs">Section
+                                        <?= e($first['section']) ?></span>
                                 <?php endif; ?>
                             </td>
                             <td class="px-5 py-3 text-xs text-slate-500">
@@ -397,11 +450,9 @@ include '../includes/admin_sidebar.php';
             </tbody>
         </table>
     </div>
-    <?php if ($hasFilters): ?>
-        <div class="px-5 py-4 border-t border-slate-100">
-            <?= paginationLinks($pg, 'section_assignments.php' . '?' . http_build_query(array_filter(['search' => $search, 'filter_semester' => $filter_semester, 'filter_section' => $filter_section]))) ?>
-        </div>
-    <?php endif; ?>
+    <div class="px-5 py-4 border-t border-slate-100">
+        <?= paginationLinks($pg, 'section_assignments.php' . '?' . http_build_query(array_filter(['search' => $search, 'filter_semester' => $filter_semester, 'filter_section' => $filter_section]))) ?>
+    </div>
 </div>
 
 <div id="addModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4 modal-backdrop"
@@ -410,7 +461,8 @@ include '../includes/admin_sidebar.php';
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
             <div>
                 <h3 class="font-bold text-slate-800 text-lg">
-                    <?= $LANG['assign_by_roll_range'] ?? 'Assign Students by Roll Number Range' ?></h3>
+                    <?= $LANG['assign_by_roll_range'] ?? 'Assign Students by Roll Number Range' ?>
+                </h3>
                 <p class="text-xs text-slate-500 mt-0.5">
                     <?= $LANG['assign_roll_range_hint'] ?? 'Roll နံပါတ် အပိုင်းအခြားအလိုက် ဘာသာရပ်များ အစုလိုက်သွင်းရန်' ?>
                 </p>
@@ -507,7 +559,8 @@ include '../includes/admin_sidebar.php';
                 <h3 class="font-semibold text-slate-800"><?= $LANG['edit_assignment_modal'] ?? 'Edit Assignment' ?></h3>
                 <p class="text-xs text-slate-400 mt-0.5">
                     <?= $LANG['edit_assignment_hint'] ?? 'Change the section for' ?> <strong id="edit_student_name"
-                        class="text-slate-600"></strong></p>
+                        class="text-slate-600"></strong>
+                </p>
             </div>
             <button onclick="closeModal('editModal')"
                 class="text-slate-400 hover:text-slate-600"><?= iconSvg('x', 'w-5 h-5') ?></button>
@@ -566,7 +619,8 @@ include '../includes/admin_sidebar.php';
             <!-- <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
                 <?= iconSvg('trash', 'w-7 h-7 text-red-600') ?></div> -->
             <h3 class="text-lg font-semibold text-slate-800">
-                <?= $LANG['remove_assignment_modal'] ?? 'Remove Assignment' ?></h3>
+                <?= $LANG['remove_assignment_modal'] ?? 'Remove Assignment' ?>
+            </h3>
             <p class="text-sm text-slate-500 mt-2"><?= $LANG['remove_assignment_modal'] ?? 'Remove' ?> <strong
                     id="delete_name" class="text-slate-700"></strong>?</p>
         </div>
@@ -590,7 +644,8 @@ include '../includes/admin_sidebar.php';
                 class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4 font-bold text-red-600">
                 ⚠️</div>
             <h3 class="text-lg font-semibold text-slate-800">
-                <?= $LANG['remove_all_assignments_modal'] ?? 'Remove All Assignments' ?></h3>
+                <?= $LANG['remove_all_assignments_modal'] ?? 'Remove All Assignments' ?>
+            </h3>
             <p class="text-sm text-slate-500 mt-2">
                 <?= $LANG['remove_all_confirm'] ?? 'Are you sure you want to completely clear all course enrollments for' ?>
                 <strong id="bulk_delete_name" class="text-slate-700"></strong>?

@@ -11,7 +11,7 @@ $activeMenu = 'profile';
 // ─── Validation helpers (same rules as admin/users.php) ──────────────────────
 function isValidEmail($email)
 {
-    return preg_match('/^[a-zA-Z0-9._]+@ucsh\.edu\.mm$/', $email);
+    return preg_match('/^[a-zA-Z0-9._]+@(ucsh\.edu\.mm|gmail\.com)$/', $email);
 }
 function isValidPassword($password)
 {
@@ -77,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             $errors[] = 'required';
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $errors[] = 'email_invalid';
-        } elseif (!preg_match('/@ucsh\.edu\.mm$/', $email)) {
+        } elseif (!preg_match('/@(ucsh\.edu\.mm|gmail\.com)$/', $email)) {
             $errors[] = 'email_domain';
         } elseif (!isValidEmail($email)) {
             $errors[] = 'email_invalid';
@@ -149,9 +149,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         if ($stmt->execute()) {
             $_SESSION['name'] = $name;
             $_SESSION['email'] = $email;
-            setFlash('success', 'Profile updated successfully.');
+            setFlash('success', $LANG['flash_profile_updated'] ?? 'Profile updated successfully.');
         } else {
-            setFlash('error', 'Failed to update profile.');
+            setFlash('error', $LANG['flash_profile_failed'] ?? 'Failed to update profile.');
         }
         $stmt->close();
     }
@@ -160,7 +160,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="<?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'my' : 'en' ?>" class="h-full">
 
 <head>
     <meta charset="UTF-8">
@@ -178,7 +178,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     </style>
 </head>
 
-<body class="h-full bg-gradient-to-br from-slate-50 via-blue-50 to-sky-50 font-inter antialiased">
+<body class="h-full bg-gradient-to-br from-slate-50 via-blue-50 to-sky-50 font-inter antialiased <?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'lang-mm' : '' ?>">
     <?php require_once '../includes/teacher_sidebar.php'; ?>
     <div class="mb-6">
         <h2 class="text-xl font-bold text-slate-800"><?= $LANG['my_profile'] ?? 'My Profile' ?></h2>
@@ -246,7 +246,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                             <?php if ($nameErr): ?>
                                 <?= $LANG['val_name_invalid'] ?? 'Full Name may contain only letters, single spaces, and a period (.) for titles such as Dr. or Prof.' ?>
                             <?php elseif ($requiredErr && !$prevName): ?>
-                                Full Name is required.
+                                <?= $LANG['val_name_required'] ?? 'Full Name is required.' ?>
                             <?php endif; ?>
                         </p>
                     </div>
@@ -262,7 +262,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                             <?php if ($emailExistsErr): ?>
                                 <?= $LANG['val_email_taken'] ?? 'This email address is already registered.' ?>
                             <?php elseif (in_array('email_domain', $formErrors)): ?>
-                                <?= $LANG['val_email_domain'] ?? 'Only @ucsh.edu.mm email addresses are allowed.' ?>
+                                <?= $LANG['val_email_domain'] ?? 'Only @ucsh.edu.mm and @gmail.com email addresses are allowed.' ?>
                             <?php elseif ($emailErr): ?>
                                 <?= $LANG['val_email_invalid'] ?? 'Please enter a valid email address.' ?>
                             <?php endif; ?>
@@ -277,7 +277,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                         </label>
                         <div class="relative">
                             <input type="password" name="password" id="profilePassword" minlength="6"
-                                placeholder="Letters, numbers, or @"
+                                placeholder="<?= $LANG['password_placeholder'] ?? 'Letters, numbers, or @' ?>"
                                 class="w-full border <?= $passwordErr ? $borderRed : 'border-blue-200/50 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20' ?> rounded-xl px-4 py-2.5 pr-10 text-sm outline-none bg-white/80">
                             <button type="button" onclick="togglePassword('profilePassword', this)"
                                 class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600">
@@ -327,11 +327,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
         // ── Frontend validation (same rules as admin) ────────────────────────
         var msgs = {
-            name_required: 'Full Name is required.',
+            name_required: <?= json_encode($LANG['val_name_required'] ?? 'Full Name is required.') ?>,
             name_invalid: <?= json_encode($LANG['val_name_invalid'] ?? 'Full Name may contain only letters, single spaces, and a period (.) for titles such as Dr. or Prof.') ?>,
-            email_required: 'Email Address is required.',
+            email_required: <?= json_encode($LANG['val_email_required'] ?? 'Email Address is required.') ?>,
             email_invalid: <?= json_encode($LANG['val_email_invalid'] ?? 'Please enter a valid email address.') ?>,
-            email_domain: <?= json_encode($LANG['val_email_domain'] ?? 'Only @ucsh.edu.mm email addresses are allowed.') ?>,
+            email_domain: <?= json_encode($LANG['val_email_domain'] ?? 'Only @ucsh.edu.mm and @gmail.com email addresses are allowed.') ?>,
             password: <?= json_encode($LANG['val_password_invalid'] ?? 'Password must be at least 6 characters. Only letters, numbers, and @ are allowed.') ?>
         };
 
@@ -376,8 +376,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             if (!emailVal) {
                 showError(emailEl, emailErrEl, msgs.email_required);
                 valid = false;
-            } else if (!/^[a-zA-Z0-9._]+@ucsh\.edu\.mm$/.test(emailVal)) {
-                var emsg = emailVal.indexOf('@') >= 0 && !emailVal.endsWith('@ucsh.edu.mm')
+            } else if (!/^[a-zA-Z0-9._]+@(ucsh\.edu\.mm|gmail\.com)$/.test(emailVal)) {
+                var emsg = emailVal.indexOf('@') >= 0 && !(/@(ucsh\.edu\.mm|gmail\.com)$/.test(emailVal))
                     ? msgs.email_domain : msgs.email_invalid;
                 showError(emailEl, emailErrEl, emsg);
                 valid = false;

@@ -4,6 +4,8 @@ require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 requireRole('student');
 
+updateAllFeedbackStatuses($conn);
+
 $user = getCurrentUser();
 $stmt = $conn->prepare("SELECT st.id FROM students st WHERE st.user_id=?");
 $stmt->bind_param('i', $user['id']);
@@ -14,6 +16,7 @@ $studentId = $student['id'] ?? 0;
 
 $pageTitle = 'Student Dashboard';
 $activeMenu = 'dashboard';
+$now = date('Y-m-d H:i:s');
 $today = date('Y-m-d');
 
 // ─── Stats ────────────────────────────────────────────────────
@@ -25,8 +28,8 @@ $admPendingCount = 0;
 
 if ($studentId) {
     // Academic pending — count active in-range forms assigned to student with no submission
-    $pAcad = $conn->prepare("SELECT COUNT(DISTINCT ff.id) AS c FROM feedback_forms ff JOIN section_assignments sa ON ff.section_id=sa.section_id WHERE sa.student_id=? AND ff.module='academic' AND ff.status='active' AND ff.start_date<=? AND ff.end_date>=? AND ff.id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=?)");
-    $pAcad->bind_param('isss', $studentId, $today, $today, $studentId);
+    $pAcad = $conn->prepare("SELECT COUNT(DISTINCT ff.id) AS c FROM feedback_forms ff JOIN section_assignments sa ON ff.section_id=sa.section_id WHERE sa.student_id=? AND ff.module='academic' AND ff.start_date<=? AND ff.end_date>=? AND ff.id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=?)");
+    $pAcad->bind_param('isss', $studentId, $now, $now, $studentId);
     $pAcad->execute();
     $pendingCount = (int) $pAcad->get_result()->fetch_assoc()['c'];
     $pAcad->close();
@@ -39,15 +42,15 @@ if ($studentId) {
     $sStmt->close();
 
     // SA pending
-    $pSA = $conn->prepare("SELECT COUNT(*) AS c FROM feedback_forms WHERE module='student_affairs' AND status='active' AND start_date<=? AND end_date>=? AND id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=?)");
-    $pSA->bind_param('ssi', $today, $today, $studentId);
+    $pSA = $conn->prepare("SELECT COUNT(*) AS c FROM feedback_forms WHERE module='student_affairs' AND start_date<=? AND end_date>=? AND id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=?)");
+    $pSA->bind_param('ssi', $now, $now, $studentId);
     $pSA->execute();
     $saPendingCount = (int) $pSA->get_result()->fetch_assoc()['c'];
     $pSA->close();
 
     // Adm pending
-    $pAdm = $conn->prepare("SELECT COUNT(*) AS c FROM feedback_forms WHERE module='administration' AND status='active' AND start_date<=? AND end_date>=? AND id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=?)");
-    $pAdm->bind_param('ssi', $today, $today, $studentId);
+    $pAdm = $conn->prepare("SELECT COUNT(*) AS c FROM feedback_forms WHERE module='administration' AND start_date<=? AND end_date>=? AND id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=?)");
+    $pAdm->bind_param('ssi', $now, $now, $studentId);
     $pAdm->execute();
     $admPendingCount = (int) $pAdm->get_result()->fetch_assoc()['c'];
     $pAdm->close();
@@ -56,21 +59,21 @@ if ($studentId) {
 // ─── Academic Pending Forms ───────────────────────────────────
 $pendingForms = [];
 if ($studentId) {
-    $rs = $conn->query("SELECT ff.id AS form_id, ff.title, ff.end_date, c.course_name, s.section, u.name AS teacher_name FROM feedback_forms ff JOIN sections s ON ff.section_id=s.id JOIN courses c ON s.course_id=c.id JOIN teachers t ON s.teacher_id=t.id JOIN users u ON t.user_id=u.id JOIN section_assignments sa ON sa.section_id=s.id WHERE sa.student_id=$studentId AND ff.status='active' AND ff.start_date<='$today' AND ff.end_date>='$today' AND ff.id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=$studentId) ORDER BY ff.end_date ASC LIMIT 4");
+    $rs = $conn->query("SELECT ff.id AS form_id, ff.title, ff.end_date, c.course_name, s.section, u.name AS teacher_name FROM feedback_forms ff JOIN sections s ON ff.section_id=s.id JOIN courses c ON s.course_id=c.id JOIN teachers t ON s.teacher_id=t.id JOIN users u ON t.user_id=u.id JOIN section_assignments sa ON sa.section_id=s.id WHERE sa.student_id=$studentId AND ff.module='academic' AND ff.start_date<='$now' AND ff.end_date>='$now' AND ff.id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=$studentId) ORDER BY ff.end_date ASC LIMIT 4");
     $pendingForms = $rs->fetch_all(MYSQLI_ASSOC);
 }
 
 // ─── SA Pending Forms (ပြင်ဆင်ချက်- ID များကို form_id ဟု Alias ပေးထားပါသည်) ───
 $saPendingForms = [];
 if ($studentId) {
-    $rs = $conn->query("SELECT id AS form_id, title, end_date FROM feedback_forms WHERE module='student_affairs' AND status='active' AND start_date<='$today' AND end_date>='$today' AND id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=$studentId) ORDER BY end_date ASC LIMIT 3");
+    $rs = $conn->query("SELECT id AS form_id, title, end_date FROM feedback_forms WHERE module='student_affairs' AND start_date<='$now' AND end_date>='$now' AND id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=$studentId) ORDER BY end_date ASC LIMIT 3");
     $saPendingForms = $rs->fetch_all(MYSQLI_ASSOC);
 }
 
 // ─── Adm Pending Forms ───
 $admPendingForms = [];
 if ($studentId) {
-    $rs = $conn->query("SELECT id AS form_id, title, end_date FROM feedback_forms WHERE module='administration' AND status='active' AND start_date<='$today' AND end_date>='$today' AND id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=$studentId) ORDER BY end_date ASC LIMIT 3");
+    $rs = $conn->query("SELECT id AS form_id, title, end_date FROM feedback_forms WHERE module='administration' AND start_date<='$now' AND end_date>='$now' AND id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=$studentId) ORDER BY end_date ASC LIMIT 3");
     $admPendingForms = $rs->fetch_all(MYSQLI_ASSOC);
 }
 
@@ -85,7 +88,7 @@ $navItems = [
 $initials = avatarInitials($user['name']);
 ?>
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="<?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'my' : 'en' ?>" class="h-full">
 
 <head>
     <meta charset="UTF-8">
@@ -97,7 +100,8 @@ $initials = avatarInitials($user['name']);
     <link rel="stylesheet" href="/studentfeedbackucsh/assets/css/custom.css">
 </head>
 
-<body class="h-full bg-gradient-to-br from-slate-50 to-cyan-50/30 font-inter">
+<body
+    class="h-full bg-gradient-to-br from-slate-50 to-cyan-50/30 font-inter <?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'lang-mm' : '' ?>">
     <div id="overlay" class="fixed inset-0 bg-black/40 z-30 hidden lg:hidden" onclick="closeSidebar()"></div>
     <div class="flex h-screen overflow-hidden">
 
@@ -132,7 +136,7 @@ $initials = avatarInitials($user['name']);
 
             <a href="/studentfeedbackucsh/auth/logout.php" title="<?= $LANG['logout'] ?? 'Logout' ?>"
                 class="block border-t border-white/15 bg-red-500 text-gray-50 hover:text-gray-200 transition-colors px-4 py-4 cursor-pointer">
-                <div class="flex items-center gap-3">
+                <div class="flex items-center justify-center gap-3">
 
                     <div class="min-w-0 ">
                         <p class="text-xl h-8"><?= $LANG['logout'] ?? 'Logout' ?></p>
@@ -150,7 +154,7 @@ $initials = avatarInitials($user['name']);
 
                 <div class="mb-6">
                     <h2 class="text-2xl font-bold text-slate-800"><?= $LANG['student_welcome'] ?? 'Welcome' ?>,
-                        <?= e(explode(' ', $user['name'])[0]) ?> 👋
+                        <?= e($user['name']) ?> 👋
                     </h2>
                     <p class="text-sm text-slate-500 mt-1">
                         <?= $LANG['student_overview'] ?? "Here's your feedback overview across all modules." ?>
@@ -242,7 +246,7 @@ $initials = avatarInitials($user['name']);
                                     <div class="px-5 py-3.5 flex items-center justify-between gap-3">
                                         <div class="min-w-0">
                                             <p class="text-xs font-medium text-slate-800 truncate"><?= e($f['title']) ?></p>
-                                            <p class="text-[11px] text-slate-400">Due: <?= formatDate($f['end_date']) ?></p>
+                                            <p class="text-[11px] text-slate-400">Due: <?= formatDateTime($f['end_date']) ?></p>
                                         </div>
                                         <a href="/studentfeedbackucsh/student/sa_feedback_form.php?form_id=<?= $f['form_id'] ?>"
                                             class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-lg flex-shrink-0"><?= $LANG['fill'] ?? 'Fill' ?></a>
@@ -272,7 +276,7 @@ $initials = avatarInitials($user['name']);
                                     <div class="px-5 py-3.5 flex items-center justify-between gap-3">
                                         <div class="min-w-0">
                                             <p class="text-xs font-medium text-slate-800 truncate"><?= e($f['title']) ?></p>
-                                            <p class="text-[11px] text-slate-400">Due: <?= formatDate($f['end_date']) ?></p>
+                                            <p class="text-[11px] text-slate-400">Due: <?= formatDateTime($f['end_date']) ?></p>
                                         </div>
                                         <a href="/studentfeedbackucsh/student/adm_feedback_form.php?form_id=<?= $f['form_id'] ?>"
                                             class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-white bg-orange-600 hover:bg-orange-700 rounded-lg flex-shrink-0"><?= $LANG['fill'] ?? 'Fill' ?></a>

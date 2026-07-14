@@ -4,7 +4,9 @@ require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 requireRole('admin');
 
-$pageTitle = 'Dashboard';
+updateAllFeedbackStatuses($conn);
+
+$pageTitle = $LANG['nav_dashboard'] ?? 'Dashboard';
 $activeMenu = 'dashboard';
 
 function count_table($conn, $table, $where = '')
@@ -351,7 +353,7 @@ include '../includes/admin_sidebar.php';
 <!-- Page Header -->
 <div class="mb-6">
     <h2 class="text-2xl font-bold text-slate-800"><?= $LANG['admin_welcome'] ?? 'Welcome back' ?>,
-        <?= e(explode(' ', getCurrentUser()['name'])[0]) ?> 👋
+        <?= e($user['name']) ?> 👋
     </h2>
     <p class="text-sm text-slate-500 mt-1">
         <?= $LANG['admin_overview'] ?? 'University Feedback Management System — Full Overview' ?>
@@ -824,7 +826,18 @@ include '../includes/admin_sidebar.php';
         var chartDefaults = {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { labels: { font: { family: 'Inter', size: 11 } } } }
+            plugins: {
+                legend: { labels: { font: { family: 'Inter', size: 11 } } },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            var total = ctx.dataset.data.reduce(function(a, b) { return a + b; }, 0);
+                            var pct = total > 0 ? Math.round((ctx.raw / total) * 100) : 0;
+                            return pct + '%';
+                        }
+                    }
+                }
+            }
         };
 
         // ─── Top 3 Per-Teacher Pie Charts ──────────────────────────
@@ -851,7 +864,16 @@ include '../includes/admin_sidebar.php';
                 options: Object.assign({}, chartDefaults, {
                     cutout: '50%',
                     plugins: {
-                        legend: { position: 'bottom', labels: { font: { size: 9 }, padding: 8 } }
+                        legend: { position: 'bottom', labels: { font: { size: 9 }, padding: 8 } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) {
+                                    var total = ctx.dataset.data.reduce(function(a, b) { return a + b; }, 0);
+                                    var pct = total > 0 ? Math.round((ctx.raw / total) * 100) : 0;
+                                    return pct + '%';
+                                }
+                            }
+                        }
                     }
                 })
             });
@@ -871,7 +893,18 @@ include '../includes/admin_sidebar.php';
             },
             options: Object.assign({}, chartDefaults, {
                 cutout: '55%',
-                plugins: { legend: { position: 'bottom', labels: { font: { size: 9 }, padding: 10 } } }
+                plugins: {
+                    legend: { position: 'bottom', labels: { font: { size: 9 }, padding: 10 } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                var total = ctx.dataset.data.reduce(function(a, b) { return a + b; }, 0);
+                                var pct = total > 0 ? Math.round((ctx.raw / total) * 100) : 0;
+                                return pct + '%';
+                            }
+                        }
+                    }
+                }
             })
         });
 
@@ -889,7 +922,18 @@ include '../includes/admin_sidebar.php';
             },
             options: Object.assign({}, chartDefaults, {
                 cutout: '55%',
-                plugins: { legend: { position: 'bottom', labels: { font: { size: 9 }, padding: 10 } } }
+                plugins: {
+                    legend: { position: 'bottom', labels: { font: { size: 9 }, padding: 10 } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                var total = ctx.dataset.data.reduce(function(a, b) { return a + b; }, 0);
+                                var pct = total > 0 ? Math.round((ctx.raw / total) * 100) : 0;
+                                return pct + '%';
+                            }
+                        }
+                    }
+                }
             })
         });
 

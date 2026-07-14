@@ -6,7 +6,7 @@ $user       = getCurrentUser();
 $initials   = avatarInitials($user['name']);
 ?>
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="<?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'my' : 'en' ?>" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -39,7 +39,7 @@ $initials   = avatarInitials($user['name']);
     <link rel="stylesheet" href="/studentfeedbackucsh/assets/css/custom.css">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
-<body class="h-full bg-gradient-to-br from-slate-50 to-indigo-50/40 font-inter antialiased">
+<body class="h-full bg-gradient-to-br from-slate-50 to-indigo-50/40 font-inter antialiased <?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'lang-mm' : '' ?>">
 
 <!-- Mobile Overlay -->
 <div id="sidebar-overlay" class="fixed inset-0 bg-black/40 z-30 hidden lg:hidden" onclick="closeSidebar()"></div>

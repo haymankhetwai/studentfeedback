@@ -4,6 +4,8 @@ require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 requireRole('student');
 
+updateAllFeedbackStatuses($conn);
+
 $user      = getCurrentUser();
 $stmt      = $conn->prepare("SELECT st.id FROM students st WHERE st.user_id=?");
 $stmt->bind_param('i', $user['id']); $stmt->execute();
@@ -19,7 +21,7 @@ if (!$studentId) {
 $formId = (int)($_GET['form_id'] ?? 0);
 
 if (!$formId) {
-    $activeFormQuery = $conn->query("SELECT id FROM feedback_forms WHERE status='active' AND module='student_affairs' ORDER BY id DESC LIMIT 1");
+    $activeFormQuery = $conn->query("SELECT id FROM feedback_forms WHERE module='student_affairs' ORDER BY id DESC LIMIT 1");
     $activeFormRes = $activeFormQuery->fetch_assoc();
     $formId = $activeFormRes['id'] ?? 0;
 }
@@ -46,19 +48,19 @@ $sub = $conn->prepare("SELECT id FROM feedback_submissions WHERE form_id=? AND s
 $sub->bind_param('ii', $formId, $studentId); $sub->execute();
 $alreadySubmitted = (bool)$sub->get_result()->num_rows; $sub->close();
 
-$today      = date('Y-m-d');
-$isActive   = ($form['status'] === 'active');
-$inRange    = ($form['start_date'] <= $today && $form['end_date'] >= $today);
-$canSubmit  = $isActive && $inRange && !$alreadySubmitted;
+$now       = date('Y-m-d H:i:s');
+$today     = date('Y-m-d');
+$status    = $form['status'];
+$isActive  = ($status === 'Active');
+$canSubmit = $isActive && !$alreadySubmitted;
 
 $statusNote = '';
 if ($alreadySubmitted)     $statusNote = 'already_submitted';
-elseif (!$isActive)        $statusNote = 'inactive';
-elseif ($form['start_date'] > $today) $statusNote = 'not_started';
-elseif ($form['end_date']  < $today)  $statusNote = 'expired';
+elseif ($status === 'Upcoming') $statusNote = 'not_started';
+elseif ($status === 'Expired')  $statusNote = 'expired';
 
 // ─── Load Questions (shared per module)
-$qStmt = $conn->prepare("SELECT id, question_no, question_text, question_type FROM feedback_questions WHERE module='student_affairs' ORDER BY question_no ASC");
+$qStmt = $conn->prepare("SELECT * FROM feedback_questions WHERE module='student_affairs' ORDER BY question_no ASC");
 $qStmt->execute();
 $allQuestions = $qStmt->get_result()->fetch_all(MYSQLI_ASSOC); $qStmt->close();
 
@@ -77,21 +79,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         setFlash('error',$LANG['flash_form_not_open'] ?? 'This form is not open for submission.');
     } else {
         $hasError = false;
-        $hasFairOrBad = false;
+        $commentRequired = false;
         foreach ($ratingQuestions as $q) {
             $rating = $_POST['rating_' . $q['id']] ?? '';
-            if (!in_array($rating, ['Good', 'Fair', 'Bad'])) { $hasError = true; break; }
-            if ($rating !== 'Good') { $hasFairOrBad = true; }
+            if (!in_array($rating, ['Good', 'Fair', 'Bad'])) {
+                $hasError = true;
+                break;
+            }
+            if ($rating !== 'Good') {
+                $commentRequired = true;
+            }
         }
-        if (!$hasError && $hasFairOrBad) {
+
+        $commentError = false;
+        if (!$hasError && $commentRequired) {
+            $hasComment = false;
             foreach ($commentQuestions as $q) {
                 $comment = trim($_POST['comment_' . $q['id']] ?? '');
-                if ($comment === '') { $hasError = true; break; }
+                if ($comment !== '') {
+                    $hasComment = true;
+                    break;
+                }
+            }
+            if (!$hasComment) {
+                $commentError = true;
+                $hasError = true;
             }
         }
 
         if ($hasError) {
-            setFlash('error',$LANG['flash_fill_all_eval'] ?? 'Please fill all evaluation questions and comments.');
+            if ($commentError) {
+                setFlash('error', $LANG['flash_comment_required'] ?? 'Please provide a comment because you selected a rating below the highest.');
+            } else {
+                setFlash('error',$LANG['flash_fill_all_eval'] ?? 'Please fill all evaluation questions and comments.');
+            }
         } else {
             $conn->begin_transaction();
             try {
@@ -112,6 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                     header('Location: sa_feedback.php'); exit;
                 }
                 $ins->close();
+                $submissionId = $conn->insert_id;
 
                 foreach ($ratingQuestions as $q) {
                     $rating = $_POST['rating_' . $q['id']] ?? '';
@@ -129,7 +151,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                     }
                 }
 
-                $lastSubId = $conn->insert_id;
                 foreach ($surveyQuestions as $q) {
                     $selectedOptions = $_POST['survey'][$q['id']] ?? [];
                     if (!is_array($selectedOptions)) $selectedOptions = [$selectedOptions];
@@ -137,13 +158,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                         $selected = (int)$sel;
                         if ($selected >= 0 && $selected <= 3) {
                             $si = $conn->prepare("INSERT INTO feedback_survey_answers (submission_id, question_id, selected_option_index) VALUES (?,?,?)");
-                            $si->bind_param('iii', $lastSubId, $q['id'], $selected); $si->execute(); $si->close();
+                            $si->bind_param('iii', $submissionId, $q['id'], $selected); $si->execute(); $si->close();
                         }
                     }
                 }
 
                 $conn->commit();
-                setFlash('success',$LANG['flash_thank_you_participation_sa'] ?? '🎉 Thank you for your participation.');
+                setFlash('success', $LANG['flash_thank_you_participation'] ?? '🎉 Thank you for participating.');
                 header('Location: sa_feedback.php'); exit;
             } catch (Exception $e) {
                 $conn->rollback();
@@ -157,7 +178,7 @@ $pageTitle = $LANG['sa_satisfaction_form'] ?? 'Student Affairs Satisfaction Form
 $initials = avatarInitials($user['name']);
 ?>
 <!DOCTYPE html>
-<html lang="my" class="h-full">
+<html lang="<?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'my' : 'en' ?>" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -168,16 +189,21 @@ $initials = avatarInitials($user['name']);
     <style>
         @import url('https://cdn.jsdelivr.net/css-myanmar-fonts/v1/pyidaungsu.css');
         body { font-family: 'Pyidaungsu', 'Inter', sans-serif; }
+        body.lang-mm th { font-size: 0.8125rem; line-height: 1.6; }
+        body.lang-mm td { font-size: 0.8125rem; line-height: 1.6; }
     </style>
 </head>
-<body class="h-full bg-slate-50">
+<body class="h-full bg-slate-50 <?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'lang-mm' : '' ?>">
 <div id="overlay" class="fixed inset-0 bg-black/40 z-30 hidden lg:hidden" onclick="closeSidebar()"></div>
 
 <div class="flex h-screen overflow-hidden">
     <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 bg-gradient-to-b from-cyan-600 to-cyan-700 text-white flex flex-col z-40 transform -translate-x-full transition-transform duration-300 lg:relative lg:translate-x-0 lg:flex-shrink-0">
         <div class="flex items-center gap-3 px-5 py-5 border-b border-cyan-500">
             <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center font-bold text-white">S</div>
-            <div><p class="text-sm font-bold">SFMS Student</p><p class="text-[10px] text-cyan-100"><?= $LANG['student_portal'] ?? 'Student Portal' ?></p></div>
+            <div>
+                    <p class="text-sm font-bold"><?= $LANG['student_portal'] ?? 'SFMS Student' ?></p>
+                    <p class="text-[10px] text-cyan-100"><?= $LANG['student_portal_sub'] ?? 'Student Portal' ?></p>
+                </div>
             <button onclick="closeSidebar()" class="ml-auto lg:hidden text-cyan-200 hover:text-white">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
@@ -186,13 +212,13 @@ $initials = avatarInitials($user['name']);
             <a href="/studentfeedbackucsh/student/dashboard.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('home','w-4 h-4 flex-shrink-0') ?> <?= $LANG['nav_dashboard'] ?? 'Dashboard' ?></a>
             <a href="/studentfeedbackucsh/student/my_sections.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('grid','w-4 h-4 flex-shrink-0') ?> <?= $LANG['nav_my_sections'] ?? 'My Sections' ?></a>
             <a href="/studentfeedbackucsh/student/sa_feedback.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm bg-white/20 text-white font-semibold"><?= iconSvg('shield','w-4 h-4 flex-shrink-0') ?> <?= $LANG['nav_student_affairs_link'] ?? 'Student Affairs' ?></a>
-            <a href="/studentfeedbackucsh/student/adm_feedback.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('office','w-4 h-4 flex-shrink-0') ?> <?= $LANG['nav_administration_link'] ?? 'Administration' ?></a>
+            <a href="/studentfeedbackucsh/student/adm_feedback.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('office','w-4 h-4 flex-shrink-0') ?> <?= $LANG['nav_administration'] ?? 'Administration' ?></a>
             <a href="/studentfeedbackucsh/student/feedback_history.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('history','w-4 h-4 flex-shrink-0') ?> <?= $LANG['nav_history'] ?? 'History' ?></a>
             <a href="/studentfeedbackucsh/student/profile.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('user','w-4 h-4 flex-shrink-0') ?> <?= $LANG['nav_profile'] ?? 'Profile' ?></a>
         </nav>
        <a href="/studentfeedbackucsh/auth/logout.php" title="<?= $LANG['logout'] ?? 'Logout' ?>"
                 class="block border-t border-white/15 bg-red-500 text-gray-50 hover:text-gray-200 transition-colors px-4 py-4 cursor-pointer">
-                <div class="flex items-center gap-3">
+                <div class="flex items-center justify-center gap-3">
 
                     <div class="min-w-0 ">
                         <p class="text-xl h-8"><?= $LANG['logout'] ?? 'Logout' ?></p>
@@ -209,7 +235,7 @@ $initials = avatarInitials($user['name']);
             <a href="sa_feedback.php" class="ml-auto text-sm font-medium text-cyan-600 hover:underline">← <?= $LANG['back'] ?? 'Back' ?></a>
         </header>
 
-        <main class="flex-1 overflow-y-auto p-4 md:p-8 max-w-4xl mx-auto w-full">
+        <main class="flex-1 overflow-y-auto p-4 md:p-8 mx-auto w-full">
             <?php renderFlash() ?>
 
             <div class="bg-white shadow-xl rounded-xl border border-slate-200 p-6 md:p-10 mb-8">
@@ -220,24 +246,22 @@ $initials = avatarInitials($user['name']);
                     <p class="text-md font-black text-slate-900 mb-1"><?= $LANG['academic_year_label'] ?? 'Academic Year' ?>: <?= e($form['academic_year'] ?? '') ?></p>
                     <p class="text-md font-black text-slate-900 mt-1 tracking-wider"><?= $LANG['university_campus'] ?? 'University Campus' ?></p>
                     <h3 class="text-md font-black text-slate-900 mt-1"><?= e($form['title']) ?></h3>
-                    <p class="text-xs text-slate-500 mt-1"><?= $LANG['feedback_period'] ?? 'Feedback Period' ?>: <?= formatDate($form['start_date']) ?> — <?= formatDate($form['end_date']) ?></p>
+                    <p class="text-xs text-slate-500 mt-1"><?= $LANG['feedback_period'] ?? 'Feedback Period' ?>: <?= formatDateTime($form['start_date']) ?> — <?= formatDateTime($form['end_date']) ?></p>
+                    <p class="text-xs mt-1"><?= badgeStatus($status) ?> <?php if ($status === 'Active'): ?><span class="text-slate-500"><?= getTimeRemaining($form['end_date']) ?></span><?php elseif ($status === 'Upcoming'): ?><span class="text-slate-500"><?= getTimeUntilStart($form['start_date']) ?></span><?php endif ?></p>
                 </div>
 
                 <?php if ($alreadySubmitted): ?>
                 <div class="bg-green-50 border border-green-200 text-green-800 p-4 rounded-xl mb-6 text-sm font-semibold">
                     ✓ <?= $LANG['thank_you_participating'] ?? 'This form has been submitted. Thank you for your participation.' ?>
                 </div>
-                <?php elseif ($form['start_date'] > $today): ?>
+                <?php elseif ($status === 'Upcoming'): ?>
                 <div class="bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-xl mb-6 text-sm font-semibold">
-                    ⏳ <?= $LANG['form_not_available_yet'] ?? 'Feedback form is not available yet. It will open on' ?> <strong><?= formatDate($form['start_date']) ?></strong>.
+                    ⏳ <?= $LANG['form_not_available_yet'] ?? 'Feedback form is not available yet. It will open on' ?> <strong><?= formatDateTime($form['start_date']) ?></strong>.
+                    <br><span class="text-xs mt-1 block"><?= getTimeUntilStart($form['start_date']) ?></span>
                 </div>
-                <?php elseif ($form['end_date'] < $today): ?>
+                <?php elseif ($status === 'Expired'): ?>
                 <div class="bg-slate-100 border border-slate-300 text-slate-700 p-4 rounded-xl mb-6 text-sm font-semibold">
-                    🔒 <?= $LANG['form_closed_ended'] ?? 'Feedback form has been closed. It ended on' ?> <strong><?= formatDate($form['end_date']) ?></strong>.
-                </div>
-                <?php elseif (!$isActive): ?>
-                <div class="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl mb-6 text-sm font-semibold">
-                    ⚠️ <?= $LANG['form_inactive'] ?? 'This feedback form is currently inactive.' ?>
+                    🔒 <?= $LANG['form_closed_ended'] ?? 'Feedback form has been closed. It ended on' ?> <strong><?= formatDateTime($form['end_date']) ?></strong>.
                 </div>
                 <?php endif ?>
 
@@ -250,12 +274,12 @@ $initials = avatarInitials($user['name']);
                         <div class="overflow-x-auto border border-slate-300 rounded-lg shadow-sm">
                             <table class="w-full text-left border-collapse min-w-[500px]">
                                 <thead>
-                                    <tr class="bg-slate-50 border-b border-slate-300 text-slate-900 font-bold text-xs">
+                                    <tr class="bg-slate-200 border-b border-slate-300 text-slate-900 font-bold text-xs">
                                         <th class="p-3 border-r border-slate-300 w-12 text-center"><?= $LANG['col_no_short'] ?? 'No' ?></th>
                                         <th class="p-3 border-r border-slate-300"><?= $LANG['col_activities'] ?? 'Activities' ?></th>
-                                        <th class="p-3 border-r border-slate-300 w-24 text-center bg-emerald-50 text-emerald-900"><?= $LANG['good'] ?? 'Good' ?></th>
-                                        <th class="p-3 border-r border-slate-300 w-24 text-center bg-amber-50 text-amber-900"><?= $LANG['fair'] ?? 'Fair' ?></th>
-                                        <th class="p-3 w-24 text-center bg-red-50 text-red-900"><?= $LANG['bad'] ?? 'Bad' ?></th>
+                                        <th class="p-3 border-r border-slate-300 w-24 text-center bg-emerald-200 text-emerald-900"><?= $LANG['good'] ?? 'Good' ?></th>
+                                        <th class="p-3 border-r border-slate-300 w-24 text-center bg-amber-200 text-amber-900"><?= $LANG['fair'] ?? 'Fair' ?></th>
+                                        <th class="p-3 w-24 text-center bg-red-200 text-red-900"><?= $LANG['bad'] ?? 'Bad' ?></th>
                                     </tr>
                                 </thead>
                                 <tbody class="text-xs divide-y divide-slate-200 text-slate-800">
@@ -296,16 +320,17 @@ $initials = avatarInitials($user['name']);
                             </label>
                             <textarea name="comment_<?= $q['id'] ?>" rows="4"
                                       placeholder="<?= $LANG['comment_placeholder'] ?? 'Write your comment here...' ?>"
-                                      <?= !$canSubmit ? 'disabled' : '' ?>
+                                      disabled
                                       class="comment-textarea w-full border border-slate-300 bg-slate-50 rounded-xl px-4 py-3 text-xs focus:bg-white focus:border-slate-900 outline-none resize-none transition-all disabled:opacity-60"></textarea>
                         </div>
                         <?php endforeach ?>
+                        <p id="comment-error" class="text-xs text-red-500 hidden mt-2"><?= $LANG['comment_required_hint'] ?? 'Please provide a comment because you selected a rating below the highest.' ?></p>
                     </div>
                     <?php endif ?>
 
                     <?php if (!empty($surveyQuestions)): ?>
                     <div class="space-y-6 pt-4 border-t-2 border-violet-200">
-                        <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Survey Questions (MCQ)</h3>
+                        <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider"><?= $LANG['survey_questions_mcq'] ?? 'Survey Questions (MCQ)' ?></h3>
                         <?php foreach ($surveyQuestions as $q):
                             $opts = json_decode($q['options_json'] ?? '[]', true) ?: [];
                             ?>
@@ -324,7 +349,7 @@ $initials = avatarInitials($user['name']);
                                     </label>
                                     <?php endforeach ?>
                                 </div>
-                                <p class="text-xs text-red-500 hidden survey-error">Please select at least one option.</p>
+                                <p class="text-xs text-red-500 hidden survey-error"><?= $LANG['survey_select_one'] ?? 'Please select at least one option.' ?></p>
                             </div>
                         <?php endforeach ?>
                     </div>
@@ -335,19 +360,19 @@ $initials = avatarInitials($user['name']);
                         
                         <?php if ($canSubmit): ?>
                         <button type="submit" id="submit-btn"
-                                class="w-full md:w-auto px-8 py-2 text-xs font-bold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl shadow-md transition-all">
-                            <?= $LANG['submit_form'] ?? 'Submit Feedback' ?>
+                                class="w-full md:w-auto px-8 py-2.5 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl shadow-md transition-all">
+                            <?= $LANG['submit_form'] ?? 'Submit Form' ?>
                         </button>
-                        <?php elseif ($form['start_date'] > $today): ?>
-                        <button type="button" disabled class="w-full md:w-auto px-8 py-2 text-xs font-bold text-slate-400 bg-slate-200 rounded-xl cursor-not-allowed">
+                        <?php elseif ($status === 'Upcoming'): ?>
+                        <button type="button" disabled class="w-full md:w-auto px-8 py-2.5 text-sm font-bold text-slate-400 bg-slate-200 rounded-xl cursor-not-allowed">
                             <?= $LANG['not_yet_available'] ?? 'Not Yet Available' ?>
                         </button>
-                        <?php elseif ($form['end_date'] < $today): ?>
-                        <button type="button" disabled class="w-full md:w-auto px-8 py-2 text-xs font-bold text-slate-400 bg-slate-200 rounded-xl cursor-not-allowed">
-                            <?= $LANG['form_closed'] ?? 'Form Closed' ?>
+                        <?php elseif ($status === 'Expired'): ?>
+                        <button type="button" disabled class="w-full md:w-auto px-8 py-2.5 text-sm font-bold text-slate-400 bg-slate-200 rounded-xl cursor-not-allowed">
+                            <?= $LANG['form_closed'] ?? 'Feedback Closed' ?>
                         </button>
                         <?php else: ?>
-                        <button type="button" disabled class="w-full md:w-auto px-8 py-2 text-xs font-bold text-slate-400 bg-slate-200 rounded-xl cursor-not-allowed">
+                        <button type="button" disabled class="w-full md:w-auto px-8 py-2.5 text-sm font-bold text-slate-400 bg-slate-200 rounded-xl cursor-not-allowed">
                             <?= $LANG['submissions_locked'] ?? 'Submissions Locked' ?>
                         </button>
                         <?php endif ?>
@@ -367,39 +392,38 @@ $initials = avatarInitials($user['name']);
 function openSidebar() { document.getElementById('sidebar').classList.remove('-translate-x-full'); document.getElementById('overlay').classList.remove('hidden'); }
 function closeSidebar() { document.getElementById('sidebar').classList.add('-translate-x-full'); document.getElementById('overlay').classList.add('hidden'); }
 
-function toggleCommentFields() {
-    var radios = document.querySelectorAll('#feedback-form input[type="radio"]:checked');
-    var allGood = true;
-    for (var i = 0; i < radios.length; i++) {
-        if (radios[i].value !== 'Good') { allGood = false; break; }
-    }
-    // If no radio is checked yet, use initial state: comments enabled
-    var hasAnyChecked = radios.length > 0;
-    var disable = hasAnyChecked && allGood;
-    var textareas = document.querySelectorAll('.comment-textarea');
-    for (var j = 0; j < textareas.length; j++) {
-        if (disable) {
-            textareas[j].disabled = true;
-            textareas[j].required = false;
-            textareas[j].placeholder = 'All Good — <?= $LANG['all_good_comment_not_required'] ?? 'comment not required.' ?>';
+<?php if ($canSubmit): ?>
+var ff = document.getElementById('feedback-form'), btn = document.getElementById('submit-btn');
+if (ff && btn) {
+    function checkCommentState() {
+        var commentRequired = false;
+        var checkedRatings = document.querySelectorAll('input[type="radio"][name^="rating_"]:checked');
+        for (var r = 0; r < checkedRatings.length; r++) {
+            if (checkedRatings[r].value !== 'Good') { commentRequired = true; break; }
+        }
+        var tas = document.querySelectorAll('.comment-textarea');
+        var commentErr = document.getElementById('comment-error');
+        if (commentRequired) {
+            for (var t = 0; t < tas.length; t++) {
+                tas[t].disabled = false;
+            }
         } else {
-            textareas[j].disabled = false;
-            textareas[j].required = true;
-            textareas[j].placeholder = '<?= $LANG['comment_placeholder'] ?? 'Write your comment here...' ?>';
+            for (var t = 0; t < tas.length; t++) {
+                tas[t].value = '';
+                tas[t].disabled = true;
+                tas[t].classList.remove('border-red-500', 'bg-red-50');
+            }
+            if (commentErr) commentErr.classList.add('hidden');
         }
     }
-}
 
-<?php if ($canSubmit): ?>
-var ratingRadios = document.querySelectorAll('#feedback-form input[type="radio"]');
-for (var r = 0; r < ratingRadios.length; r++) {
-    ratingRadios[r].addEventListener('change', toggleCommentFields);
-}
-// Initial state on page load
-toggleCommentFields();
+    var ratingRadios = document.querySelectorAll('input[type="radio"][name^="rating_"]');
+    for (var r = 0; r < ratingRadios.length; r++) {
+        ratingRadios[r].addEventListener('change', checkCommentState);
+    }
 
-const ff = document.getElementById('feedback-form'), btn = document.getElementById('submit-btn');
-if (ff && btn) {
+    checkCommentState();
+
     ff.addEventListener('submit', function(e) {
         var groups = document.querySelectorAll('.survey-group');
         var valid = true;
@@ -414,10 +438,45 @@ if (ff && btn) {
             if (!checked) valid = false;
         }
         if (!valid) { e.preventDefault(); return; }
+
+        var commentRequired = false;
+        var checkedRatings = document.querySelectorAll('input[type="radio"][name^="rating_"]:checked');
+        for (var r = 0; r < checkedRatings.length; r++) {
+            if (checkedRatings[r].value !== 'Good') { commentRequired = true; break; }
+        }
+        var commentErr = document.getElementById('comment-error');
+        var tas = document.querySelectorAll('.comment-textarea');
+        if (commentRequired) {
+            var hasComment = false;
+            for (var t = 0; t < tas.length; t++) {
+                if (tas[t].value.trim() !== '') { hasComment = true; break; }
+            }
+            if (!hasComment) {
+                if (commentErr) commentErr.classList.remove('hidden');
+                for (var t = 0; t < tas.length; t++) {
+                    tas[t].classList.add('border-red-500', 'bg-red-50');
+                }
+                e.preventDefault();
+                return;
+            }
+        }
+        if (commentErr) commentErr.classList.add('hidden');
+        for (var t = 0; t < tas.length; t++) {
+            tas[t].classList.remove('border-red-500', 'bg-red-50');
+        }
+
         btn.disabled = true;
-        btn.className = "w-full md:w-auto px-8 py-2 text-xs font-bold text-slate-400 bg-slate-200 rounded-xl cursor-not-allowed";
-        btn.textContent = '<?= $LANG['submitting'] ?? 'Submitting...' ?>';
+        btn.className = "w-full md:w-auto px-8 py-2.5 text-sm font-bold text-slate-400 bg-slate-200 rounded-xl cursor-not-allowed";
+        btn.innerHTML = '<?= $LANG['please_wait'] ?? 'Please wait...' ?>';
     });
+    var tas = document.querySelectorAll('.comment-textarea');
+    for (var t = 0; t < tas.length; t++) {
+        tas[t].addEventListener('input', function() {
+            this.classList.remove('border-red-500', 'bg-red-50');
+            var ce = document.getElementById('comment-error');
+            if (ce) ce.classList.add('hidden');
+        });
+    }
 }
 <?php endif ?>
 </script>

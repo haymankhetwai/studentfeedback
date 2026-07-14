@@ -1,5 +1,7 @@
 /* Student Feedback Management System — Custom CSS */
 
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Myanmar:wght@400;500;600;700&display=swap');
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -16,6 +18,19 @@ body { font-family: 'Inter', system-ui, sans-serif; }
 /* Table */
 table { border-collapse: collapse; width: 100%; }
 th { font-weight: 600; font-size: 0.75rem; letter-spacing: 0.05em; text-transform: uppercase; }
+
+/* Myanmar language mode — increase table font size for readability */
+body.lang-mm {
+    font-family: 'Noto Sans Myanmar', 'Inter', system-ui, sans-serif;
+}
+body.lang-mm th {
+    font-size: 0.8125rem;
+    line-height: 1.6;
+}
+body.lang-mm td {
+    font-size: 0.8125rem;
+    line-height: 1.6;
+}
 
 /* Stat card shimmer effect */
 @keyframes shimmer { 0%,100% { opacity:1; } 50% { opacity:0.7; } }

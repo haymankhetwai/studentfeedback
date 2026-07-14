@@ -4,6 +4,8 @@ require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 requireRole('teacher');
 
+updateAllFeedbackStatuses($conn);
+
 $user = getCurrentUser();
 $stmt = $conn->prepare("SELECT t.id FROM teachers t WHERE t.user_id=?");
 $stmt->bind_param('i', $user['id']);
@@ -164,7 +166,7 @@ $sectionBreakdown = runQuery($conn, $sectionBreakdownSql, $types, $params)->fetc
 
 ?>
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="<?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'my' : 'en' ?>" class="h-full">
 
 <head>
     <meta charset="UTF-8">
@@ -177,7 +179,7 @@ $sectionBreakdown = runQuery($conn, $sectionBreakdownSql, $types, $params)->fetc
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 </head>
 
-<body class="h-full bg-gradient-to-br from-slate-50 via-blue-50 to-sky-50 font-inter antialiased">
+<body class="h-full bg-gradient-to-br from-slate-50 via-blue-50 to-sky-50 font-inter antialiased <?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'lang-mm' : '' ?>">
     <?php require_once '../includes/teacher_sidebar.php'; ?>
 
     <!-- Page Header -->
@@ -279,11 +281,11 @@ $sectionBreakdown = runQuery($conn, $sectionBreakdownSql, $types, $params)->fetc
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
                     <thead>
-                        <tr class="bg-blue-50/50 text-xs font-semibold text-blue-500 uppercase tracking-wider">
-                            <th class="px-6 py-3"><?= $LANG['col_course'] ?? 'Subject' ?></th>
-                            <th class="px-6 py-3"><?= $LANG['col_section'] ?? 'Section' ?></th>
-                            <th class="px-6 py-3"><?= $LANG['col_semester'] ?? 'Semester' ?></th>
-                            <th class="px-6 py-3 text-center"><?= $LANG['col_total_ratings'] ?? 'Total Ratings' ?></th>
+                        <tr class="bg-blue-200 text-sm font-semibold text-blue-500 uppercase tracking-wider">
+                            <th class="px-6 py-3 text-sm font-semibold"><?= $LANG['col_course'] ?? 'Subject' ?></th>
+                            <th class="px-6 py-3 text-sm font-semibold"><?= $LANG['col_section'] ?? 'Section' ?></th>
+                            <th class="px-6 py-3 text-sm font-semibold"><?= $LANG['col_semester'] ?? 'Semester' ?></th>
+                            <th class="px-6 py-3 text-sm font-semibold text-center"><?= $LANG['col_total_ratings'] ?? 'Total Ratings' ?></th>
                             <!-- <th class="px-6 py-3 text-center">Avg Rating</th> -->
                         </tr>
                     </thead>
@@ -332,7 +334,16 @@ $sectionBreakdown = runQuery($conn, $sectionBreakdownSql, $types, $params)->fetc
                         maintainAspectRatio: false,
                         cutout: '55%',
                         plugins: {
-                            legend: { position: 'bottom', labels: { font: { family: 'Inter', size: 12 }, padding: 16 } }
+                            legend: { position: 'bottom', labels: { font: { family: 'Inter', size: 12 }, padding: 16 } },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(ctx) {
+                                        var total = ctx.dataset.data.reduce(function(a, b) { return a + b; }, 0);
+                                        var pct = total > 0 ? Math.round((ctx.raw / total) * 100) : 0;
+                                        return pct + '%';
+                                    }
+                                }
+                            }
                         }
                     }
                 });

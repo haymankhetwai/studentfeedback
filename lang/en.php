@@ -289,7 +289,7 @@ $LANG = [
     'add_question' => 'Add Question',
     'search_questions' => 'Search questions...',
     'no_questions_found' => 'No questions yet. Add your first question.',
-    'question_no' => 'Question #',
+    'question_no' => 'Question',
     'question_text' => 'Question Text',
     'question_type' => 'Type',
     'question_placeholder' => 'Enter the question...',
@@ -337,6 +337,7 @@ $LANG = [
     'good' => 'Good',
     'fair' => 'Fair',
     'bad' => 'Bad',
+    'total' => 'Total',
     'count_pct' => '(COUNT / %)',
     'persons' => 'persons',
     'comments_header' => 'Submitted Suggestions',
@@ -470,7 +471,7 @@ $LANG = [
     'val_username_taken' => 'This username is already taken.',
     'val_username_invalid' => 'Username must be 4-30 characters. Only lowercase letters, numbers, and underscore allowed.',
     'val_email_taken' => 'This email address is already registered.',
-    'val_email_domain' => 'Only @ucsh.edu.mm email addresses are allowed.',
+    'val_email_domain' => 'Only @ucsh.edu.mm and @gmail.com email addresses are allowed.',
     'val_email_invalid' => 'Please enter a valid email address.',
     'val_password_invalid' => 'Password must be at least 6 characters. Only letters, numbers, and @ are allowed.',
     'val_passwords_mismatch' => 'Passwords do not match.',
@@ -530,6 +531,7 @@ $LANG = [
     'sec_label' => 'Sec',
     'course_label_short' => 'Course',
     'courses_label_short' => 'Courses',
+    'duplicate_range_error' => 'This student range has already been assigned. Duplicate assignments are not allowed.',
 
     // ─── Feedback Forms (extra) ──────────────────────────────
     'feedback_forms_subtitle' => 'Create and manage feedback forms per section',
@@ -633,6 +635,7 @@ $LANG = [
     'good' => 'Good',
     'fair' => 'Fair',
     'bad' => 'Bad',
+    'total' => 'Total',
     'count_pct' => '(COUNT / %)',
     'persons' => 'persons',
     'comments_header' => 'Submitted Suggestions',
@@ -716,7 +719,7 @@ $LANG = [
     'no_feedback_semester' => 'No feedback available for the selected semester.',
     'no_feedback_results_semester' => 'No feedback results for the selected semester.',
     'no_feedback_forms_for_section' => 'No feedback forms for this section.',
-    'select_section_first' => 'Please select a section from the left first to view feedback results.',
+    'select_section_first' => 'Please select a section from the above first to view feedback results.',
 
     // ─── Teacher Analytics ───────────────────────────────────
     'analytics_title' => 'Feedback Analytics',
@@ -842,4 +845,109 @@ $LANG = [
 
     // ─── Student Profile (extra) ─────────────────────────────
     'roll_no_label' => 'Roll No',
+
+    // ─── Survey (MCQ) Shared Keys ────────────────────────────
+    'survey_mcq' => 'Survey (MCQ)',
+    'survey_options' => 'Survey Options (4 choices)',
+    'option' => 'Option',
+    'survey_results' => 'Survey Results',
+    'survey_not_in_overall' => 'Not included in Overall Rating',
+    'survey_questions_mcq' => 'Survey Questions (MCQ)',
+    'survey_select_one' => 'Please select at least one option.',
+    'of_respondents_selected' => 'of respondents selected',
+    'total_label' => 'Total',
+    'vote' => 'vote',
+    'votes' => 'votes',
+    'response' => 'response',
+    'responses' => 'responses',
+    'zero_votes' => '0 votes',
+    'comment_required_hint' => 'Please provide a comment because you selected a rating below the highest.',
+    'flash_comment_required' => 'Please provide a comment because you selected a rating below the highest.',
+
+    // ─── Results Shared Keys ─────────────────────────────────
+    'overall_teacher_rating' => 'Overall Teacher Rating',
+    'overall_survey_summary' => 'Overall Survey Summary',
+    'based_on_rating_only' => 'Based on Rating Questions Only',
+    'performance_grade' => 'Performance Grade',
+    'total_responses' => 'Total Responses',
+    'scoring_scale' => 'Scoring Scale',
+    'rating_distribution' => 'Rating Distribution',
+    'not_in_overall' => 'Not included in Overall Rating',
+    'section_label' => 'Section',
+
+    // ─── Questions Shared Keys ───────────────────────────────
+    'question_type_rating' => 'Rating',
+    'question_type_comment' => 'Comment',
+    'question_type_mcq' => 'MCQ',
+    'option_label' => 'Option',
+
+    // ─── Flash Messages (extra) ──────────────────────────────
+    'flash_section_added' => 'Section added.',
+    'flash_section_add_failed' => 'Failed to add section.',
+    'flash_section_updated' => 'Section updated.',
+    'flash_section_deleted' => 'Section deleted.',
+    'flash_user_created' => 'User created successfully.',
+    'flash_user_create_failed' => 'Failed to create user.',
+    'flash_user_updated' => 'User updated.',
+    'flash_user_update_failed' => 'Failed to update user.',
+    'flash_user_deleted' => 'User deleted.',
+    'flash_profile_failed' => 'Failed to update profile.',
+
+    // ─── Import (Users) ──────────────────────────────────────
+    'import_students_excel' => 'Import Students (Excel)',
+    'import_instructions' => 'Upload an Excel file (.xlsx) with student data. The file must have these columns in order:',
+    'import_columns' => 'Name | Username | Email | Password | Roll No',
+    'select_excel_file' => 'Select Excel File',
+    'download_template' => 'Download Excel Template',
+    'importing' => 'Importing...',
+    'import_results' => 'Import Results',
+    'import_failed' => 'Import Failed',
+    'import_success' => 'Import Successful',
+    'total_rows' => 'Total Rows',
+    'imported' => 'Imported',
+    'skipped' => 'Skipped',
+    'failed_records' => 'Failed Records',
+    'download_failed_records' => 'Download Failed Records',
+    'col_row' => 'Row',
+    'col_reason' => 'Reason',
+    'import_upload_failed' => 'File upload failed. Please try again.',
+    'import_invalid_format' => 'Only .xlsx and .xls files are allowed.',
+    'import_xls_not_supported' => '.xls format is not supported. Please save as .xlsx and try again.',
+    'import_read_error' => 'Unable to read the Excel file. It may be corrupted.',
+    'import_no_worksheet' => 'No worksheet found in the Excel file.',
+    'import_parse_error' => 'Unable to parse worksheet data.',
+    'import_db_error' => 'Database error:',
+    'import_missing_name' => 'Missing name',
+    'import_missing_username' => 'Missing username',
+    'import_missing_email' => 'Missing email',
+    'import_missing_password' => 'Missing password',
+    'import_missing_roll' => 'Missing roll number',
+    'import_invalid_name' => 'Invalid name format',
+    'import_invalid_username' => 'Invalid username format',
+    'import_invalid_email' => 'Invalid email format',
+    'import_username_taken' => 'Username already taken',
+    'import_email_taken' => 'Email already registered',
+
+    // ─── Profile (shared) ────────────────────────────────────
+    'password_placeholder' => 'Letters, numbers, or @',
+    'password_hint' => 'At least 6 characters. Only letters, numbers, and @ allowed.',
+    'update_password_btn' => 'Update Password',
+    'val_email_required' => 'Email Address is required.',
+
+    // ─── Landing Page Hero ───────────────────────────────────
+    'badge_text' => 'Your Opinion, Our Improvement',
+    'hero_admin_desc' => 'Admin can review reports and manage feedback efficiently.',
+    'hero_teacher_desc' => 'Teachers can review reports and feedback results.',
+    'hero_student_desc' => 'Students can submit feedback only for the semester assigned by the admin.',
+
+    // ─── Time & Status Labels ────────────────────────────────
+    'remaining_suffix' => 'remaining',
+    'until_opens' => 'until opens',
+    'semester_prefix' => 'Semester',
+    'upcoming' => 'Upcoming',
+    'expired' => 'Expired',
+
+    // ─── Top Teachers ────────────────────────────────────────
+    'top3_teacher_rating' => 'Top 3 Teachers — Rating Distribution',
+    'positive' => 'positive',
 ];

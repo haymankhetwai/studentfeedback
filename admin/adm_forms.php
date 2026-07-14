@@ -7,6 +7,8 @@ requireRole('admin');
 $pageTitle  = $LANG['adm_forms_title'] ?? 'Administration Feedback Forms';
 $activeMenu = 'adm_forms';
 
+updateAllFeedbackStatuses($conn);
+
 // ─── Academic Year dropdown data ──────────────────────────────
 $academicYears = [];
 $ayRes = $conn->query("SELECT DISTINCT academic_year FROM sections WHERE academic_year IS NOT NULL AND academic_year != '' ORDER BY academic_year");
@@ -20,11 +22,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         $title  = clean($_POST['title'] ?? '');
         $start  = clean($_POST['start_date'] ?? '');
         $end    = clean($_POST['end_date'] ?? '');
-        $status = in_array($_POST['status'], ['active','inactive']) ? $_POST['status'] : 'active';
         $academicYear = clean($_POST['academic_year'] ?? '');
         if ($title && $start && $end) {
+            $formStatus = calculateFormStatus($start, $end);
             $stmt = $conn->prepare("INSERT INTO feedback_forms (module,title,start_date,end_date,status,academic_year,section_id) VALUES ('administration',?,?,?,?,?,NULL)");
-            $stmt->bind_param('sssss', $title, $start, $end, $status, $academicYear);
+            $stmt->bind_param('sssss', $title, $start, $end, $formStatus, $academicYear);
             $stmt->execute() ? setFlash('success','Administration form created.') : setFlash('error','Failed.');
             $stmt->close();
         } else { setFlash('error','Title, start date, and end date are required.'); }
@@ -34,11 +36,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         $title  = clean($_POST['title'] ?? '');
         $start  = clean($_POST['start_date'] ?? '');
         $end    = clean($_POST['end_date'] ?? '');
-        $status = in_array($_POST['status'], ['active','inactive']) ? $_POST['status'] : 'active';
         $academicYear = clean($_POST['academic_year'] ?? '');
         if ($id && $title) {
+            $formStatus = calculateFormStatus($start, $end);
             $stmt = $conn->prepare("UPDATE feedback_forms SET title=?,start_date=?,end_date=?,status=?,academic_year=? WHERE id=? AND module='administration'");
-            $stmt->bind_param('sssssi', $title, $start, $end, $status, $academicYear, $id);
+            $stmt->bind_param('sssssi', $title, $start, $end, $formStatus, $academicYear, $id);
             $stmt->execute() ? setFlash('success','Form updated.') : setFlash('error','Update failed.');
             $stmt->close();
         }
@@ -47,12 +49,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         $id = (int)($_POST['id'] ?? 0);
         if ($id) {
             $stmt = $conn->prepare("DELETE FROM feedback_forms WHERE id=? AND module='administration'");
-            $stmt->bind_param('i', $id);
-            $stmt->execute() ? setFlash('success','Form deleted.') : setFlash('error','Cannot delete.');
-            $stmt->close();
+            if ($stmt) {
+                $stmt->bind_param('i', $id);
+                $stmt->execute();
+                if ($stmt->affected_rows > 0) {
+                    setFlash('success', 'Form deleted.');
+                } else {
+                    setFlash('error', 'Form not found or already deleted.');
+                }
+                $stmt->close();
+            } else {
+                setFlash('error', 'Database error: ' . $conn->error);
+            }
+        } else {
+            setFlash('error', 'Invalid form ID.');
         }
     }
-    header('Location: adm_forms.php'); exit;
+    if (!headers_sent()) {
+        header('Location: adm_forms.php');
+    }
+    exit;
 }
 
 $search  = clean($_GET['search'] ?? '');
@@ -101,19 +117,19 @@ include '../includes/admin_sidebar.php';
             <button type="submit" class="px-3 py-2 text-sm bg-orange-600 text-white rounded-xl hover:bg-orange-700"><?= $LANG['search'] ?? 'Search' ?></button>
             <?php if ($search): ?><a href="adm_forms.php" class="px-3 py-2 text-sm border border-slate-200 rounded-xl text-slate-600"><?= $LANG['clear'] ?? 'Clear' ?></a><?php endif ?>
         </form>
-        <span class="text-xs text-slate-400"><?= $total ?> <?= $LANG['records'] ?? 'form' ?><?= $total !== 1 ? 's' : '' ?></span>
+        <span class="text-xs text-slate-400"><?= $total ?> <?= $LANG['records'] ?? 'form' ?></span>
     </div>
     <div class="overflow-x-auto">
         <table>
-            <thead class="bg-slate-50 border-b border-slate-200">
+            <thead class="bg-slate-200 border-b border-slate-200">
                 <tr>
-                    <th class="text-left px-5 py-3 text-slate-500">#</th>
-                    <th class="text-left px-5 py-3 text-slate-500"><?= $LANG['form_title_label'] ?? 'Form Title' ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500"><?= $LANG['col_duration'] ?? 'Duration' ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500"><?= $LANG['questions_label'] ?? 'Questions' ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500"><?= $LANG['col_submissions'] ?? 'Submissions' ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500"><?= $LANG['col_status'] ?? 'Status' ?></th>
-                    <th class="text-right px-5 py-3 text-slate-500"><?= $LANG['col_actions'] ?? 'Actions' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">#</th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['form_title_label'] ?? 'Form Title' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['col_duration'] ?? 'Duration' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['questions_label'] ?? 'Questions' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['col_submissions'] ?? 'Submissions' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['col_status'] ?? 'Status' ?></th>
+                    <th class="text-right px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['col_actions'] ?? 'Actions' ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -121,16 +137,16 @@ include '../includes/admin_sidebar.php';
                 <tr class="hover:bg-slate-50 transition-colors">
                     <td class="px-5 py-3 text-sm text-slate-400"><?= $pg['offset'] + $i + 1 ?></td>
                     <td class="px-5 py-3"><p class="text-sm font-medium text-slate-800"><?= e($row['title']) ?></p></td>
-                    <td class="px-5 py-3 text-xs text-slate-500"><?= formatDate($row['start_date']) ?><br><?= formatDate($row['end_date']) ?></td>
-                    <td class="px-5 py-3"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-700"><?= $row['q_count'] ?> Questions</span></td>
+                    <td class="px-5 py-3 text-xs text-slate-500"><?= formatDateTime($row['start_date']) ?><br><?= formatDateTime($row['end_date']) ?><br><span class="text-[10px] font-semibold"><?= badgeStatus($row['status']) ?></span></td>
+                    <td class="px-5 py-3"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-700"><?= $row['q_count'] ?> <?= $LANG['questions_label'] ?? 'Questions' ?></span></td>
                     <td class="px-5 py-3"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700"><?= $row['s_count'] ?> <?= $LANG['submitted_label'] ?? 'submitted' ?></span></td>
-                    <td class="px-5 py-3"><?= badgeStatus($row['status']) ?></td>
+                    <td class="px-5 py-3 text-xs text-slate-500"><?= getTimeRemaining($row['end_date']) ?></td>
                     <td class="px-5 py-3 text-right">
                         <div class="flex items-center justify-end gap-1.5">
                              <a href="adm_questions.php" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-lg"><?= iconSvg('question','w-3.5 h-3.5') ?> <?= $LANG['questions_label'] ?? 'Questions' ?></a>
                              <a href="adm_results.php?form_id=<?= $row['id'] ?>" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-cyan-700 bg-cyan-50 hover:bg-cyan-100 rounded-lg"><?= iconSvg('chart','w-3.5 h-3.5') ?> <?= $LANG['results_link'] ?? 'Results' ?></a>
                              <button onclick="openEdit(<?= htmlspecialchars(json_encode($row), ENT_QUOTES) ?>)" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-cyan-700 bg-cyan-50 hover:bg-cyan-100 rounded-lg"><?= iconSvg('edit','w-3.5 h-3.5') ?> <?= $LANG['edit'] ?? 'Edit' ?></button>
-                             <button onclick="openDelete(<?= $row['id'] ?>,'<?= addslashes(e($row['title'])) ?>')" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg"><?= iconSvg('trash','w-3.5 h-3.5') ?> <?= $LANG['delete'] ?? 'Delete' ?></button>
+                             <button onclick="openDelete(<?= $row['id'] ?>,<?= e(json_encode($row['title'])) ?>)" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg"><?= iconSvg('trash','w-3.5 h-3.5') ?> <?= $LANG['delete'] ?? 'Delete' ?></button>
                         </div>
                     </td>
                 </tr>
@@ -155,10 +171,10 @@ include '../includes/admin_sidebar.php';
                 <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['form_title_label'] ?? 'Title' ?> <span class="text-red-500">*</span></label>
                     <input type="text" name="title" required placeholder="<?= $LANG['adm_satisfaction_survey'] ?? 'e.g. Administration Satisfaction Survey' ?>" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none"></div>
                 <div class="grid grid-cols-2 gap-4">
-                    <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['start_date'] ?? 'Start Date' ?> <span class="text-red-500">*</span></label>
-                        <input type="date" name="start_date" required class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-orange-500 outline-none"></div>
-                    <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['end_date'] ?? 'End Date' ?> <span class="text-red-500">*</span></label>
-                        <input type="date" name="end_date" required class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-orange-500 outline-none"></div>
+                    <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['start_date'] ?? 'Start Date & Time' ?> <span class="text-red-500">*</span></label>
+                        <input type="datetime-local" name="start_date" required class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-orange-500 outline-none"></div>
+                    <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['end_date'] ?? 'End Date & Time' ?> <span class="text-red-500">*</span></label>
+                        <input type="datetime-local" name="end_date" required class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-orange-500 outline-none"></div>
                 </div>
                 <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['academic_year_label'] ?? 'Academic Year' ?></label>
                     <select name="academic_year" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none bg-white">
@@ -166,10 +182,6 @@ include '../includes/admin_sidebar.php';
                         <?php foreach ($academicYears as $ay): ?>
                             <option value="<?= e($ay) ?>"><?= e($ay) ?></option>
                         <?php endforeach ?>
-                    </select></div>
-                <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['status'] ?? 'Status' ?></label>
-                    <select name="status" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none bg-white">
-                        <option value="active"><?= $LANG['active'] ?? 'Active' ?></option><option value="inactive"><?= $LANG['inactive'] ?? 'Inactive' ?></option>
                     </select></div>
             </div>
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
@@ -192,8 +204,8 @@ include '../includes/admin_sidebar.php';
                 <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['form_title_label'] ?? 'Title' ?></label>
                     <input type="text" name="title" id="edit_title" required class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-orange-500 outline-none"></div>
                 <div class="grid grid-cols-2 gap-4">
-                    <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['start_date'] ?? 'Start Date' ?></label><input type="date" name="start_date" id="edit_start" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none"></div>
-                    <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['end_date'] ?? 'End Date' ?></label><input type="date" name="end_date" id="edit_end" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none"></div>
+                    <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['start_date'] ?? 'Start Date & Time' ?></label><input type="datetime-local" name="start_date" id="edit_start" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none"></div>
+                    <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['end_date'] ?? 'End Date & Time' ?></label><input type="datetime-local" name="end_date" id="edit_end" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none"></div>
                 </div>
                 <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['academic_year_label'] ?? 'Academic Year' ?></label>
                     <select name="academic_year" id="edit_academic_year" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none bg-white">
@@ -201,10 +213,6 @@ include '../includes/admin_sidebar.php';
                         <?php foreach ($academicYears as $ay): ?>
                             <option value="<?= e($ay) ?>"><?= e($ay) ?></option>
                         <?php endforeach ?>
-                    </select></div>
-                <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['status'] ?? 'Status' ?></label>
-                    <select name="status" id="edit_status" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none bg-white">
-                        <option value="active"><?= $LANG['active'] ?? 'Active' ?></option><option value="inactive"><?= $LANG['inactive'] ?? 'Inactive' ?></option>
                     </select></div>
             </div>
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
@@ -236,9 +244,8 @@ include '../includes/admin_sidebar.php';
 function openEdit(row) {
     document.getElementById('edit_id').value     = row.id;
     document.getElementById('edit_title').value  = row.title;
-    document.getElementById('edit_start').value  = row.start_date;
-    document.getElementById('edit_end').value    = row.end_date;
-    document.getElementById('edit_status').value = row.status;
+    document.getElementById('edit_start').value  = row.start_date.replace(' ', 'T').substring(0, 16);
+    document.getElementById('edit_end').value    = row.end_date.replace(' ', 'T').substring(0, 16);
     document.getElementById('edit_academic_year').value = row.academic_year || '';
     openModal('editModal');
 }

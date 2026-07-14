@@ -4,6 +4,8 @@ require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 requireRole('teacher');
 
+updateAllFeedbackStatuses($conn);
+
 $pageTitle = 'Teacher Dashboard';
 $activeMenu = 'dashboard';
 $user = getCurrentUser();
@@ -17,13 +19,13 @@ $stmt->close();
 $teacherId = $teacher['id'] ?? 0;
 
 $sectionCount = $teacherId ? (int) $conn->query("SELECT COUNT(*) AS c FROM sections WHERE teacher_id=$teacherId")->fetch_assoc()['c'] : 0;
-$formCount = $teacherId ? (int) $conn->query("SELECT COUNT(*) AS c FROM feedback_forms ff JOIN sections s ON ff.section_id=s.id WHERE s.teacher_id=$teacherId AND ff.status='active'")->fetch_assoc()['c'] : 0;
+$formCount = $teacherId ? (int) $conn->query("SELECT COUNT(*) AS c FROM feedback_forms ff JOIN sections s ON ff.section_id=s.id WHERE s.teacher_id=$teacherId AND ff.start_date<=NOW() AND ff.end_date>=NOW()")->fetch_assoc()['c'] : 0;
 $submissionCount = $teacherId ? (int) $conn->query("SELECT COUNT(*) AS c FROM feedback_submissions fs JOIN feedback_forms ff ON fs.form_id=ff.id JOIN sections s ON ff.section_id=s.id WHERE s.teacher_id=$teacherId")->fetch_assoc()['c'] : 0;
 
 // My sections
 $sections = [];
 if ($teacherId) {
-    $rs = $conn->query("SELECT s.*, c.course_name, c.course_code, (SELECT COUNT(*) FROM section_assignments sa WHERE sa.section_id=s.id) AS student_count, (SELECT COUNT(*) FROM feedback_forms ff WHERE ff.section_id=s.id AND ff.status='active') AS active_forms FROM sections s JOIN courses c ON s.course_id=c.id WHERE s.teacher_id=$teacherId ORDER BY s.id DESC LIMIT 5");
+    $rs = $conn->query("SELECT s.*, c.course_name, c.course_code, (SELECT COUNT(*) FROM section_assignments sa WHERE sa.section_id=s.id) AS student_count, (SELECT COUNT(*) FROM feedback_forms ff WHERE ff.section_id=s.id AND ff.start_date<=NOW() AND ff.end_date>=NOW()) AS active_forms FROM sections s JOIN courses c ON s.course_id=c.id WHERE s.teacher_id=$teacherId ORDER BY s.id DESC LIMIT 5");
     $sections = $rs->fetch_all(MYSQLI_ASSOC);
 }
 
@@ -31,7 +33,7 @@ if ($teacherId) {
 // We reuse admin includes — just change the sidebar nav
 ?>
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="<?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'my' : 'en' ?>" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -41,7 +43,7 @@ if ($teacherId) {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/studentfeedbackucsh/assets/css/custom.css">
 </head>
-<body class="h-full bg-gradient-to-br from-slate-50 via-blue-50 to-sky-50 font-inter antialiased">
+<body class="h-full bg-gradient-to-br from-slate-50 via-blue-50 to-sky-50 font-inter antialiased <?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'lang-mm' : '' ?>">
 <?php require_once '../includes/teacher_sidebar.php'; ?>
 
                 <!-- Content -->

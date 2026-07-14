@@ -110,12 +110,12 @@ include '../includes/admin_sidebar.php';
     </div>
     <div class="overflow-x-auto">
         <table>
-            <thead class="bg-slate-50 border-b border-slate-200">
+            <thead class="bg-slate-200 border-b border-slate-200">
                 <tr>
-                    <th class="text-left px-5 py-3 text-slate-500">#</th>
-                    <th class="text-left px-5 py-3 text-slate-500"><?= $LANG['col_name'] ?? 'Name' ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500"><?= $LANG['roll_number'] ?? 'Roll No' ?></th>
-                    <th class="text-right px-5 py-3 text-slate-500"><?= $LANG['col_actions'] ?? 'Actions' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">#</th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['col_name'] ?? 'Name' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['roll_number'] ?? 'Roll No' ?></th>
+                    <th class="text-right px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['col_actions'] ?? 'Actions' ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -123,8 +123,8 @@ include '../includes/admin_sidebar.php';
                     foreach ($rows as $i => $row): ?>
                         <tr class="hover:bg-slate-50 transition-colors">
                             <td class="px-5 py-3 text-sm text-slate-400"><?= $pg['offset'] + $i + 1 ?></td>
-                            <td class="px-5 py-3">
-                                <div class="flex items-center gap-2">
+                            <td class="px-5 py-3 ">
+                                <div class="flex items-center  gap-2">
                                     <div
                                         class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-xs font-bold text-green-700">
                                         <?= e(avatarInitials($row['name'])) ?>
@@ -138,7 +138,7 @@ include '../includes/admin_sidebar.php';
                             <td class="px-5 py-3"><span
                                     class="font-mono text-xs bg-slate-100 px-2 py-1 rounded"><?= e($row['roll_no']) ?></span>
                             </td>
-                            <td class="px-5 py-3 text-right">
+                            <td class="px-5 py-3">
                                 <div class="flex items-center justify-end gap-2">
                                     <button
                                         onclick="openEdit(<?= $row['id'] ?>,'<?= addslashes(e($row['roll_no'])) ?>')"

@@ -104,13 +104,13 @@ include '../includes/admin_sidebar.php';
     </div>
     <div class="overflow-x-auto">
         <table>
-            <thead class="bg-slate-50 border-b border-slate-200">
+            <thead class="bg-slate-200 border-b border-slate-200">
                 <tr>
-                    <th class="text-left px-5 py-3 text-slate-500 w-12">#</th>
-                    <th class="text-left px-5 py-3 text-slate-500"><?= $LANG['col_name'] ?? 'Name' ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500"><?= $LANG['col_email'] ?? 'Email' ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500"><?= $LANG['col_department'] ?? 'Department' ?></th>
-                    <th class="text-right px-5 py-3 text-slate-500"><?= $LANG['col_actions'] ?? 'Actions' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 w-12 text-sm font-semibold">#</th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['col_name'] ?? 'Name' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['col_email'] ?? 'Email' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['col_department'] ?? 'Department' ?></th>
+                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['col_actions'] ?? 'Actions' ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
