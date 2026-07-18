@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 }
 
 $search = clean($_GET['search'] ?? '');
-$perPage = 10;
+$perPage = max(10, min(100, (int)($_GET['per_page'] ?? 10)));
 $page = max(1, (int) ($_GET['page'] ?? 1));
 
 if ($search) {
@@ -152,7 +152,7 @@ include '../includes/admin_sidebar.php';
         </table>
     </div>
     <div class="px-5 py-4 border-t border-slate-100">
-        <?= paginationLinks($pg, 'courses.php' . ($search ? '?search=' . urlencode($search) : '')) ?></div>
+        <?= paginationLinks($pg, 'courses.php' . ($search ? '?search=' . urlencode($search) : ''), $perPage) ?></div>
 </div>
 
 <!-- Add Modal -->

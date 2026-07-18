@@ -9,19 +9,34 @@ $activeMenu = 'sections';
 
 $courseList = $conn->query("SELECT c.id, c.course_code, c.course_name FROM courses c ORDER BY c.course_name")->fetch_all(MYSQLI_ASSOC);
 $teacherList = $conn->query("SELECT t.id, u.name FROM teachers t JOIN users u ON t.user_id=u.id ORDER BY u.name")->fetch_all(MYSQLI_ASSOC);
-$semesters = ['1st Semester', '2nd Semester', '3rd semester', '4th semester', '5th semester', '6th semester', '7th semester', '8th semester', '9th semester', '10th semester'];
+$academicYears = $conn->query("SELECT id, year_name FROM academic_years WHERE status='active' ORDER BY year_name DESC")->fetch_all(MYSQLI_ASSOC);
+$semesterList = $conn->query("SELECT id, semester_name FROM semesters ORDER BY id ASC")->fetch_all(MYSQLI_ASSOC);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     $action = $_POST['action'] ?? '';
     if ($action === 'add') {
         $course = (int) ($_POST['course_id'] ?? 0);
         $teacher = (int) ($_POST['teacher_id'] ?? 0);
-        $year = clean($_POST['academic_year'] ?? '');
-        $semester = clean($_POST['semester'] ?? '');
+        $academicYearId = (int) ($_POST['academic_year_id'] ?? 0);
+        $semesterId = (int) ($_POST['semester_id'] ?? 0);
         $section = clean($_POST['section'] ?? '');
-        if ($course && $teacher && $year && $semester && $section) {
-            $stmt = $conn->prepare("INSERT INTO sections (course_id,teacher_id,academic_year,semester,section) VALUES (?,?,?,?,?)");
-            $stmt->bind_param('iisss', $course, $teacher, $year, $semester, $section);
+        if ($course && $teacher && $academicYearId && $semesterId && $section) {
+            $yearName = '';
+            $semName = '';
+            $yq = $conn->prepare("SELECT year_name FROM academic_years WHERE id=?");
+            $yq->bind_param('i', $academicYearId);
+            $yq->execute();
+            $yr = $yq->get_result()->fetch_assoc();
+            $yq->close();
+            if ($yr) $yearName = $yr['year_name'];
+            $sq = $conn->prepare("SELECT semester_name FROM semesters WHERE id=?");
+            $sq->bind_param('i', $semesterId);
+            $sq->execute();
+            $sr = $sq->get_result()->fetch_assoc();
+            $sq->close();
+            if ($sr) $semName = $sr['semester_name'];
+            $stmt = $conn->prepare("INSERT INTO sections (course_id,teacher_id,academic_year_id,semester_id,section,academic_year) VALUES (?,?,?,?,?,?)");
+            $stmt->bind_param('iiiiss', $course, $teacher, $academicYearId, $semesterId, $section, $yearName);
             $stmt->execute() ? setFlash('success', $LANG['flash_section_added'] ?? 'Section added.') : setFlash('error', $LANG['flash_section_add_failed'] ?? 'Failed to add section.');
             $stmt->close();
         } else {
@@ -32,12 +47,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         $id = (int) ($_POST['id'] ?? 0);
         $course = (int) ($_POST['course_id'] ?? 0);
         $teacher = (int) ($_POST['teacher_id'] ?? 0);
-        $year = clean($_POST['academic_year'] ?? '');
-        $sem = clean($_POST['semester'] ?? '');
+        $academicYearId = (int) ($_POST['academic_year_id'] ?? 0);
+        $semesterId = (int) ($_POST['semester_id'] ?? 0);
         $sec = clean($_POST['section'] ?? '');
-        if ($id && $course && $teacher && $year && $sem && $sec) {
-            $stmt = $conn->prepare("UPDATE sections SET course_id=?,teacher_id=?,academic_year=?,semester=?,section=? WHERE id=?");
-            $stmt->bind_param('iisssi', $course, $teacher, $year, $sem, $sec, $id);
+        if ($id && $course && $teacher && $academicYearId && $semesterId && $sec) {
+            $yearName = '';
+            $semName = '';
+            $yq = $conn->prepare("SELECT year_name FROM academic_years WHERE id=?");
+            $yq->bind_param('i', $academicYearId);
+            $yq->execute();
+            $yr = $yq->get_result()->fetch_assoc();
+            $yq->close();
+            if ($yr) $yearName = $yr['year_name'];
+            $sq = $conn->prepare("SELECT semester_name FROM semesters WHERE id=?");
+            $sq->bind_param('i', $semesterId);
+            $sq->execute();
+            $sr = $sq->get_result()->fetch_assoc();
+            $sq->close();
+            if ($sr) $semName = $sr['semester_name'];
+            $stmt = $conn->prepare("UPDATE sections SET course_id=?,teacher_id=?,academic_year_id=?,semester_id=?,section=?,academic_year=? WHERE id=?");
+            $stmt->bind_param('iiiissi', $course, $teacher, $academicYearId, $semesterId, $sec, $yearName, $id);
             $stmt->execute() ? setFlash('success', $LANG['flash_section_updated'] ?? 'Section updated.') : setFlash('error', $LANG['flash_update_failed'] ?? 'Update failed.');
             $stmt->close();
         }
@@ -56,40 +85,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 }
 
 $search = clean($_GET['search'] ?? '');
-$filterSem = clean($_GET['semester'] ?? '');
+$filterYear = (int) ($_GET['academic_year_id'] ?? 0);
+$filterSem = (int) ($_GET['semester_id'] ?? 0);
 $filterSec = clean($_GET['section'] ?? '');
-$perPage = 10;
+$perPage = max(10, min(100, (int)($_GET['per_page'] ?? 10)));
 $page = max(1, (int) ($_GET['page'] ?? 1));
 
-$semesterValues = [
-    1 => '1st Semester',
-    '2nd Semester',
-    '3rd semester',
-    '4th semester',
-    '5th semester',
-    '6th semester',
-    '7th semester',
-    '8th semester',
-    '9th semester',
-    '10th semester'
-];
-
-$baseJoin = "FROM sections s JOIN courses c2 ON s.course_id=c2.id JOIN teachers t ON s.teacher_id=t.id JOIN users u ON t.user_id=u.id";
+$baseJoin = "FROM sections s JOIN courses c2 ON s.course_id=c2.id JOIN teachers t ON s.teacher_id=t.id JOIN users u ON t.user_id=u.id LEFT JOIN academic_years ay ON s.academic_year_id=ay.id LEFT JOIN semesters sm ON s.semester_id=sm.id";
 
 $conditions = [];
 $params = [];
 $types = '';
 
 if ($search) {
-    $conditions[] = "(c2.course_name LIKE ? OR s.section LIKE ? OR u.name LIKE ? OR s.academic_year LIKE ?)";
+    $conditions[] = "(c2.course_name LIKE ? OR s.section LIKE ? OR u.name LIKE ? OR ay.year_name LIKE ? OR sm.semester_name LIKE ?)";
     $s2 = "%$search%";
-    $params = array_merge($params, [$s2, $s2, $s2, $s2]);
-    $types .= 'ssss';
+    $params = array_merge($params, [$s2, $s2, $s2, $s2, $s2]);
+    $types .= 'sssss';
 }
-if ($filterSem && isset($semesterValues[(int) $filterSem])) {
-    $conditions[] = "s.semester = ?";
-    $params[] = $semesterValues[(int) $filterSem];
-    $types .= 's';
+if ($filterYear) {
+    $conditions[] = "s.academic_year_id = ?";
+    $params[] = $filterYear;
+    $types .= 'i';
+}
+if ($filterSem) {
+    $conditions[] = "s.semester_id = ?";
+    $params[] = $filterSem;
+    $types .= 'i';
 }
 if ($filterSec && preg_match('/^[A-Z]$/i', $filterSec)) {
     $conditions[] = "s.section = ?";
@@ -111,7 +133,7 @@ $c->close();
 $pg = paginate($total, $perPage, $page);
 $off = $pg['offset'];
 
-$dataSql = "SELECT s.*, c2.course_name, c2.course_code, u.name AS teacher_name $baseJoin $where ORDER BY s.id DESC LIMIT ? OFFSET ?";
+$dataSql = "SELECT s.*, c2.course_name, c2.course_code, u.name AS teacher_name, ay.year_name, sm.semester_name $baseJoin $where ORDER BY s.id DESC LIMIT ? OFFSET ?";
 $params[] = $perPage;
 $params[] = $off;
 $types .= 'ii';
@@ -122,9 +144,9 @@ $stmt->execute();
 $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 
-$hasFilter = $search || $filterSem || $filterSec;
-$buildQuery = function ($overrides = []) use ($search, $filterSem, $filterSec) {
-    $params = array_merge(['search' => $search, 'semester' => $filterSem, 'section' => $filterSec], $overrides);
+$hasFilter = $search || $filterYear || $filterSem || $filterSec;
+$buildQuery = function ($overrides = []) use ($search, $filterYear, $filterSem, $filterSec) {
+    $params = array_merge(['search' => $search, 'academic_year_id' => $filterYear, 'semester_id' => $filterSem, 'section' => $filterSec], $overrides);
     $params = array_filter($params);
     return 'sections.php' . ($params ? '?' . http_build_query($params) : '');
 };
@@ -156,13 +178,18 @@ include '../includes/admin_sidebar.php';
                     placeholder="<?= $LANG['search_sections'] ?? 'Search sections...' ?>"
                     class="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
             </div>
-            <select name="semester"
+            <select name="academic_year_id"
+                class="px-3 py-2 text-sm border border-slate-200 rounded-xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
+                <option value=""><?= $LANG['all_years'] ?? 'All Academic Years' ?></option>
+                <?php foreach ($academicYears as $ay): ?>
+                    <option value="<?= $ay['id'] ?>" <?= $filterYear == $ay['id'] ? ' selected' : '' ?>><?= e($ay['year_name']) ?></option>
+                <?php endforeach ?>
+            </select>
+            <select name="semester_id"
                 class="px-3 py-2 text-sm border border-slate-200 rounded-xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
                 <option value=""><?= $LANG['all_semesters'] ?? 'All Semesters' ?></option>
-                <?php foreach ($semesterValues as $num => $val): ?>
-                    <option value="<?= $num ?>" <?= $filterSem == $num ? ' selected' : '' ?>><?= $LANG['semester_prefix'] ?? 'Semester' ?>
-                        <?= ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][$num - 1] ?>
-                    </option>
+                <?php foreach ($semesterList as $sm): ?>
+                    <option value="<?= $sm['id'] ?>" <?= $filterSem == $sm['id'] ? ' selected' : '' ?>><?= e(semesterToRoman($sm['semester_name'])) ?></option>
                 <?php endforeach ?>
             </select>
             <select name="section"
@@ -209,8 +236,8 @@ include '../includes/admin_sidebar.php';
                             </td>
                             <td class="px-5 py-3 text-sm text-slate-600"><?= e($row['teacher_name']) ?></td>
                             <td class="px-5 py-3">
-                                <p class="text-sm text-slate-700"><?= e($row['academic_year']) ?></p>
-                                <p class="text-xs text-slate-400"><?= e(formatSemester($row['semester'])) ?></p>
+                                <p class="text-sm text-slate-700"><?= e($row['year_name'] ?? $row['academic_year']) ?></p>
+                                <p class="text-xs text-slate-400"><?= e(semesterToRoman($row['semester_name'] ?? '')) ?></p>
                             </td>
                             <td class="px-5 py-3 text-right">
                                 <div class="flex items-center justify-end gap-2">
@@ -237,7 +264,7 @@ include '../includes/admin_sidebar.php';
             </tbody>
         </table>
     </div>
-    <div class="px-5 py-4 border-t border-slate-100"><?= paginationLinks($pg, $buildQuery()) ?></div>
+    <div class="px-5 py-4 border-t border-slate-100"><?= paginationLinks($pg, $buildQuery(), $perPage) ?></div>
 </div>
 
 <!-- Add Modal -->
@@ -275,14 +302,13 @@ include '../includes/admin_sidebar.php';
                 <div><label
                         class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['section_name'] ?? 'Section Name' ?>
                         <span class="text-red-500">*</span></label>
-                    <!-- <input type="text" name="section" required placeholder="<?= $LANG['section_name_placeholder'] ?? 'e.g. A' ?>" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none"> -->
                     <select name="section" required
                         class="w-full px-4 py-2.5 text-sm font-medium border border-slate-200 rounded-xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
                         <option value="">
                             <?= $LANG['all_sections'] ?? 'All Sections' ?>
                         </option>
                         <?php foreach (['A', 'B', 'C'] as $secLetter): ?>
-                            <option value="<?= $secLetter ?>" <?= strtoupper($filterSec) === $secLetter ? ' selected' : '' ?>>
+                            <option value="<?= $secLetter ?>">
                                 <?= $LANG['section_label'] ?? 'Section' ?>
                                 <?= $secLetter ?>
                             </option>
@@ -294,18 +320,23 @@ include '../includes/admin_sidebar.php';
                 <div><label
                         class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['academic_year'] ?? 'Academic Year' ?>
                         <span class="text-red-500">*</span></label>
-                    <input type="text" name="academic_year" required
-                        placeholder="<?= $LANG['academic_year_placeholder'] ?? '2024-2025' ?>"
-                        class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
+                    <select name="academic_year_id" required
+                        class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
+                        <option value=""><?= $LANG['select_year'] ?? 'Select Academic Year' ?></option>
+                        <?php foreach ($academicYears as $ay): ?>
+                            <option value="<?= $ay['id'] ?>"><?= e($ay['year_name']) ?></option>
+                        <?php endforeach ?>
+                    </select>
                 </div>
                 <div class="col-span-2"><label
                         class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['semester'] ?? 'Semester' ?>
                         <span class="text-red-500">*</span></label>
-                    <select name="semester" required
+                    <select name="semester_id" required
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
                         <option value=""><?= $LANG['select_semester'] ?? 'Select Semester' ?></option>
-                        <?php foreach ($semesters as $s): ?>
-                            <option value="<?= $s ?>"><?= e(formatSemester($s)) ?></option><?php endforeach ?>
+                        <?php foreach ($semesterList as $sm): ?>
+                            <option value="<?= $sm['id'] ?>"><?= e(semesterToRoman($sm['semester_name'])) ?></option>
+                        <?php endforeach ?>
                     </select>
                 </div>
             </div>
@@ -346,23 +377,18 @@ include '../includes/admin_sidebar.php';
                             <option value="<?= $t['id'] ?>"><?= e($t['name']) ?></option><?php endforeach ?>
                     </select>
                 </div>
-                <!-- <div><label class="block text-sm font-medium text-slate-700 mb-1">Section Name</label>
-                    <input type="text" name="section" id="edit_section" required
-                        class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
-                </div> -->
 
                 <div><label class="block text-sm font-medium text-slate-700 mb-1">
                         <?= $LANG['section_name'] ?? 'Section Name' ?>
                         <span class="text-red-500">*</span>
                     </label>
-                    <!-- <input type="text" name="section" required placeholder="<?= $LANG['section_name_placeholder'] ?? 'e.g. A' ?>" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none"> -->
                     <select name="section" id="edit_section" required
                         class="w-full px-4 py-2.5 text-sm font-medium border border-slate-200 rounded-xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
                         <option value="">
                             <?= $LANG['all_sections'] ?? 'All Sections' ?>
                         </option>
                         <?php foreach (['A', 'B', 'C'] as $secLetter): ?>
-                            <option value="<?= $secLetter ?>" <?= strtoupper($filterSec) === $secLetter ? ' selected' : '' ?>>
+                            <option value="<?= $secLetter ?>">
                                 <?= $LANG['section_label'] ?? 'Section' ?>
                                 <?= $secLetter ?>
                             </option>
@@ -372,14 +398,21 @@ include '../includes/admin_sidebar.php';
 
 
                 <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['academic_year'] ?? 'Academic Year' ?></label>
-                    <input type="text" name="academic_year" id="edit_year" required
-                        class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
+                    <select name="academic_year_id" id="edit_academic_year_id" required
+                        class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
+                        <option value=""><?= $LANG['select_year'] ?? 'Select Academic Year' ?></option>
+                        <?php foreach ($academicYears as $ay): ?>
+                            <option value="<?= $ay['id'] ?>"><?= e($ay['year_name']) ?></option>
+                        <?php endforeach ?>
+                    </select>
                 </div>
                 <div class="col-span-2"><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['semester'] ?? 'Semester' ?></label>
-                    <select name="semester" id="edit_semester" required
+                    <select name="semester_id" id="edit_semester_id" required
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
-                        <?php foreach ($semesters as $s): ?>
-                            <option value="<?= $s ?>"><?= e(formatSemester($s)) ?></option><?php endforeach ?>
+                        <option value=""><?= $LANG['select_semester'] ?? 'Select Semester' ?></option>
+                        <?php foreach ($semesterList as $sm): ?>
+                            <option value="<?= $sm['id'] ?>"><?= e(semesterToRoman($sm['semester_name'])) ?></option>
+                        <?php endforeach ?>
                     </select>
                 </div>
             </div>
@@ -423,8 +456,8 @@ include '../includes/admin_sidebar.php';
         document.getElementById('edit_course').value = row.course_id;
         document.getElementById('edit_teacher').value = row.teacher_id;
         document.getElementById('edit_section').value = row.section;
-        document.getElementById('edit_year').value = row.academic_year;
-        document.getElementById('edit_semester').value = row.semester;
+        document.getElementById('edit_academic_year_id').value = row.academic_year_id || '';
+        document.getElementById('edit_semester_id').value = row.semester_id || '';
         openModal('editModal');
     }
     function openDelete(id, name) {

@@ -22,7 +22,7 @@ if (!$formId) { header('Location: my_sections.php'); exit; }
 
 // ─── Step 1: Check enrollment only
 $chk = $conn->prepare(
-    "SELECT ff.*, c.course_name, c.course_code, s.section, s.academic_year, s.semester,
+    "SELECT ff.*, c.course_name, c.course_code, s.section, s.academic_year, sm.semester_name AS semester,
             u.name AS teacher_name
      FROM feedback_forms ff
      JOIN sections s           ON ff.section_id = s.id
@@ -30,6 +30,7 @@ $chk = $conn->prepare(
      JOIN teachers t           ON s.teacher_id  = t.id
      JOIN users u              ON t.user_id     = u.id
      JOIN section_assignments sa ON sa.section_id = s.id
+     LEFT JOIN semesters sm    ON s.semester_id  = sm.id
      WHERE ff.id = ? AND sa.student_id = ?
      LIMIT 1"
 );
@@ -61,10 +62,15 @@ if ($alreadySubmitted) { $statusNote = 'already_submitted'; }
 elseif ($status === 'Upcoming') { $statusNote = 'not_started'; } 
 elseif ($status === 'Expired') { $statusNote = 'expired'; }
 
-// ─── Step 4: Load Questions (shared per module)
-$qStmt = $conn->prepare("SELECT * FROM feedback_questions WHERE module='academic' ORDER BY question_no ASC");
-$qStmt->execute();
-$allQuestions = $qStmt->get_result()->fetch_all(MYSQLI_ASSOC); $qStmt->close();
+// ─── Step 4: Load Questions (from assigned Question Set)
+$allQuestions = [];
+if (!empty($form['question_set_id'])) {
+    $qStmt = $conn->prepare("SELECT * FROM feedback_questions WHERE question_set_id = ? ORDER BY question_no ASC");
+    $qStmt->bind_param('i', $form['question_set_id']);
+    $qStmt->execute();
+    $allQuestions = $qStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $qStmt->close();
+}
 
 $ratingQuestions = [];
 $commentQuestions = [];
@@ -245,23 +251,33 @@ $initials = avatarInitials($user['name']);
                     <p class="text-xs mt-1"><?= badgeStatus($status) ?> <?php if ($status === 'Active'): ?><span class="text-slate-500"><?= getTimeRemaining($form['end_date']) ?></span><?php elseif ($status === 'Upcoming'): ?><span class="text-slate-500"><?= getTimeUntilStart($form['start_date']) ?></span><?php endif ?></p>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm">
-                    <div>
-                        <span class="font-semibold text-slate-500"><?= $LANG['academic_year_label'] ?? 'Academic Year' ?> </span>
-                        <div class="border-b border-dashed border-slate-400 py-1 font-semibold text-slate-900"><?= e($form['academic_year']) ?></div>
-                    </div>
-                
-                    <div>
-                        <span class="font-semibold text-slate-500"><?= $LANG['course_label_short'] ?? 'Course' ?> </span>
-                        <div class="border-b border-dashed border-slate-400 py-1 font-semibold text-slate-900"><?= e(formatSemester($form['semester'])) ?></div>
-                    </div>
-                    <div>
-                        <span class="font-semibold text-slate-500"><?= $LANG['course_name_label'] ?? 'Course' ?> ( ):</span>
-                        <div class="border-b border-dashed border-slate-400 py-1 font-semibold text-slate-900 font-mono"><?= e($form['course_code']) ?> (<?= e($form['course_name']) ?>)</div>
-                    </div>
-                    <div>
-                        <span class="font-semibold text-slate-500"><?= $LANG['teacher_name_label'] ?? 'Teacher Name' ?> :</span>
-                        <div class="border-b border-dashed border-slate-400 py-1 font-semibold text-slate-900"><?= e($form['teacher_name']) ?></div>
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6">
+                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Form Information</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div>
+                            <p class="text-[11px] font-semibold text-slate-400 uppercase">Academic Year</p>
+                            <p class="text-sm font-bold text-slate-800"><?= e($form['academic_year'] ?? '—') ?></p>
+                        </div>
+                        <div>
+                            <p class="text-[11px] font-semibold text-slate-400 uppercase">Semester</p>
+                            <p class="text-sm font-bold text-slate-800"><?= e(semesterToRoman($form['semester'] ?? '')) ?></p>
+                        </div>
+                        <div>
+                            <p class="text-[11px] font-semibold text-slate-400 uppercase">Course Code</p>
+                            <p class="text-sm font-bold text-slate-800"><?= e($form['course_code'] ?? '—') ?></p>
+                        </div>
+                        <div>
+                            <p class="text-[11px] font-semibold text-slate-400 uppercase">Course Name</p>
+                            <p class="text-sm font-bold text-slate-800"><?= e($form['course_name'] ?? '—') ?></p>
+                        </div>
+                        <div>
+                            <p class="text-[11px] font-semibold text-slate-400 uppercase">Section</p>
+                            <p class="text-sm font-bold text-slate-800"><?= e($form['section'] ?? '—') ?></p>
+                        </div>
+                        <div>
+                            <p class="text-[11px] font-semibold text-slate-400 uppercase">Teacher Name</p>
+                            <p class="text-sm font-bold text-slate-800"><?= e($form['teacher_name'] ?? '—') ?></p>
+                        </div>
                     </div>
                 </div>
 

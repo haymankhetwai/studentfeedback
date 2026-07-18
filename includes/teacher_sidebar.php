@@ -61,7 +61,7 @@ $initials = avatarInitials($user['name']);
     <!-- Main -->
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header
-            class="bg-white/80 backdrop-blur-sm border-b border-blue-100/50 px-4 lg:px-6 py-3.5 flex items-center gap-4 flex-shrink-0 sticky top-0 z-20 shadow-sm">
+            class="no-print bg-white/80 backdrop-blur-sm border-b border-blue-100/50 px-4 lg:px-6 py-3.5 flex items-center gap-4 flex-shrink-0 sticky top-0 z-20 shadow-sm">
             <button onclick="openSidebar()" class="lg:hidden text-blue-400 hover:text-blue-700">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
                     stroke="currentColor" class="w-6 h-6">

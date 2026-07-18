@@ -27,11 +27,11 @@ $semesters = [];
 $sections = [];
 $courses = [];
 if ($teacherId) {
-    $rs = $conn->query("SELECT DISTINCT s.semester FROM sections s WHERE s.teacher_id=$teacherId AND s.semester IS NOT NULL AND s.semester != '' ORDER BY s.semester DESC");
+    $rs = $conn->query("SELECT DISTINCT sm.semester_name AS semester_value FROM sections s LEFT JOIN semesters sm ON s.semester_id=sm.id WHERE s.teacher_id=$teacherId AND sm.semester_name IS NOT NULL AND sm.semester_name != '' ORDER BY semester_value DESC");
     while ($r = $rs->fetch_assoc())
-        $semesters[] = $r['semester'];
+        $semesters[] = $r['semester_value'];
 
-    $rs = $conn->query("SELECT s.id, c.course_name, s.section, s.semester FROM sections s JOIN courses c ON s.course_id=c.id WHERE s.teacher_id=$teacherId ORDER BY s.semester DESC, c.course_name ASC");
+    $rs = $conn->query("SELECT s.id, c.course_name, s.section, sm.semester_name AS display_semester FROM sections s JOIN courses c ON s.course_id=c.id LEFT JOIN semesters sm ON s.semester_id=sm.id WHERE s.teacher_id=$teacherId ORDER BY display_semester DESC, c.course_name ASC");
     $sections = $rs->fetch_all(MYSQLI_ASSOC);
 
     $rs = $conn->query("SELECT DISTINCT c.id, c.course_name FROM sections s JOIN courses c ON s.course_id=c.id WHERE s.teacher_id=$teacherId ORDER BY c.course_name ASC");
@@ -44,7 +44,7 @@ $params = [$teacherId];
 $types = 'i';
 
 if ($filterSemester !== '') {
-    $whereParts[] = 's.semester = ?';
+    $whereParts[] = 'sm.semester_name = ?';
     $params[] = $filterSemester;
     $types .= 's';
 }
@@ -79,6 +79,7 @@ $totalFeedbackSql = "
     FROM feedback_ratings fr
     JOIN feedback_forms ff ON fr.form_id = ff.id
     JOIN sections s ON ff.section_id = s.id
+    LEFT JOIN semesters sm ON s.semester_id = sm.id
     $whereSql
 ";
 $totalFeedback = (int) runQuery($conn, $totalFeedbackSql, $types, $params)->fetch_assoc()['cnt'];
@@ -88,6 +89,7 @@ $totalSubmissionsSql = "
     FROM feedback_submissions fs
     JOIN feedback_forms ff ON fs.form_id = ff.id
     JOIN sections s ON ff.section_id = s.id
+    LEFT JOIN semesters sm ON s.semester_id = sm.id
     $whereSql
 ";
 $totalSubmissions = (int) runQuery($conn, $totalSubmissionsSql, $types, $params)->fetch_assoc()['cnt'];
@@ -96,6 +98,7 @@ $totalFormsSql = "
     SELECT COUNT(DISTINCT ff.id) AS cnt
     FROM feedback_forms ff
     JOIN sections s ON ff.section_id = s.id
+    LEFT JOIN semesters sm ON s.semester_id = sm.id
     $whereSql
 ";
 $totalForms = (int) runQuery($conn, $totalFormsSql, $types, $params)->fetch_assoc()['cnt'];
@@ -114,6 +117,7 @@ $avgSql = "
     FROM feedback_ratings fr
     JOIN feedback_forms ff ON fr.form_id = ff.id
     JOIN sections s ON ff.section_id = s.id
+    LEFT JOIN semesters sm ON s.semester_id = sm.id
     $whereSql
 ";
 $avgResult = runQuery($conn, $avgSql, $types, $params)->fetch_assoc();
@@ -125,6 +129,7 @@ $ratingDistSql = "
     FROM feedback_ratings fr
     JOIN feedback_forms ff ON fr.form_id = ff.id
     JOIN sections s ON ff.section_id = s.id
+    LEFT JOIN semesters sm ON s.semester_id = sm.id
     $whereSql
     GROUP BY fr.rating
     ORDER BY FIELD(fr.rating, 'Excellent', 'Good', 'Fair', 'Poor')
@@ -151,15 +156,16 @@ $pieColors = ['#22c55e', '#f59e0b', '#ef4444'];
 
 // ─── Per-Section Breakdown ──────────────────────────────────────
 $sectionBreakdownSql = "
-    SELECT s.id AS section_id, c.course_name, s.section, s.semester,
+    SELECT s.id AS section_id, c.course_name, s.section, sm.semester_name AS display_semester,
            COUNT(fr.id) AS total_ratings,
            AVG(CASE WHEN fr.rating IN ('Excellent','Good') THEN 5 WHEN fr.rating = 'Fair' THEN 3 WHEN fr.rating IN ('Poor','Bad') THEN 1 ELSE 3 END) AS avg_rating
     FROM feedback_ratings fr
     JOIN feedback_forms ff ON fr.form_id = ff.id
     JOIN sections s ON ff.section_id = s.id
     JOIN courses c ON s.course_id = c.id
+    LEFT JOIN semesters sm ON s.semester_id = sm.id
     $whereSql
-    GROUP BY s.id, c.course_name, s.section, s.semester
+    GROUP BY s.id, c.course_name, s.section, display_semester
     ORDER BY total_ratings DESC
 ";
 $sectionBreakdown = runQuery($conn, $sectionBreakdownSql, $types, $params)->fetch_all(MYSQLI_ASSOC);
@@ -200,7 +206,7 @@ $sectionBreakdown = runQuery($conn, $sectionBreakdownSql, $types, $params)->fetc
                     <option value="0"><?= $LANG['all_sections'] ?? 'All Sections' ?></option>
                     <?php foreach ($sections as $sec): ?>
                         <option value="<?= (int) $sec['id'] ?>" <?= $filterSection === (int) $sec['id'] ? 'selected' : '' ?>>
-                            <?= e($sec['course_name']) ?> — Sec <?= e($sec['section']) ?> (<?= e(formatSemester($sec['semester'])) ?>)
+                            <?= e($sec['course_name']) ?> — Sec <?= e($sec['section']) ?> (<?= e(semesterToRoman($sec['display_semester'])) ?>)
                         </option>
                     <?php endforeach; ?>
                 </select>
@@ -294,7 +300,7 @@ $sectionBreakdown = runQuery($conn, $sectionBreakdownSql, $types, $params)->fetc
                             <tr class="hover:bg-blue-50/30 transition-colors">
                                 <td class="px-6 py-3 font-medium text-slate-800"><?= e($sb['course_name']) ?></td>
                                 <td class="px-6 py-3 text-slate-600"><?= e($sb['section']) ?></td>
-                                <td class="px-6 py-3 text-slate-600"><?= e(formatSemester($sb['semester'])) ?></td>
+                                <td class="px-6 py-3 text-slate-600"><?= e(semesterToRoman($sb['display_semester'])) ?></td>
                                 <td class="px-6 py-3 text-center font-semibold text-slate-700">
                                     <?= number_format($sb['total_ratings']) ?></td>
                                 <!-- <td class="px-6 py-3 text-center">

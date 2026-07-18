@@ -33,7 +33,7 @@ if (!$formId) {
 }
 
 // ─── Load form ──────────────────────────────────────────────
-$fs = $conn->prepare("SELECT * FROM feedback_forms WHERE id=? AND module='student_affairs'");
+$fs = $conn->prepare("SELECT ff.*, sm.semester_name AS semester, ay.year_name AS academic_year_name FROM feedback_forms ff LEFT JOIN semesters sm ON ff.semester_id=sm.id LEFT JOIN academic_years ay ON ff.academic_year_id=ay.id WHERE ff.id=? AND module='student_affairs'");
 $fs->bind_param('i', $formId); $fs->execute();
 $form = $fs->get_result()->fetch_assoc(); $fs->close();
 
@@ -59,10 +59,16 @@ if ($alreadySubmitted)     $statusNote = 'already_submitted';
 elseif ($status === 'Upcoming') $statusNote = 'not_started';
 elseif ($status === 'Expired')  $statusNote = 'expired';
 
-// ─── Load Questions (shared per module)
-$qStmt = $conn->prepare("SELECT * FROM feedback_questions WHERE module='student_affairs' ORDER BY question_no ASC");
-$qStmt->execute();
-$allQuestions = $qStmt->get_result()->fetch_all(MYSQLI_ASSOC); $qStmt->close();
+// ─── Load Questions (by question_set_id) ──
+$allQuestions = [];
+$questionSetId = $form['question_set_id'] ?? null;
+if ($questionSetId) {
+    $qStmt = $conn->prepare("SELECT * FROM feedback_questions WHERE question_set_id=? ORDER BY question_no ASC");
+    $qStmt->bind_param('i', $questionSetId);
+    $qStmt->execute();
+    $allQuestions = $qStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $qStmt->close();
+}
 
 $ratingQuestions = [];
 $commentQuestions = [];
@@ -242,13 +248,31 @@ $initials = avatarInitials($user['name']);
                 
                 <div class="text-center pb-4 mb-6 border-b border-slate-100">
                     
-                    <h2 class="text-lg md:text-xl font-bold text-slate-950 mb-1"><?= $LANG['university_name'] ?? 'University of Computer Studies (Hinthada)' ?></h2>
-                    <p class="text-md font-black text-slate-900 mb-1"><?= $LANG['academic_year_label'] ?? 'Academic Year' ?>: <?= e($form['academic_year'] ?? '') ?></p>
-                    <p class="text-md font-black text-slate-900 mt-1 tracking-wider"><?= $LANG['university_campus'] ?? 'University Campus' ?></p>
+                    <h2 class="text-lg md:text-xl font-bold text-slate-950 mb-1"><?= e($form['university_name'] ?? $LANG['university_name'] ?? 'University of Computer Studies (Hinthada)') ?></h2>
+                    <p class="text-md font-black text-slate-900 mb-1"><?= $LANG['academic_year_label'] ?? 'Academic Year' ?>: <?= e($form['academic_year'] ?? $form['academic_year_name'] ?? '') ?></p>
+                    <p class="text-md font-black text-slate-900 mt-1 tracking-wider"><?= e($form['university_campus'] ?? $LANG['university_campus'] ?? 'University Campus') ?></p>
                     <h3 class="text-md font-black text-slate-900 mt-1"><?= e($form['title']) ?></h3>
                     <p class="text-xs text-slate-500 mt-1"><?= $LANG['feedback_period'] ?? 'Feedback Period' ?>: <?= formatDateTime($form['start_date']) ?> — <?= formatDateTime($form['end_date']) ?></p>
                     <p class="text-xs mt-1"><?= badgeStatus($status) ?> <?php if ($status === 'Active'): ?><span class="text-slate-500"><?= getTimeRemaining($form['end_date']) ?></span><?php elseif ($status === 'Upcoming'): ?><span class="text-slate-500"><?= getTimeUntilStart($form['start_date']) ?></span><?php endif ?></p>
                 </div>
+
+                <!-- <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6">
+                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Form Information</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div>
+                            <p class="text-[11px] font-semibold text-slate-400 uppercase">Academic Year</p>
+                            <p class="text-sm font-bold text-slate-800"><?= e($form['academic_year'] ?? $form['academic_year_name'] ?? '—') ?></p>
+                        </div>
+                        <div>
+                            <p class="text-[11px] font-semibold text-slate-400 uppercase">Semester</p>
+                            <p class="text-sm font-bold text-slate-800"><?= e(semesterToRoman($form['semester'] ?? '')) ?></p>
+                        </div>
+                        <div>
+                            <p class="text-[11px] font-semibold text-slate-400 uppercase">Form Type</p>
+                            <p class="text-sm font-bold text-slate-800"><?= moduleBadge($form['module'] ?? '') ?></p>
+                        </div>
+                    </div>
+                </div> -->
 
                 <?php if ($alreadySubmitted): ?>
                 <div class="bg-green-50 border border-green-200 text-green-800 p-4 rounded-xl mb-6 text-sm font-semibold">
