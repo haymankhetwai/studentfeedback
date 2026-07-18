@@ -143,7 +143,7 @@ function paginate(int $total, int $perPage, int $current): array
 function paginationLinks(array $pg, string $baseUrl, int $perPage = 10): string
 {
     global $LANG;
-    if ($pg['total_pages'] <= 1 && $pg['total'] <= $perPage)
+    if ($pg['total'] === 0)
         return '';
     $cur = $pg['current'];
     $total = $pg['total_pages'];

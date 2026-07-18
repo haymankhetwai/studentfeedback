@@ -71,7 +71,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'download_template' && isset($
 </Relationships>');
     $headers = ['Name', 'Username', 'Email', 'Password', 'Roll No'];
     $shared = '';
-    foreach ($headers as $h) $shared .= '<si><t>' . htmlspecialchars($h) . '</t></si>';
+    foreach ($headers as $h)
+        $shared .= '<si><t>' . htmlspecialchars($h) . '</t></si>';
     $zip->addFromString('xl/sharedStrings.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="5" uniqueCount="5">' . $shared . '</sst>');
     $zip->addFromString('xl/styles.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -160,7 +161,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf() && ($_POST['action'] ?
                                 $val = $sharedStrings[(int) $val];
                             }
                             $rowData[$colIdx] = trim($val);
-                            if ($colIdx > $maxCol) $maxCol = $colIdx;
+                            if ($colIdx > $maxCol)
+                                $maxCol = $colIdx;
                         }
                         $rows[] = $rowData;
                     }
@@ -187,38 +189,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf() && ($_POST['action'] ?
                         }
 
                         $rowErrors = [];
-                        if (!$name) $rowErrors[] = 'Missing name';
-                        if (!$username) $rowErrors[] = 'Missing username';
-                        if (!$email) $rowErrors[] = 'Missing email';
-                        if (!$password) $rowErrors[] = 'Missing password';
-                        if (!$rollNo) $rowErrors[] = 'Missing roll number';
+                        if (!$name)
+                            $rowErrors[] = 'Missing name';
+                        if (!$username)
+                            $rowErrors[] = 'Missing username';
+                        if (!$email)
+                            $rowErrors[] = 'Missing email';
+                        if (!$password)
+                            $rowErrors[] = 'Missing password';
+                        if (!$rollNo)
+                            $rowErrors[] = 'Missing roll number';
 
-                        if ($name && !isValidName($name)) $rowErrors[] = 'Invalid name format';
-                        if ($username && !isValidUsername($username)) $rowErrors[] = 'Invalid username (4-30 chars, lowercase, numbers, underscore)';
-                        if ($email && !filter_var($email, FILTER_VALIDATE_EMAIL)) $rowErrors[] = 'Invalid email format';
-                        if ($email && !preg_match('/@(ucsh\.edu\.mm|gmail\.com)$/', $email)) $rowErrors[] = 'Unsupported email domain';
-                        if ($password && !isValidPassword($password)) $rowErrors[] = 'Invalid password (min 6 chars, letters/numbers/@)';
+                        if ($name && !isValidName($name))
+                            $rowErrors[] = 'Invalid name format';
+                        if ($username && !isValidUsername($username))
+                            $rowErrors[] = 'Invalid username (4-30 chars, lowercase, numbers, underscore)';
+                        if ($email && !filter_var($email, FILTER_VALIDATE_EMAIL))
+                            $rowErrors[] = 'Invalid email format';
+                        if ($email && !preg_match('/@(ucsh\.edu\.mm|gmail\.com)$/', $email))
+                            $rowErrors[] = 'Unsupported email domain';
+                        if ($password && !isValidPassword($password))
+                            $rowErrors[] = 'Invalid password (min 6 chars, letters/numbers/@)';
 
                         // Check DB duplicates
                         if (!$rowErrors) {
                             $chk = $conn->prepare("SELECT id FROM users WHERE username = ?");
                             $chk->bind_param('s', $username);
                             $chk->execute();
-                            if ($chk->get_result()->num_rows > 0) $rowErrors[] = 'Duplicate username';
+                            if ($chk->get_result()->num_rows > 0)
+                                $rowErrors[] = 'Duplicate username';
                             $chk->close();
                         }
                         if (!$rowErrors) {
                             $chk = $conn->prepare("SELECT id FROM users WHERE email = ?");
                             $chk->bind_param('s', $email);
                             $chk->execute();
-                            if ($chk->get_result()->num_rows > 0) $rowErrors[] = 'Duplicate email';
+                            if ($chk->get_result()->num_rows > 0)
+                                $rowErrors[] = 'Duplicate email';
                             $chk->close();
                         }
                         if (!$rowErrors) {
                             $chk = $conn->prepare("SELECT id FROM students WHERE roll_no = ?");
                             $chk->bind_param('s', $rollNo);
                             $chk->execute();
-                            if ($chk->get_result()->num_rows > 0) $rowErrors[] = 'Duplicate roll number';
+                            if ($chk->get_result()->num_rows > 0)
+                                $rowErrors[] = 'Duplicate roll number';
                             $chk->close();
                         }
 
@@ -493,7 +508,7 @@ $borderRed = 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-50
 // ─── Fetch ────────────────────────────────────────────────────
 $search = clean($_GET['search'] ?? '');
 $roleF = clean($_GET['role'] ?? '');
-$perPage = max(10, min(100, (int)($_GET['per_page'] ?? 10)));
+$perPage = max(10, min(100, (int) ($_GET['per_page'] ?? 10)));
 $page = max(1, (int) ($_GET['page'] ?? 1));
 
 $whereParts = [];
@@ -543,17 +558,21 @@ include '../includes/admin_sidebar.php';
         <p class="text-sm text-slate-500 mt-0.5"><?= $LANG['users_subtitle'] ?? 'Manage all system users' ?></p>
     </div>
     <div class="flex items-center gap-3">
+        <button onclick="openModal('addModal')"
+            class="inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm shadow-cyan-600/20 transition-all hover:-translate-y-0.5">
+            <?= iconSvg('plus', 'w-4 h-4') ?>
+            <?= $LANG['add_user'] ?? 'Add User' ?>
+        </button>
         <button onclick="openModal('importModal')"
             class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm shadow-emerald-600/20 transition-all hover:-translate-y-0.5">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                stroke="currentColor" class="w-4 h-4">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
             </svg>
             Import Students (Excel)
         </button>
-        <button onclick="openModal('addModal')"
-            class="inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm shadow-cyan-600/20 transition-all hover:-translate-y-0.5">
-            <?= iconSvg('plus', 'w-4 h-4') ?> <?= $LANG['add_user'] ?? 'Add User' ?>
-        </button>
+
     </div>
 </div>
 
@@ -582,9 +601,9 @@ include '../includes/admin_sidebar.php';
                 </option>
             </select>
             <button type="submit"
-                class="px-3 py-2 text-sm bg-cyan-600 text-white rounded-xl hover:bg-cyan-700"><?= $LANG['filter'] ?? 'Filter' ?></button>
+                class="px-3 py-2 text-sm bg-cyan-600 text-white rounded-xl hover:bg-cyan-700">Search</button>
             <?php if ($search || $roleF): ?><a href="users.php"
-                    class="px-3 py-2 text-sm border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50"><?= $LANG['clear'] ?? 'Clear' ?></a><?php endif ?>
+                    class="px-3 py-2 text-sm text-white border border-slate-200 rounded-xl  hover:bg-red-700 bg-red-500"><?= $LANG['clear'] ?? 'Clear' ?></a><?php endif ?>
         </form>
         <span class="text-xs text-slate-400"><?= $total ?>
             <?= $total !== 1 ? ($LANG['records'] ?? 'records') : ($LANG['record'] ?? 'record') ?></span>
@@ -595,12 +614,18 @@ include '../includes/admin_sidebar.php';
             <thead class="bg-slate-200 border-b border-slate-200">
                 <tr>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">#</th>
-                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['col_name'] ?? 'Name' ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['col_username'] ?? 'Username' ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['col_email'] ?? 'Email' ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['col_role'] ?? 'Role' ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['col_created'] ?? 'Created' ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['col_actions'] ?? 'Actions' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
+                        <?= $LANG['col_name'] ?? 'Name' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
+                        <?= $LANG['col_username'] ?? 'Username' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
+                        <?= $LANG['col_email'] ?? 'Email' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
+                        <?= $LANG['col_role'] ?? 'Role' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
+                        <?= $LANG['col_created'] ?? 'Created' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
+                        <?= $LANG['col_actions'] ?? 'Actions' ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -888,21 +913,26 @@ include '../includes/admin_sidebar.php';
 </div>
 
 <!-- Import Students Modal -->
-<div id="importModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4 modal-backdrop" data-modal-backdrop>
+<div id="importModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4 modal-backdrop"
+    data-modal-backdrop>
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg modal-box">
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
             <h3 class="font-semibold text-slate-800">Import Students (Excel)</h3>
-            <button onclick="closeModal('importModal')" class="text-slate-400 hover:text-slate-600"><?= iconSvg('x', 'w-5 h-5') ?></button>
+            <button onclick="closeModal('importModal')"
+                class="text-slate-400 hover:text-slate-600"><?= iconSvg('x', 'w-5 h-5') ?></button>
         </div>
         <form method="POST" enctype="multipart/form-data" id="importForm">
             <?= csrfField() ?><input type="hidden" name="action" value="import_students">
             <div class="px-6 py-5 space-y-4">
-                <p class="text-sm text-slate-500">Upload an Excel file (.xlsx) with student data. The file must have these columns in order:</p>
+                <p class="text-sm text-slate-500">Upload an Excel file (.xlsx) with student data. The file must have
+                    these columns in order:</p>
                 <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
-                    <p class="text-xs font-mono text-slate-600">Name &nbsp;|&nbsp; Username &nbsp;|&nbsp; Email &nbsp;|&nbsp; Password &nbsp;|&nbsp; Roll No</p>
+                    <p class="text-xs font-mono text-slate-600">Name &nbsp;|&nbsp; Username &nbsp;|&nbsp; Email
+                        &nbsp;|&nbsp; Password &nbsp;|&nbsp; Roll No</p>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Select Excel File <span class="text-red-500">*</span></label>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Select Excel File <span
+                            class="text-red-500">*</span></label>
                     <input type="file" name="import_file" id="import_file" accept=".xlsx,.xls" required
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
                 </div>
@@ -921,8 +951,10 @@ include '../includes/admin_sidebar.php';
                     class="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-100"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
                 <button type="submit" id="importBtn"
                     class="px-5 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl inline-flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                        stroke="currentColor" class="w-4 h-4">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
                     </svg>
                     Import Students
                 </button>
@@ -933,80 +965,85 @@ include '../includes/admin_sidebar.php';
 
 <!-- Import Results Modal -->
 <?php if ($importResults): ?>
-<div id="importResultModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4 modal-backdrop" data-modal-backdrop>
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl modal-box max-h-[85vh] flex flex-col">
-        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
-            <h3 class="font-semibold text-slate-800">Import Results</h3>
-            <button onclick="closeModal('importResultModal')" class="text-slate-400 hover:text-slate-600"><?= iconSvg('x', 'w-5 h-5') ?></button>
-        </div>
-        <div class="px-6 py-5 overflow-y-auto">
-            <?php if (!empty($importResults['error'])): ?>
-                <div class="bg-red-50 border border-red-200 rounded-xl p-4">
-                    <p class="text-sm font-semibold text-red-700 mb-2">Import Failed</p>
-                    <?php foreach ($importResults['error'] as $err): ?>
-                        <p class="text-sm text-red-600"><?= e($err) ?></p>
-                    <?php endforeach ?>
-                </div>
-            <?php else: ?>
-                <div class="grid grid-cols-3 gap-4 mb-5">
-                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center">
-                        <p class="text-2xl font-black text-slate-800"><?= $importResults['total'] ?></p>
-                        <p class="text-xs font-bold text-slate-400 uppercase mt-1">Total Rows</p>
+    <div id="importResultModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4 modal-backdrop"
+        data-modal-backdrop>
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl modal-box max-h-[85vh] flex flex-col">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
+                <h3 class="font-semibold text-slate-800">Import Results</h3>
+                <button onclick="closeModal('importResultModal')"
+                    class="text-slate-400 hover:text-slate-600"><?= iconSvg('x', 'w-5 h-5') ?></button>
+            </div>
+            <div class="px-6 py-5 overflow-y-auto">
+                <?php if (!empty($importResults['error'])): ?>
+                    <div class="bg-red-50 border border-red-200 rounded-xl p-4">
+                        <p class="text-sm font-semibold text-red-700 mb-2">Import Failed</p>
+                        <?php foreach ($importResults['error'] as $err): ?>
+                            <p class="text-sm text-red-600"><?= e($err) ?></p>
+                        <?php endforeach ?>
                     </div>
-                    <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
-                        <p class="text-2xl font-black text-emerald-600"><?= $importResults['imported'] ?></p>
-                        <p class="text-xs font-bold text-emerald-500 uppercase mt-1">Imported</p>
+                <?php else: ?>
+                    <div class="grid grid-cols-3 gap-4 mb-5">
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center">
+                            <p class="text-2xl font-black text-slate-800"><?= $importResults['total'] ?></p>
+                            <p class="text-xs font-bold text-slate-400 uppercase mt-1">Total Rows</p>
+                        </div>
+                        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
+                            <p class="text-2xl font-black text-emerald-600"><?= $importResults['imported'] ?></p>
+                            <p class="text-xs font-bold text-emerald-500 uppercase mt-1">Imported</p>
+                        </div>
+                        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+                            <p class="text-2xl font-black text-amber-600"><?= $importResults['skipped'] ?></p>
+                            <p class="text-xs font-bold text-amber-500 uppercase mt-1">Skipped</p>
+                        </div>
                     </div>
-                    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
-                        <p class="text-2xl font-black text-amber-600"><?= $importResults['skipped'] ?></p>
-                        <p class="text-xs font-bold text-amber-500 uppercase mt-1">Skipped</p>
-                    </div>
-                </div>
-                <?php if (!empty($importResults['details'])): ?>
-                    <div class="flex items-center justify-between mb-2">
-                        <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Failed Records</p>
-                        <button onclick="downloadFailedRecords()" class="inline-flex items-center gap-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                            </svg>
-                            Download Failed Records
-                        </button>
-                    </div>
-                    <div class="border border-slate-200 rounded-xl overflow-hidden">
-                        <table class="w-full text-xs" id="failedRecordsTable">
-                            <thead class="bg-slate-100">
-                                <tr>
-                                    <th class="px-3 py-2 text-left font-semibold text-slate-600">Row</th>
-                                    <th class="px-3 py-2 text-left font-semibold text-slate-600">Name</th>
-                                    <th class="px-3 py-2 text-left font-semibold text-slate-600">Username</th>
-                                    <th class="px-3 py-2 text-left font-semibold text-slate-600">Email</th>
-                                    <th class="px-3 py-2 text-left font-semibold text-slate-600">Roll No</th>
-                                    <th class="px-3 py-2 text-left font-semibold text-slate-600">Reason</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100">
-                                <?php foreach ($importResults['details'] as $d): ?>
-                                    <tr class="hover:bg-slate-50">
-                                        <td class="px-3 py-2 font-mono text-slate-500"><?= $d['row'] ?></td>
-                                        <td class="px-3 py-2 text-slate-700 font-medium"><?= e($d['name']) ?></td>
-                                        <td class="px-3 py-2 text-slate-600 font-mono"><?= e($d['username']) ?></td>
-                                        <td class="px-3 py-2 text-slate-600"><?= e($d['email']) ?></td>
-                                        <td class="px-3 py-2 text-slate-600 font-mono"><?= e($d['roll_no']) ?></td>
-                                        <td class="px-3 py-2 text-red-600"><?= e(implode(', ', $d['reasons'])) ?></td>
+                    <?php if (!empty($importResults['details'])): ?>
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Failed Records</p>
+                            <button onclick="downloadFailedRecords()"
+                                class="inline-flex items-center gap-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                                    stroke="currentColor" class="w-3.5 h-3.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                                </svg>
+                                Download Failed Records
+                            </button>
+                        </div>
+                        <div class="border border-slate-200 rounded-xl overflow-hidden">
+                            <table class="w-full text-xs" id="failedRecordsTable">
+                                <thead class="bg-slate-100">
+                                    <tr>
+                                        <th class="px-3 py-2 text-left font-semibold text-slate-600">Row</th>
+                                        <th class="px-3 py-2 text-left font-semibold text-slate-600">Name</th>
+                                        <th class="px-3 py-2 text-left font-semibold text-slate-600">Username</th>
+                                        <th class="px-3 py-2 text-left font-semibold text-slate-600">Email</th>
+                                        <th class="px-3 py-2 text-left font-semibold text-slate-600">Roll No</th>
+                                        <th class="px-3 py-2 text-left font-semibold text-slate-600">Reason</th>
                                     </tr>
-                                <?php endforeach ?>
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    <?php foreach ($importResults['details'] as $d): ?>
+                                        <tr class="hover:bg-slate-50">
+                                            <td class="px-3 py-2 font-mono text-slate-500"><?= $d['row'] ?></td>
+                                            <td class="px-3 py-2 text-slate-700 font-medium"><?= e($d['name']) ?></td>
+                                            <td class="px-3 py-2 text-slate-600 font-mono"><?= e($d['username']) ?></td>
+                                            <td class="px-3 py-2 text-slate-600"><?= e($d['email']) ?></td>
+                                            <td class="px-3 py-2 text-slate-600 font-mono"><?= e($d['roll_no']) ?></td>
+                                            <td class="px-3 py-2 text-red-600"><?= e(implode(', ', $d['reasons'])) ?></td>
+                                        </tr>
+                                    <?php endforeach ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif ?>
                 <?php endif ?>
-            <?php endif ?>
-        </div>
-        <div class="flex justify-end px-6 py-4 border-t border-slate-100 shrink-0">
-            <button onclick="closeModal('importResultModal')"
-                class="px-5 py-2 text-sm font-semibold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl">Close</button>
+            </div>
+            <div class="flex justify-end px-6 py-4 border-t border-slate-100 shrink-0">
+                <button onclick="closeModal('importResultModal')"
+                    class="px-5 py-2 text-sm font-semibold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl">Close</button>
+            </div>
         </div>
     </div>
-</div>
 <?php endif ?>
 
 <script>

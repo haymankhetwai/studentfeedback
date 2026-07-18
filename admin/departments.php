@@ -100,7 +100,7 @@ include '../includes/admin_sidebar.php';
             <button type="submit"
                 class="px-3 py-2 text-sm bg-cyan-600 text-white rounded-xl hover:bg-cyan-700"><?= $LANG['search'] ?? 'Search' ?></button>
             <?php if ($search): ?><a href="departments.php"
-                    class="px-3 py-2 text-sm border border-slate-200 rounded-xl text-slate-600"><?= $LANG['clear'] ?? 'Clear' ?></a><?php endif ?>
+                    class="px-3 py-2 text-sm border border-slate-200 rounded-xl hover:bg-red-700 bg-red-500 text-white"><?= $LANG['clear'] ?? 'Clear' ?></a><?php endif ?>
         </form>
         <span class="text-xs text-slate-400"><?= $total ?> <?= $total !== 1 ? ($LANG['records'] ?? 'records') : ($LANG['record'] ?? 'record') ?></span>
     </div>

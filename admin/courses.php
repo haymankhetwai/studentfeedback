@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 }
 
 $search = clean($_GET['search'] ?? '');
-$perPage = max(10, min(100, (int)($_GET['per_page'] ?? 10)));
+$perPage = max(10, min(100, (int) ($_GET['per_page'] ?? 10)));
 $page = max(1, (int) ($_GET['page'] ?? 1));
 
 if ($search) {
@@ -102,7 +102,7 @@ include '../includes/admin_sidebar.php';
             <button type="submit"
                 class="px-3 py-2 text-sm bg-cyan-600 text-white rounded-xl hover:bg-cyan-700"><?= $LANG['search'] ?? 'Search' ?></button>
             <?php if ($search): ?><a href="courses.php"
-                    class="px-3 py-2 text-sm border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50"><?= $LANG['clear'] ?? 'Clear' ?></a><?php endif ?>
+                    class="px-3 py-2 text-sm border border-slate-200 rounded-xl text-white hover:bg-red-700 bg-red-500"><?= $LANG['clear'] ?? 'Clear' ?></a><?php endif ?>
         </form>
         <span class="text-xs text-slate-400"><?= $total ?>
             <?= $total !== 1 ? ($LANG['records'] ?? 'records') : ($LANG['record'] ?? 'record') ?></span>
@@ -112,9 +112,12 @@ include '../includes/admin_sidebar.php';
             <thead class="bg-slate-200 border-b border-slate-200">
                 <tr>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">#</th>
-                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['course_code'] ?? 'Code' ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['course_name'] ?? 'Course' ?></th>
-                    <th class="text-right px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['col_actions'] ?? 'Actions' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
+                        <?= $LANG['course_code'] ?? 'Code' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
+                        <?= $LANG['course_name'] ?? 'Course' ?></th>
+                    <th class="text-right px-5 py-3 text-slate-500 text-sm font-semibold">
+                        <?= $LANG['col_actions'] ?? 'Actions' ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -152,7 +155,8 @@ include '../includes/admin_sidebar.php';
         </table>
     </div>
     <div class="px-5 py-4 border-t border-slate-100">
-        <?= paginationLinks($pg, 'courses.php' . ($search ? '?search=' . urlencode($search) : ''), $perPage) ?></div>
+        <?= paginationLinks($pg, 'courses.php' . ($search ? '?search=' . urlencode($search) : ''), $perPage) ?>
+    </div>
 </div>
 
 <!-- Add Modal -->
@@ -230,7 +234,8 @@ include '../includes/admin_sidebar.php';
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm modal-box">
         <div class="px-6 py-6 text-center">
             <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
-                <?= iconSvg('trash', 'w-7 h-7 text-red-600') ?></div>
+                <?= iconSvg('trash', 'w-7 h-7 text-red-600') ?>
+            </div>
             <h3 class="text-lg font-semibold text-slate-800"><?= $LANG['delete_course_modal'] ?? 'Delete Course' ?></h3>
             <p class="text-sm text-slate-500 mt-2"><?= $LANG['delete'] ?? 'Delete' ?> <strong id="delete_name"
                     class="text-slate-700"></strong>?</p>

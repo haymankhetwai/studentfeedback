@@ -145,7 +145,7 @@ include '../includes/admin_sidebar.php';
                     class="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none">
             </div>
             <button type="submit" class="px-3 py-2 text-sm bg-indigo-600 text-white rounded-xl hover:bg-indigo-700">Search</button>
-            <?php if ($hasFilter): ?><a href="semesters.php" class="px-3 py-2 text-sm border border-slate-200 rounded-xl text-slate-600">Clear</a><?php endif ?>
+            <?php if ($hasFilter): ?><a href="semesters.php" class="px-3 py-2 text-sm border border-slate-200 rounded-xl text-white hover:bg-red-700 bg-red-500">Clear</a><?php endif ?>
         </form>
         <span class="text-xs text-slate-400"><?= $total ?> record<?= $total !== 1 ? 's' : '' ?></span>
     </div>
