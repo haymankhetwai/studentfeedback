@@ -149,6 +149,23 @@ if ($formTypes) {
     $formList = $conn->query($formSql)->fetch_all(MYSQLI_ASSOC);
 }
 
+// Determine which form to load based on filters
+$loadForm = false;
+if ($filterAY > 0 && $filterSem > 0 && $formId > 0) {
+    // All three filters selected — load the chosen form
+    $loadForm = true;
+} elseif ($filterAY === 0 && $filterSem === 0 && $formId === 0) {
+    // No filters selected — auto-load the latest submitted form
+    $latestQ = $conn->prepare("SELECT ff.id FROM feedback_forms ff JOIN feedback_submissions fs ON fs.form_id = ff.id ORDER BY ff.id DESC LIMIT 1");
+    $latestQ->execute();
+    $latestRow = $latestQ->get_result()->fetch_assoc();
+    $latestQ->close();
+    if ($latestRow) {
+        $formId = (int) $latestRow['id'];
+        $loadForm = true;
+    }
+}
+
 $form = null;
 $questions = [];
 $ratingStats = [];
@@ -158,7 +175,7 @@ $totalStudents = 0;
 $completedCount = 0;
 $pendingCount = 0;
 
-if ($formId) {
+if ($loadForm && $formId) {
     $r = $conn->prepare("SELECT ff.*, c.course_name, c.course_code, s.section, u.name AS teacher_name, ay.year_name AS academic_year_name, sm.semester_name FROM feedback_forms ff LEFT JOIN sections s ON ff.section_id=s.id LEFT JOIN courses c ON s.course_id=c.id LEFT JOIN teachers t ON s.teacher_id=t.id LEFT JOIN users u ON t.user_id=u.id LEFT JOIN academic_years ay ON COALESCE(s.academic_year_id, ff.academic_year_id) = ay.id LEFT JOIN semesters sm ON COALESCE(s.semester_id, ff.semester_id) = sm.id WHERE ff.id=?");
     $r->bind_param('i', $formId);
     $r->execute();
@@ -710,6 +727,17 @@ include '../includes/admin_sidebar.php';
     </form>
 </div>
 
+<?php if ($filterAY > 0 && $filterSem > 0 && empty($formList)): ?>
+    <div class="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 mb-6 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+            <?= iconSvg('question', 'w-5 h-5 text-amber-600') ?>
+        </div>
+        <div>
+            <p class="text-sm font-semibold text-amber-800">No feedback forms for this section</p>
+        </div>
+    </div>
+<?php endif; ?>
+
 <?php if ($form): ?>
     <!-- Progress Stats -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 mt-6 myanmar-font no-print">
@@ -743,15 +771,13 @@ include '../includes/admin_sidebar.php';
         </div>
     </div>
 
-    <?php if ($completedCount === 0 && $totalStudents > 0): ?>
+    <?php if ($completedCount === 0): ?>
         <div class="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 mb-6 flex items-center gap-3">
             <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
                 <?= iconSvg('question', 'w-5 h-5 text-amber-600') ?>
             </div>
             <div>
-                <p class="text-sm font-semibold text-amber-800">No responses yet</p>
-                <p class="text-xs text-amber-600 mt-0.5">This feedback form has <?= $totalStudents ?> assigned students but no
-                    submissions have been received so far.</p>
+                <p class="text-sm font-semibold text-amber-800">No feedback forms for this section</p>
             </div>
         </div>
     <?php endif ?>
@@ -975,7 +1001,9 @@ include '../includes/admin_sidebar.php';
                                     $bp = $tv > 0 ? round(($bc / $tv) * 100) : 0;
                                     ?>
                                     <tr class="hover:bg-slate-50/60 transition-colors">
-                                        <td class="p-3 text-center font-bold font-mono border-r text-lg"><?= e($q['question_no']) ?></td>
+                                        <td class="p-3 text-center font-bold font-mono border-r text-lg">
+                                            <?= e(displayQuestionNumber($q['question_no'], $_SESSION['lang'] ?? 'en')) ?>
+                                        </td>
                                         <td class="p-3 border-r leading-relaxed text-lg"><?= e($q['question_text']) ?></td>
                                         <td class="p-3 text-center border-r bg-emerald-50/30"><span
                                                 class="text-emerald-700 font-bold block text-sm"><?= $gc ?> persons</span><span
@@ -996,13 +1024,17 @@ include '../includes/admin_sidebar.php';
 
             <?php if (!empty($commentQuestions)): ?>
                 <div class="space-y-6 pt-6 border-t-2 border-slate-300">
-                    <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Comments & Suggestions</h3>
+                    <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                        <?= $LANG['comments_header'] ?? 'Comments' ?>
+                    </h3>
                     <?php foreach ($commentQuestions as $cq):
                         $commentsForQ = $allComments[$cq['id']] ?? [];
                         ?>
                         <div class="space-y-2 text-lg">
-                            <label class="block font-bold text-slate-700 text-lg"><?= e($cq['question_no']) ?>.
-                                <?= e($cq['question_text']) ?> <span class="text-slate-400 font-normal">(<?= count($commentsForQ) ?>
+                            <label class="block font-bold text-slate-700 text-lg">
+                                <?= displayQuestionNumber($cq['question_no'], $_SESSION['lang'] ?? 'en') ?>
+                                <?= e($cq['question_text']) ?>
+                                <span class="text-slate-400 font-normal">(<?= count($commentsForQ) ?>
                                     comments)</span></label>
                             <div
                                 class="w-full bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-2.5 max-h-[300px] overflow-y-auto">
@@ -1047,7 +1079,7 @@ include '../includes/admin_sidebar.php';
                             <div class="px-6 pt-5 pb-3 border-b border-slate-100">
                                 <div class="flex items-start gap-3">
                                     <span
-                                        class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.5 shrink-0"><?= e($q['question_no']) ?></span>
+                                        class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.5 shrink-0"><?= e(displayQuestionNumber($q['question_no'], $_SESSION['lang'] ?? 'en')) ?></span>
                                     <div class="flex-1 min-w-0">
                                         <h4 class="text-lg font-bold text-slate-800 leading-snug"><?= e($q['question_text']) ?></h4>
                                         <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-[11px] text-slate-400">
@@ -1280,7 +1312,9 @@ include '../includes/admin_sidebar.php';
                             $bp = $tv > 0 ? round(($bc / $tv) * 100) : 0;
                             ?>
                             <tr>
-                                <td style="text-align:center; font-weight:700;"><?= e($q['question_no']) ?></td>
+                                <td style="text-align:center; font-weight:700;">
+                                    <?= e(displayQuestionNumber($q['question_no'], $_SESSION['lang'] ?? 'en')) ?>
+                                </td>
                                 <td style="text-align:left;"><?= e($q['question_text']) ?></td>
                                 <td style="text-align:center;"><?= $gc ?> (<?= $gp ?>%)</td>
                                 <td style="text-align:center;"><?= $fc ?> (<?= $fp ?>%)</td>
@@ -1332,7 +1366,8 @@ include '../includes/admin_sidebar.php';
                             </div>
                             <div style="flex:1; min-width:0;">
                                 <div style="font-size:9.5pt; font-weight:700; color:#0f172a; margin-bottom:4px;">
-                                    Q<?= e($q['question_no']) ?>. <?= e($q['question_text']) ?>
+                                    <?= e(displayQuestionNumber($q['question_no'], $_SESSION['lang'] ?? 'en')) ?>
+                                    <?= e($q['question_text']) ?>
                                     <?php if ($totalVotes > 0 && !empty($mostSelected['indices'])): ?>
                                         <span style="font-size:8pt; color:#6d28d9; margin-left:8px; font-weight:bold;">
                                             (အများဆုံးရွေးချယ်မှု: <?php
@@ -1387,7 +1422,9 @@ include '../includes/admin_sidebar.php';
                         ?>
                         <div style="margin-bottom:10px; page-break-inside:avoid;">
                             <div style="font-size:9pt; font-weight:700; color:#0f172a; margin-bottom:4px;">
-                                Q<?= e($cq['question_no']) ?>. <?= e($cq['question_text']) ?>
+                                <?= e(displayQuestionNumber($cq['question_no'], $_SESSION['lang'] ?? 'en')) ?>
+                                <?= e($cq['question_text']) ?>
+
                                 <span style="font-weight:400; color:#64748b; font-size:7.5pt;">(<?= count($commentsForQ) ?>
                                     comments)</span>
                             </div>

@@ -2,6 +2,13 @@
 require_once '../config/db.php';
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
+
+// Prevent direct URL access — must come through index.php portal flow
+if (!isset($_SESSION['entry_allowed']) || $_SESSION['selected_role'] !== 'student') {
+    header('Location: /studentfeedbackucsh/index.php');
+    exit;
+}
+
 requireRole('student');
 
 updateAllFeedbackStatuses($conn);
@@ -223,7 +230,7 @@ $initials = avatarInitials($user['name']);
             <a href="/studentfeedbackucsh/student/profile.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('user','w-4 h-4 flex-shrink-0') ?> <?= $LANG['nav_profile'] ?? 'Profile' ?></a>
         </nav>
        <a href="/studentfeedbackucsh/auth/logout.php" title="<?= $LANG['logout'] ?? 'Logout' ?>"
-                class="block border-t border-white/15 bg-red-500 text-gray-50 hover:text-gray-200 transition-colors px-4 py-4 cursor-pointer">
+                class="block border-t border-white/15 bg-red-500/80 text-gray-50 hover:text-gray-200 transition-colors px-4 py-4 cursor-pointer">
                 <div class="flex items-center justify-center gap-3">
 
                     <div class="min-w-0 ">
@@ -309,7 +316,7 @@ $initials = avatarInitials($user['name']);
                                 <tbody class="text-xs divide-y divide-slate-200 text-slate-800">
                                     <?php foreach ($ratingQuestions as $q): ?>
                                     <tr class="hover:bg-slate-50/50 transition-colors">
-                                        <td class="p-3 border-r border-slate-200 text-center font-bold font-mono"><?= e($q['question_no']) ?></td>
+                                        <td class="p-3 border-r border-slate-200 text-center font-bold font-mono"><?= e(displayQuestionNumber($q['question_no'], $_SESSION['lang'] ?? 'en')) ?></td>
                                         <td class="p-3 border-r border-slate-200 font-medium leading-relaxed text-slate-900"><?= e($q['question_text']) ?></td>
                                         
                                         <td class="p-3 border-r border-slate-200 text-center bg-emerald-50/30">
@@ -340,7 +347,7 @@ $initials = avatarInitials($user['name']);
                         <?php foreach ($commentQuestions as $q): ?>
                         <div class="space-y-2">
                             <label class="block text-xs font-bold text-slate-800 leading-relaxed">
-                                (<?= e($q['question_no']) ?>)။ <?= e($q['question_text']) ?>
+                                (<?= displayQuestionNumber($q['question_no'], $_SESSION['lang'] ?? 'en') ?>) <?= e($q['question_text']) ?>
                             </label>
                             <textarea name="comment_<?= $q['id'] ?>" rows="4"
                                       placeholder="<?= $LANG['comment_placeholder'] ?? 'Write your comment here...' ?>"
@@ -360,7 +367,7 @@ $initials = avatarInitials($user['name']);
                             ?>
                             <div class="space-y-2 survey-group" data-question-id="<?= $q['id'] ?>">
                                 <label class="block text-xs font-bold text-slate-800 leading-relaxed">
-                                    (<?= e($q['question_no']) ?>)။ <?= e($q['question_text']) ?>
+                                    (<?= displayQuestionNumber($q['question_no'], $_SESSION['lang'] ?? 'en') ?>) <?= e($q['question_text']) ?>
                                     <span class="text-red-500 text-[10px] font-normal">*</span>
                                 </label>
                                 <div class="space-y-2">

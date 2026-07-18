@@ -1,5 +1,8 @@
 <?php
-session_start();
+//session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 if (!isset($loginType)) {
     $loginType = 'student';
@@ -246,15 +249,15 @@ if ($r)
     class="text-slate-800 antialiased min-h-screen flex flex-col <?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'lang-mm' : '' ?>">
 
     <!-- ─── Navigation ──────────────────────────────────────── -->
-    <nav
-        class="sticky top-0 z-50 backdrop-blur-md border-b border-blue-100/50 shadow-lg shadow-blue-500/5 transition-all duration-300"
+    <nav class="sticky top-0 z-50 backdrop-blur-md border-b border-blue-100/50 shadow-lg shadow-blue-500/5 transition-all duration-300"
         style="background: linear-gradient(135deg, rgba(219,234,254,0.92) 0%, rgba(191,219,254,0.88) 40%, rgba(224,242,254,0.90) 100%);">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16 lg:h-20">
                 <div class="flex items-center gap-3">
                     <div
                         class="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 ">
-                        <img src="../assets/uploads/profiles/image.png" alt="uscsh_logo" class="object-contain rounded-lg">
+                        <img src="../assets/uploads/profiles/image.png" alt="uscsh_logo"
+                            class="object-contain rounded-lg">
                     </div>
                     <div>
                         <h1 class="text-lg font-bold tracking-tight text-blue-900 leading-none">UCSH</h1>
@@ -264,8 +267,17 @@ if ($r)
                     </div>
                 </div>
                 <div class="flex items-center gap-5">
-                    <span class="text-xs text-blue-700/70 hidden md:block font-semibold capitalize tracking-wide"><?= e($loginType) ?>
-                        <?= $LANG['portal'] ?? 'Portal' ?></span>
+                    <a href="/studentfeedbackucsh/index.php"
+                        class="inline-flex items-center gap-1.5 text-blue-600/80 hover:text-blue-700 font-semibold text-sm transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+                        </svg>
+                        <?= $LANG['home'] ?? 'Home' ?>
+                    </a>
+                    <!-- <span
+                        class="text-xs text-blue-700/70 hidden md:block font-semibold capitalize tracking-wide"><?= e($loginType) ?>
+                        <?= $LANG['portal'] ?? 'Portal' ?></span> -->
 
                     <?php $currentLang = $_SESSION['lang'] ?? 'en'; ?>
                     <div
@@ -280,8 +292,10 @@ if ($r)
                         </a>
                     </div>
 
+
+
                     <button type="button" id="navLoginBtn"
-                        class="inline-flex items-center gap-2 bg-white/80 text-blue-600 px-5 py-2.5 rounded-xl font-semibold text-sm shadow-lg shadow-blue-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/40 hover:-translate-y-0.5 hover:from-blue-600 hover:to-blue-700 cursor-pointer ring-1 ring-blue-400/30">
+                        class="inline-flex items-center gap-2 bg-white/80 text-blue-600 px-5 py-2 rounded-xl font-semibold text-sm shadow-lg shadow-blue-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/40 hover:-translate-y-0.5 hover:from-blue-600 hover:to-blue-700 cursor-pointer ring-1 ring-blue-400/30">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -595,13 +609,16 @@ if ($r)
     <footer class="backdrop-blur-md border-t border-blue-100/50 mt-auto relative overflow-hidden"
         style="background: linear-gradient(135deg, rgba(219,234,254,0.95) 0%, rgba(191,219,254,0.90) 40%, rgba(224,242,254,0.93) 100%);">
         <!-- Decorative top gradient line -->
-        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-400/40 to-transparent"></div>
+        <div
+            class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-400/40 to-transparent">
+        </div>
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div class="flex flex-col md:flex-row items-center justify-between gap-4">
                 <div class="flex items-center gap-3">
                     <div
                         class="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                        <img src="../assets/uploads/profiles/image.png" alt="uscsh_logo" class="object-contain rounded-lg">
+                        <img src="../assets/uploads/profiles/image.png" alt="uscsh_logo"
+                            class="object-contain rounded-lg">
                     </div>
                     <div>
                         <p class="text-sm font-bold text-blue-900">

@@ -33,6 +33,21 @@ function clean($val): string
     return trim(strip_tags($val));
 }
 
+// ─── Myanmar Number Conversion ──────────────────────────────────────────────
+function convertToMyanmarNumber($number): string
+{
+    $myanmarDigits = ['၀', '၁', '၂', '၃', '၄', '၅', '၆', '၇', '၈', '၉'];
+    return str_replace(range(0, 9), $myanmarDigits, (string) $number);
+}
+
+function displayQuestionNumber($number, $language = 'en'): string
+{
+    if ($language === 'mm') {
+        return convertToMyanmarNumber($number) . '။';
+    }
+    return $number . '.';
+}
+
 function formatDate(?string $date): string
 {
     if (!$date || $date === '0000-00-00' || $date === '0000-00-00 00:00:00')

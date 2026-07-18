@@ -251,12 +251,12 @@ include '../includes/admin_sidebar.php';
         <input type="hidden" name="set_id" value="<?= $filterSet ?>">
         <div class="relative flex-1 max-w-md">
             <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><?= iconSvg('search', 'w-4 h-4') ?></span>
-            <input type="text" name="search" value="<?= e($search) ?>" placeholder="Search questions..."
+            <input type="text" name="search" value="<?= e($search) ?>" placeholder="<?= $LANG['search_questions_placeholder'] ?? 'Search questions...' ?>"
                 class="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none">
         </div>
-        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700">Search</button>
+        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700"><?= $LANG['filter'] ?? 'Search' ?></button>
         <?php if ($search): ?>
-            <a href="manage_questions.php?set_id=<?= $filterSet ?>" class="px-4 py-2 bg-slate-100 text-slate-600 text-sm font-semibold rounded-xl hover:bg-slate-200">Clear</a>
+            <a href="manage_questions.php?set_id=<?= $filterSet ?>" class="px-4 py-2 bg-slate-100 text-slate-600 text-sm font-semibold rounded-xl hover:bg-slate-200"><?= $LANG['clear'] ?? 'Clear' ?></a>
         <?php endif ?>
     </form>
 </div>
@@ -387,8 +387,8 @@ include '../includes/admin_sidebar.php';
                 </div>
             </div>
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
-                <button type="button" onclick="closeModal('addModal')" class="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-100">Cancel</button>
-                <button type="submit" class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl">Add Question</button>
+                <button type="button" onclick="closeModal('addModal')" class="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-100"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
+                <button type="submit" class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG['add_question'] ?? 'Add Question' ?></button>
             </div>
         </form>
     </div>
@@ -433,8 +433,8 @@ include '../includes/admin_sidebar.php';
                 </div>
             </div>
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
-                <button type="button" onclick="closeModal('editModal')" class="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-100">Cancel</button>
-                <button type="submit" class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl">Save</button>
+                <button type="button" onclick="closeModal('editModal')" class="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-100"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
+                <button type="submit" class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG['save'] ?? 'Save' ?></button>
             </div>
         </form>
     </div>
@@ -449,12 +449,12 @@ include '../includes/admin_sidebar.php';
             </div>
             <h3 class="text-lg font-semibold text-slate-800">Delete Question</h3>
             <p class="text-sm text-slate-500 mt-2">Delete <strong id="delete_name" class="text-slate-700"></strong>?</p>
-            <p class="text-xs text-red-500 mt-2">This action cannot be undone.</p>
+            <p class="text-xs text-red-500 mt-2"><?= $LANG['cannot_undo_msg'] ?? 'This action cannot be undone.' ?></p>
         </div>
         <form method="POST"><?= csrfField() ?><input type="hidden" name="action" value="delete"><input type="hidden" name="id" id="delete_id">
             <div class="flex gap-3 px-6 pb-6">
-                <button type="button" onclick="closeModal('deleteModal')" class="flex-1 px-4 py-2.5 text-sm border border-slate-200 rounded-xl">Cancel</button>
-                <button type="submit" class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl">Delete</button>
+                <button type="button" onclick="closeModal('deleteModal')" class="flex-1 px-4 py-2.5 text-sm border border-slate-200 rounded-xl"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
+                <button type="submit" class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl"><?= $LANG['delete'] ?? 'Delete' ?></button>
             </div>
         </form>
     </div>
@@ -509,7 +509,7 @@ include '../includes/admin_sidebar.php';
             <?php endif ?>
         </div>
         <div class="flex justify-end px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl flex-shrink-0">
-            <button onclick="closeModal('previewModal')" class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl">Close</button>
+            <button onclick="closeModal('previewModal')" class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG['close'] ?? 'Close' ?></button>
         </div>
     </div>
 </div>

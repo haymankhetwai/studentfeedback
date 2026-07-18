@@ -2,6 +2,13 @@
 require_once '../config/db.php';
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
+
+// Prevent direct URL access — must come through index.php portal flow
+if (!isset($_SESSION['entry_allowed']) || $_SESSION['selected_role'] !== 'student') {
+    header('Location: /studentfeedbackucsh/index.php');
+    exit;
+}
+
 requireRole('student');
 
 $user = getCurrentUser();
@@ -214,7 +221,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                         class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm <?= $a ? 'bg-white/20 text-white font-semibold' : 'text-cyan-100 hover:bg-white/10 hover:text-white' ?>"><?= iconSvg($n['icon'], 'w-4 h-4') ?>
                         <?= e($n['label']) ?></a><?php endforeach ?></nav>
             <a href="/studentfeedbackucsh/auth/logout.php" title="<?= $LANG['logout'] ?? 'Logout' ?>"
-                class="block border-t border-white/15 bg-red-500 text-gray-50 hover:text-gray-200 transition-colors px-4 py-4 cursor-pointer">
+                class="block border-t border-white/15 bg-red-500/80 text-gray-50 hover:text-gray-200 transition-colors px-4 py-4 cursor-pointer">
                 <div class="flex items-center justify-center gap-3">
 
                     <div class="min-w-0 ">
