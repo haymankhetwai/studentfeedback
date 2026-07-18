@@ -2,6 +2,13 @@
 require_once '../config/db.php';
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
+
+// Prevent direct URL access — must come through index.php portal flow
+if (!isset($_SESSION['entry_allowed']) || $_SESSION['selected_role'] !== 'teacher') {
+    header('Location: /studentfeedbackucsh/index.php');
+    exit;
+}
+
 requireRole('teacher');
 
 updateAllFeedbackStatuses($conn);
@@ -185,33 +192,37 @@ $sectionBreakdown = runQuery($conn, $sectionBreakdownSql, $types, $params)->fetc
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 </head>
 
-<body class="h-full bg-gradient-to-br from-slate-50 via-blue-50 to-sky-50 font-inter antialiased <?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'lang-mm' : '' ?>">
+<body
+    class="h-full bg-gradient-to-br from-slate-50 via-blue-50 to-sky-50 font-inter antialiased <?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'lang-mm' : '' ?>">
     <?php require_once '../includes/teacher_sidebar.php'; ?>
 
     <!-- Page Header -->
     <div class="mb-6">
         <h2 class="text-2xl font-bold text-slate-800"><?= $LANG['analytics_title'] ?? 'Feedback Analytics' ?></h2>
-        <p class="text-sm text-slate-500 mt-1"><?= $LANG['analytics_subtitle'] ?? 'View your feedback performance with graphical and statistical analysis' ?>
+        <p class="text-sm text-slate-500 mt-1">
+            <?= $LANG['analytics_subtitle'] ?? 'View your feedback performance with graphical and statistical analysis' ?>
         </p>
     </div>
 
     <!-- Filters -->
     <div class="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-blue-100/50 p-5 mb-6">
         <form method="GET" class="flex flex-wrap items-end gap-4">
-            
+
             <div class="flex-1 max-w-xl">
-                <label class="block text-xs font-semibold text-slate-500 mb-1"><?= $LANG['section_filter'] ?? 'Section' ?></label>
+                <label
+                    class="block text-xs font-semibold text-slate-500 mb-1"><?= $LANG['section_filter'] ?? 'Section' ?></label>
                 <select name="section_id"
                     class="w-full rounded-xl border border-blue-200/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400 bg-white/80">
                     <option value="0"><?= $LANG['all_sections'] ?? 'All Sections' ?></option>
                     <?php foreach ($sections as $sec): ?>
                         <option value="<?= (int) $sec['id'] ?>" <?= $filterSection === (int) $sec['id'] ? 'selected' : '' ?>>
-                            <?= e($sec['course_name']) ?> — Sec <?= e($sec['section']) ?> (<?= e(semesterToRoman($sec['display_semester'])) ?>)
+                            <?= e($sec['course_name']) ?> — Sec <?= e($sec['section']) ?>
+                            (<?= e(semesterToRoman($sec['display_semester'])) ?>)
                         </option>
                     <?php endforeach; ?>
                 </select>
             </div>
-           
+
             <div class="flex gap-2">
                 <button type="submit"
                     class="px-5 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors"><?= $LANG['filter'] ?? 'Filter' ?></button>
@@ -226,17 +237,20 @@ $sectionBreakdown = runQuery($conn, $sectionBreakdownSql, $types, $params)->fetc
         <div
             class="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-blue-100/50 p-5 flex items-center gap-4">
             <div class="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center shadow">
-                <?= iconSvg('clipboard', 'w-6 h-6 text-white') ?></div>
+                <?= iconSvg('clipboard', 'w-6 h-6 text-white') ?>
+            </div>
             <div>
                 <p class="text-2xl font-bold text-blue-700"><?= number_format($totalFeedback) ?></p>
-                <p class="text-xs text-slate-500"><?= $LANG['total_feedback_responses'] ?? 'Total Feedback Responses' ?></p>
+                <p class="text-xs text-slate-500"><?= $LANG['total_feedback_responses'] ?? 'Total Feedback Responses' ?>
+                </p>
             </div>
         </div>
 
         <div
             class="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-blue-100/50 p-5 flex items-center gap-4">
             <div class="w-12 h-12 rounded-xl bg-emerald-600 flex items-center justify-center shadow">
-                <?= iconSvg('document', 'w-6 h-6 text-white') ?></div>
+                <?= iconSvg('document', 'w-6 h-6 text-white') ?>
+            </div>
             <div>
                 <p class="text-2xl font-bold text-emerald-700"><?= number_format($totalForms) ?></p>
                 <p class="text-xs text-slate-500"><?= $LANG['feedback_forms'] ?? 'Feedback Forms' ?></p>
@@ -248,7 +262,8 @@ $sectionBreakdown = runQuery($conn, $sectionBreakdownSql, $types, $params)->fetc
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <!-- Rating Distribution Pie -->
         <div class="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-blue-100/50 p-5">
-            <h3 class="text-sm font-bold text-slate-800 mb-4"><?= $LANG['rating_distribution'] ?? 'Rating Distribution (Good / Fair / Bad)' ?></h3>
+            <h3 class="text-sm font-bold text-slate-800 mb-4">
+                <?= $LANG['rating_distribution'] ?? 'Rating Distribution (Good / Fair / Bad)' ?></h3>
             <div class="relative flex items-center justify-center" style="height:300px;">
                 <canvas id="ratingPieChart"></canvas>
             </div>
@@ -262,100 +277,189 @@ $sectionBreakdown = runQuery($conn, $sectionBreakdownSql, $types, $params)->fetc
                 <div class="text-center p-3 rounded-xl bg-emerald-50 border border-emerald-200">
                     <p class="text-2xl font-bold text-emerald-600"><?= $pctGood ?>%</p>
                     <p class="text-xs font-semibold text-emerald-700"><?= $LANG['good'] ?? 'Good' ?></p>
-                    <p class="text-[10px] text-slate-500"><?= number_format($ratingData['Good']) ?> <?= $LANG['ratings'] ?? 'ratings' ?></p>
+                    <p class="text-[10px] text-slate-500"><?= number_format($ratingData['Good']) ?>
+                        <?= $LANG['ratings'] ?? 'ratings' ?></p>
                 </div>
                 <div class="text-center p-3 rounded-xl bg-amber-50 border border-amber-200">
                     <p class="text-2xl font-bold text-amber-600"><?= $pctFair ?>%</p>
                     <p class="text-xs font-semibold text-amber-700"><?= $LANG['fair'] ?? 'Fair' ?></p>
-                    <p class="text-[10px] text-slate-500"><?= number_format($ratingData['Fair']) ?> <?= $LANG['ratings'] ?? 'ratings' ?></p>
+                    <p class="text-[10px] text-slate-500"><?= number_format($ratingData['Fair']) ?>
+                        <?= $LANG['ratings'] ?? 'ratings' ?></p>
                 </div>
                 <div class="text-center p-3 rounded-xl bg-red-50 border border-red-200">
                     <p class="text-2xl font-bold text-red-600"><?= $pctBad ?>%</p>
                     <p class="text-xs font-semibold text-red-700"><?= $LANG['bad'] ?? 'Bad' ?></p>
-                    <p class="text-[10px] text-slate-500"><?= number_format($ratingData['Bad']) ?> <?= $LANG['ratings'] ?? 'ratings' ?></p>
+                    <p class="text-[10px] text-slate-500"><?= number_format($ratingData['Bad']) ?>
+                        <?= $LANG['ratings'] ?? 'ratings' ?></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rating Distribution Bar Chart -->
+        <div class="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-blue-100/50 p-5">
+            <h3 class="text-sm font-bold text-slate-800 mb-4">Rating Comparison (Bar Chart)</h3>
+            <div class="relative" style="height:300px;">
+                <canvas id="ratingBarChart"></canvas>
+            </div>
+            <?php
+            $totalRatings = array_sum($ratingData);
+            $pctGood = $totalRatings > 0 ? round(($ratingData['Good'] / $totalRatings) * 100) : 0;
+            $pctFair = $totalRatings > 0 ? round(($ratingData['Fair'] / $totalRatings) * 100) : 0;
+            $pctBad = $totalRatings > 0 ? round(($ratingData['Bad'] / $totalRatings) * 100) : 0;
+            ?>
+            <div class="grid grid-cols-3 gap-3 mt-4">
+                <div class="text-center p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+                    <p class="text-2xl font-bold text-emerald-600"><?= $pctGood ?>%</p>
+                    <p class="text-xs font-semibold text-emerald-700"><?= $LANG['good'] ?? 'Good' ?></p>
+                    <p class="text-[10px] text-slate-500"><?= number_format($ratingData['Good']) ?>
+                        <?= $LANG['ratings'] ?? 'ratings' ?></p>
+                </div>
+                <div class="text-center p-3 rounded-xl bg-amber-50 border border-amber-200">
+                    <p class="text-2xl font-bold text-amber-600"><?= $pctFair ?>%</p>
+                    <p class="text-xs font-semibold text-amber-700"><?= $LANG['fair'] ?? 'Fair' ?></p>
+                    <p class="text-[10px] text-slate-500"><?= number_format($ratingData['Fair']) ?>
+                        <?= $LANG['ratings'] ?? 'ratings' ?></p>
+                </div>
+                <div class="text-center p-3 rounded-xl bg-red-50 border border-red-200">
+                    <p class="text-2xl font-bold text-red-600"><?= $pctBad ?>%</p>
+                    <p class="text-xs font-semibold text-red-700"><?= $LANG['bad'] ?? 'Bad' ?></p>
+                    <p class="text-[10px] text-slate-500"><?= number_format($ratingData['Bad']) ?>
+                        <?= $LANG['ratings'] ?? 'ratings' ?></p>
                 </div>
             </div>
         </div>
 
 
-    <!-- Per-Section Breakdown Table -->
-    <?php if (!empty($sectionBreakdown)): ?>
-        <div class="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-blue-100/50 overflow-hidden mb-6">
-            <div class="px-6 py-4 border-b border-blue-100/50">
-                <h3 class="text-sm font-bold text-slate-800"><?= $LANG['detailed_section_breakdown'] ?? 'Detailed Section Breakdown' ?></h3>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm">
-                    <thead>
-                        <tr class="bg-blue-200 text-sm font-semibold text-blue-500 uppercase tracking-wider">
-                            <th class="px-6 py-3 text-sm font-semibold"><?= $LANG['col_course'] ?? 'Subject' ?></th>
-                            <th class="px-6 py-3 text-sm font-semibold"><?= $LANG['col_section'] ?? 'Section' ?></th>
-                            <th class="px-6 py-3 text-sm font-semibold"><?= $LANG['col_semester'] ?? 'Semester' ?></th>
-                            <th class="px-6 py-3 text-sm font-semibold text-center"><?= $LANG['col_total_ratings'] ?? 'Total Ratings' ?></th>
-                            <!-- <th class="px-6 py-3 text-center">Avg Rating</th> -->
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-blue-100/40">
-                        <?php foreach ($sectionBreakdown as $sb): ?>
-                            <tr class="hover:bg-blue-50/30 transition-colors">
-                                <td class="px-6 py-3 font-medium text-slate-800"><?= e($sb['course_name']) ?></td>
-                                <td class="px-6 py-3 text-slate-600"><?= e($sb['section']) ?></td>
-                                <td class="px-6 py-3 text-slate-600"><?= e(semesterToRoman($sb['display_semester'])) ?></td>
-                                <td class="px-6 py-3 text-center font-semibold text-slate-700">
-                                    <?= number_format($sb['total_ratings']) ?></td>
-                                <!-- <td class="px-6 py-3 text-center">
+        <!-- Per-Section Breakdown Table -->
+        <?php if (!empty($sectionBreakdown)): ?>
+            <div class="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-blue-100/50 overflow-hidden mb-6">
+                <div class="px-6 py-4 border-b border-blue-100/50">
+                    <h3 class="text-sm font-bold text-slate-800">
+                        <?= $LANG['detailed_section_breakdown'] ?? 'Detailed Section Breakdown' ?></h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead>
+                            <tr class="bg-blue-200 text-sm font-semibold text-blue-500 uppercase tracking-wider">
+                                <th class="px-6 py-3 text-sm font-semibold"><?= $LANG['col_course'] ?? 'Subject' ?></th>
+                                <th class="px-6 py-3 text-sm font-semibold"><?= $LANG['col_section'] ?? 'Section' ?></th>
+                                <th class="px-6 py-3 text-sm font-semibold"><?= $LANG['col_semester'] ?? 'Semester' ?></th>
+                                <th class="px-6 py-3 text-sm font-semibold text-center">
+                                    <?= $LANG['col_total_ratings'] ?? 'Total Ratings' ?></th>
+                                <!-- <th class="px-6 py-3 text-center">Avg Rating</th> -->
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-blue-100/40">
+                            <?php foreach ($sectionBreakdown as $sb): ?>
+                                <tr class="hover:bg-blue-50/30 transition-colors">
+                                    <td class="px-6 py-3 font-medium text-slate-800"><?= e($sb['course_name']) ?></td>
+                                    <td class="px-6 py-3 text-slate-600"><?= e($sb['section']) ?></td>
+                                    <td class="px-6 py-3 text-slate-600"><?= e(semesterToRoman($sb['display_semester'])) ?></td>
+                                    <td class="px-6 py-3 text-center font-semibold text-slate-700">
+                                        <?= number_format($sb['total_ratings']) ?>
+                                    </td>
+                                    <!-- <td class="px-6 py-3 text-center">
                         <?php
                         //$avg = round((float)$sb['avg_rating'], 1);
                         //$color = $avg >= 4 ? 'text-emerald-600' : ($avg >= 3 ? 'text-amber-600' : 'text-red-600');
                         ?>
                         <span class="font-bold <?= $color ?>"><?= $avg ?></span>
                     </td> -->
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </div>
-    <?php endif; ?>
+        <?php endif; ?>
 
-    <!-- Chart Scripts -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            // Rating Pie Chart
-            var pieCtx = document.getElementById('ratingPieChart');
-            if (pieCtx) {
-                new Chart(pieCtx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: <?= json_encode($pieLabels) ?>,
-                        datasets: [{
-                            data: <?= json_encode($pieValues) ?>,
-                            backgroundColor: <?= json_encode($pieColors) ?>,
-                            borderWidth: 2,
-                            borderColor: '#fff'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        cutout: '55%',
-                        plugins: {
-                            legend: { position: 'bottom', labels: { font: { family: 'Inter', size: 12 }, padding: 16 } },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(ctx) {
-                                        var total = ctx.dataset.data.reduce(function(a, b) { return a + b; }, 0);
-                                        var pct = total > 0 ? Math.round((ctx.raw / total) * 100) : 0;
-                                        return pct + '%';
+        <!-- Chart Scripts -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                // Rating Pie Chart
+                var pieCtx = document.getElementById('ratingPieChart');
+                if (pieCtx) {
+                    new Chart(pieCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: <?= json_encode($pieLabels) ?>,
+                            datasets: [{
+                                data: <?= json_encode($pieValues) ?>,
+                                backgroundColor: <?= json_encode($pieColors) ?>,
+                                borderWidth: 2,
+                                borderColor: '#fff'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            cutout: '55%',
+                            plugins: {
+                                legend: { position: 'bottom', labels: { font: { family: 'Inter', size: 12 }, padding: 16 } },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function (ctx) {
+                                            var total = ctx.dataset.data.reduce(function (a, b) { return a + b; }, 0);
+                                            var pct = total > 0 ? Math.round((ctx.raw / total) * 100) : 0;
+                                            return pct + '%';
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
-                });
-            }
+                    });
+                }
 
-        });
-    </script>
+                // Rating Bar Chart
+                var barCtx = document.getElementById('ratingBarChart');
+                if (barCtx) {
+                    new Chart(barCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: <?= json_encode($pieLabels) ?>,
+                            datasets: [{
+                                label: 'Ratings',
+                                data: <?= json_encode($pieValues) ?>,
+                                backgroundColor: <?= json_encode($pieColors) ?>,
+                                borderWidth: 0,
+                                borderRadius: 6,
+                                barPercentage: 0.6
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function (ctx) {
+                                            var total = ctx.dataset.data.reduce(function (a, b) { return a + b; }, 0);
+                                            var pct = total > 0 ? Math.round((ctx.raw / total) * 100) : 0;
+                                            return ctx.label + ': ' + ctx.raw + ' (' + pct + '%)';
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    grid: { display: false },
+                                    ticks: { font: { family: 'Inter', size: 12 } }
+                                },
+                                y: {
+                                    beginAtZero: true,
+                                    grid: { color: '#f1f5f9' },
+                                    ticks: {
+                                        font: { family: 'Inter', size: 11 },
+                                        stepSize: 1
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
 
-    <?php require_once '../includes/teacher_footer.php'; ?>
+            });
+        </script>
+
+        <?php require_once '../includes/teacher_footer.php'; ?>

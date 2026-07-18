@@ -21,9 +21,7 @@ header('Expires: Thu, 01 Jan 1970 00:00:00 GMT');
 
 $redirect = match ($role) {
     'admin'   => '/studentfeedbackucsh/admin/',
-    'teacher' => '/studentfeedbackucsh/teacher/',
-    'student' => '/studentfeedbackucsh/student/',
-    default   => '/studentfeedbackucsh/student/',
+    default   => '/studentfeedbackucsh/index.php',
 };
 
 header("Location: $redirect");

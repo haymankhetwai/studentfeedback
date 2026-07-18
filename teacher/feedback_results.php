@@ -2,6 +2,13 @@
 require_once '../config/db.php';
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
+
+// Prevent direct URL access — must come through index.php portal flow
+if (!isset($_SESSION['entry_allowed']) || $_SESSION['selected_role'] !== 'teacher') {
+    header('Location: /studentfeedbackucsh/index.php');
+    exit;
+}
+
 requireRole('teacher');
 
 updateAllFeedbackStatuses($conn);
@@ -688,7 +695,7 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                                                 $badPerc = $totalVotes > 0 ? round(($badCount / $totalVotes) * 100) : 0;
                                                 ?>
                                                 <tr class="hover:bg-blue-50/30 transition-colors">
-                                                    <td class="p-3 text-center font-bold font-mono border-r text-lg"><?= e($q['question_no']) ?>
+                                                    <td class="p-3 text-center font-bold font-mono border-r text-lg"><?= e(displayQuestionNumber($q['question_no'], $_SESSION['lang'] ?? 'en')) ?>
                                                     </td>
                                                     <td class="p-3 border-r leading-relaxed text-lg"><?= e($q['question_text']) ?></td>
                                                     <td class="p-3 text-center border-r bg-emerald-50/30"><span
@@ -720,7 +727,7 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                                     $commentsForThisQuestion = $comments[$q['id']] ?? []; ?>
                                     <div class="space-y-2 text-xs">
                                         <label class="block font-bold text-slate-700 text-lg">
-                                            <?= e($q['question_no']) ?>။ <?= e($q['question_text']) ?>
+                                            <?= displayQuestionNumber($q['question_no'], $_SESSION['lang'] ?? 'en') ?> <?= e($q['question_text']) ?>
                                             <span
                                                 class="text-slate-400 font-normal text-xs">(<?= $LANG['total_comments'] ?? 'Total comments' ?>
                                                 - <?= count($commentsForThisQuestion) ?>
@@ -774,7 +781,7 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                                         <div class="px-6 pt-5 pb-3 border-b border-slate-100">
                                             <div class="flex items-start gap-3">
                                                 <span
-                                                    class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.5 shrink-0"><?= e($q['question_no']) ?></span>
+                                                    class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.5 shrink-0"><?= e(displayQuestionNumber($q['question_no'], $_SESSION['lang'] ?? 'en')) ?></span>
                                                 <div class="flex-1 min-w-0">
                                                     <h4 class="text-lg font-bold text-slate-800 leading-snug">
                                                         <?= e($q['question_text']) ?>

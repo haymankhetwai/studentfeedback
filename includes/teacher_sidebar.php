@@ -47,7 +47,7 @@ $initials = avatarInitials($user['name']);
             <?php endforeach ?>
         </nav>
         <a href="/studentfeedbackucsh/auth/logout.php" title="<?= $LANG['logout'] ?? 'Logout' ?>"
-            class="block border-t border-white/15 bg-red-500 text-gray-50 hover:text-gray-200 transition-colors px-4 py-4 cursor-pointer">
+            class="block border-t border-white/15 bg-red-500/80 text-gray-50 hover:text-gray-200 transition-colors px-4 py-4 cursor-pointer">
             <div class="flex items-center justify-center gap-3">
 
                 <div class="min-w-0 ">

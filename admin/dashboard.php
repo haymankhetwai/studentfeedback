@@ -41,10 +41,16 @@ $filterSemester = clean($_GET['semester'] ?? '');
 $filterTeacher = (int) ($_GET['teacher_id'] ?? 0);
 $filterCourse = (int) ($_GET['course_id'] ?? 0);
 $filterSection = clean($_GET['section'] ?? '');
+$filterAY = (int) ($_GET['ay_id'] ?? 0);
+$filterFormId = (int) ($_GET['form_id'] ?? 0);
 $saFilterSemester = clean($_GET['sa_semester'] ?? '');
+$saFilterAY = (int) ($_GET['sa_ay_id'] ?? 0);
 $admFilterSemester = clean($_GET['adm_semester'] ?? '');
+$admFilterAY = (int) ($_GET['adm_ay_id'] ?? 0);
 
 // ─── Reports: Filter Options ──────────────────────────────────
+$allAcademicYears = $conn->query("SELECT id, year_name FROM academic_years WHERE status='active' ORDER BY year_name DESC")->fetch_all(MYSQLI_ASSOC);
+$allSemesters = $conn->query("SELECT id, semester_name FROM semesters ORDER BY id ASC")->fetch_all(MYSQLI_ASSOC);
 $semesters = $conn->query("SELECT DISTINCT sm.id, sm.semester_name FROM sections s LEFT JOIN semesters sm ON s.semester_id=sm.id WHERE sm.semester_name IS NOT NULL AND sm.semester_name != '' ORDER BY sm.id ASC")->fetch_all(MYSQLI_ASSOC);
 $teachers = $conn->query("
     SELECT DISTINCT t.id, u.name AS teacher_name
@@ -68,28 +74,46 @@ $sections = $conn->query("
     WHERE s.section != ''
     ORDER BY s.section ASC
 ")->fetch_all(MYSQLI_ASSOC);
-$saSemesters = $conn->query("
-    SELECT DISTINCT sm.id, sm.semester_name
-    FROM feedback_submissions fs
-    JOIN feedback_forms ff ON fs.form_id = ff.id
-    JOIN students st ON fs.student_id = st.id
-    JOIN section_assignments sa ON sa.student_id = st.id
-    JOIN sections s ON sa.section_id = s.id
-    LEFT JOIN semesters sm ON s.semester_id = sm.id
-    WHERE ff.module='student_affairs' AND sm.semester_name IS NOT NULL AND sm.semester_name != ''
-    ORDER BY sm.id ASC
-")->fetch_all(MYSQLI_ASSOC);
-$admSemesters = $conn->query("
-    SELECT DISTINCT sm.id, sm.semester_name
-    FROM feedback_submissions fs
-    JOIN feedback_forms ff ON fs.form_id = ff.id
-    JOIN students st ON fs.student_id = st.id
-    JOIN section_assignments sa ON sa.student_id = st.id
-    JOIN sections s ON sa.section_id = s.id
-    LEFT JOIN semesters sm ON s.semester_id = sm.id
-    WHERE ff.module='administration' AND sm.semester_name IS NOT NULL AND sm.semester_name != ''
-    ORDER BY sm.id ASC
-")->fetch_all(MYSQLI_ASSOC);
+
+// Academic feedback forms list (filtered by AY/Sem)
+$afConds = ["ff.module = 'academic'"];
+$afParams = '';
+$afTypes = '';
+if ($filterAY > 0) {
+    $afConds[] = "ff.academic_year_id=?";
+    $afParams .= 'i';
+    $afTypes .= 'i';
+}
+if ($filterSemester !== '') {
+    $afConds[] = "sm.semester_name=?";
+    $afParams .= 's';
+    $afTypes .= 's';
+}
+$afWhere = 'WHERE ' . implode(' AND ', $afConds);
+$afSql = "SELECT ff.id, ff.title, c.course_code, c.course_name, sec.section AS section_name,
+    ay.year_name AS academic_year_name, sm.semester_name
+    FROM feedback_forms ff
+    LEFT JOIN academic_years ay ON ff.academic_year_id = ay.id
+    LEFT JOIN semesters sm ON ff.semester_id = sm.id
+    LEFT JOIN sections sec ON ff.section_id = sec.id
+    LEFT JOIN courses c ON sec.course_id = c.id
+    $afWhere
+    ORDER BY ay.year_name DESC, ff.id DESC";
+if ($afTypes) {
+    $afStmt = $conn->prepare($afSql);
+    $afBind = [];
+    if ($filterAY > 0) $afBind[] = $filterAY;
+    if ($filterSemester !== '') $afBind[] = $filterSemester;
+    $afStmt->bind_param($afTypes, ...$afBind);
+    $afStmt->execute();
+    $academicForms = $afStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $afStmt->close();
+} else {
+    $academicForms = $conn->query($afSql)->fetch_all(MYSQLI_ASSOC);
+}
+
+$saSemesters = $allSemesters;
+$admSemesters = $allSemesters;
 
 // ─── Reports: Helper: build dynamic WHERE clause for ratings ──
 $whereParts = [];
@@ -116,6 +140,16 @@ if ($filterSection !== '') {
     $params[] = $filterSection;
     $types .= 's';
 }
+if ($filterAY > 0) {
+    $whereParts[] = 'ff.academic_year_id = ?';
+    $params[] = $filterAY;
+    $types .= 'i';
+}
+if ($filterFormId > 0) {
+    $whereParts[] = 'ff.id = ?';
+    $params[] = $filterFormId;
+    $types .= 'i';
+}
 
 $whereSql = '';
 if ($whereParts) {
@@ -140,16 +174,18 @@ $ratingCountSql = "
     FROM feedback_ratings fr
     JOIN feedback_forms ff ON fr.form_id = ff.id
     JOIN sections sec ON ff.section_id = sec.id
+    LEFT JOIN semesters sm ON sec.semester_id = sm.id
     $whereSql
 ";
 $ratingCountResult = runFilteredQuery($conn, $ratingCountSql, $types, $params);
 $totalRatings = (int) $ratingCountResult->fetch_assoc()['cnt'];
 
 $submissionCountSql = "
-    SELECT COUNT(*) AS cnt
+    SELECT COUNT(DISTINCT fs.id) AS cnt
     FROM feedback_submissions fs
     JOIN feedback_forms ff ON fs.form_id = ff.id
     JOIN sections sec ON ff.section_id = sec.id
+    LEFT JOIN semesters sm ON sec.semester_id = sm.id
     $whereSql
 ";
 $submissionCountResult = runFilteredQuery($conn, $submissionCountSql, $types, $params);
@@ -159,6 +195,7 @@ $formCountSql = "
     SELECT COUNT(DISTINCT ff.id) AS cnt
     FROM feedback_forms ff
     JOIN sections sec ON ff.section_id = sec.id
+    LEFT JOIN semesters sm ON sec.semester_id = sm.id
     $whereSql
 ";
 $formCountResult = runFilteredQuery($conn, $formCountSql, $types, $params);
@@ -169,6 +206,7 @@ $teacherCountSql = "
     FROM feedback_submissions fs
     JOIN feedback_forms ff ON fs.form_id = ff.id
     JOIN sections sec ON ff.section_id = sec.id
+    LEFT JOIN semesters sm ON sec.semester_id = sm.id
     $whereSql
 ";
 $teacherCountResult = runFilteredQuery($conn, $teacherCountSql, $types, $params);
@@ -188,6 +226,7 @@ $teacherPerfSql = "
         FROM feedback_ratings fr
         JOIN feedback_forms ff ON fr.form_id = ff.id
         JOIN sections sec ON ff.section_id = sec.id
+        LEFT JOIN semesters sm ON sec.semester_id = sm.id
         JOIN teachers t ON sec.teacher_id = t.id
         JOIN users u ON t.user_id = u.id
         $whereSql
@@ -208,9 +247,10 @@ foreach ($teacherPerfData as $tp) {
         FROM feedback_ratings fr
         JOIN feedback_forms ff ON fr.form_id = ff.id
         JOIN sections sec ON ff.section_id = sec.id
+        LEFT JOIN semesters sm ON sec.semester_id = sm.id
         JOIN teachers t ON sec.teacher_id = t.id
         WHERE t.id = ?
-        " . ($filterSemester !== '' ? "AND sec.semester = ?" : "") . "
+        " . ($filterSemester !== '' ? "AND sm.semester_name = ?" : "") . "
         " . ($filterCourse > 0 ? "AND sec.course_id = ?" : "") . "
         " . ($filterSection !== '' ? "AND sec.section = ?" : "") . "
         GROUP BY fr.rating
@@ -279,16 +319,27 @@ function buildFilterUrl(array $overrides = []): string
 }
 
 // ─── Reports: SA Feedback Statistics ──────────────────────────
+// Default auto-load: latest semester with SA feedback
+if ($saFilterSemester === '' && $saFilterAY === 0) {
+    $latestSaQ = $conn->query("SELECT sm.semester_name FROM feedback_submissions fs JOIN feedback_forms ff ON fs.form_id = ff.id JOIN students st ON fs.student_id = st.id JOIN section_assignments sa ON sa.student_id = st.id JOIN sections s ON sa.section_id = s.id JOIN semesters sm ON s.semester_id = sm.id WHERE ff.module = 'student_affairs' ORDER BY sm.id DESC LIMIT 1");
+    if ($latestSaQ && $latestSaRow = $latestSaQ->fetch_assoc()) {
+        $saFilterSemester = $latestSaRow['semester_name'];
+    }
+}
+$saAyWhere = $saFilterAY > 0 ? " AND ff.academic_year_id = $saFilterAY" : '';
 if ($saFilterSemester !== '') {
     $semEsc = $conn->real_escape_string($saFilterSemester);
     $saRatingsJoin = " JOIN feedback_submissions fs ON fr.form_id = fs.form_id AND fr.created_at = fs.submitted_at JOIN students st ON fs.student_id = st.id JOIN section_assignments sa ON sa.student_id = st.id JOIN sections s ON sa.section_id = s.id JOIN semesters sm ON s.semester_id = sm.id";
-    $saRatingsWhere = "AND sm.semester_name = '$semEsc'";
+    $saRatingsWhere = "AND sm.semester_name = '$semEsc'$saAyWhere";
     $saSubsJoin = " JOIN students st ON fs.student_id = st.id JOIN section_assignments sa ON sa.student_id = st.id JOIN sections s ON sa.section_id = s.id JOIN semesters sm ON s.semester_id = sm.id";
-    $saSubsWhere = "AND sm.semester_name = '$semEsc'";
+    $saSubsWhere = "AND sm.semester_name = '$semEsc'$saAyWhere";
     $saFormSubquery = "(SELECT DISTINCT fs.form_id FROM feedback_submissions fs JOIN students st ON fs.student_id = st.id JOIN section_assignments sa ON sa.student_id = st.id JOIN sections s ON sa.section_id = s.id JOIN semesters sm ON s.semester_id = sm.id WHERE sm.semester_name = '$semEsc')";
-    $saFormWhere = "AND ff.id IN $saFormSubquery";
+    $saFormWhere = "AND ff.id IN $saFormSubquery$saAyWhere";
 } else {
-    $saRatingsJoin = $saRatingsWhere = $saSubsJoin = $saSubsWhere = $saFormWhere = '';
+    $saRatingsJoin = $saSubsJoin = '';
+    $saRatingsWhere = $saAyWhere;
+    $saSubsWhere = $saAyWhere;
+    $saFormWhere = $saAyWhere;
 }
 $saTotalRatings = (int) $conn->query("SELECT COUNT(DISTINCT fr.id) AS cnt FROM feedback_ratings fr JOIN feedback_forms ff ON fr.form_id = ff.id$saRatingsJoin WHERE ff.module='student_affairs' $saRatingsWhere")->fetch_assoc()['cnt'];
 $saTotalSubmissions = (int) $conn->query("SELECT COUNT(DISTINCT fs.id) AS cnt FROM feedback_submissions fs JOIN feedback_forms ff ON fs.form_id=ff.id$saSubsJoin WHERE ff.module='student_affairs' $saSubsWhere")->fetch_assoc()['cnt'];
@@ -310,16 +361,27 @@ $saAvgResult = $conn->query("SELECT AVG(CASE WHEN fr.rating='Good' THEN 4 WHEN f
 $saAvgRating = $saAvgResult['avg_rating'] ? round((float) $saAvgResult['avg_rating'], 2) : 0;
 
 // ─── Reports: Admin Feedback Statistics ───────────────────────
+// Default auto-load: latest semester with Admin feedback
+if ($admFilterSemester === '' && $admFilterAY === 0) {
+    $latestAdmQ = $conn->query("SELECT sm.semester_name FROM feedback_submissions fs JOIN feedback_forms ff ON fs.form_id = ff.id JOIN students st ON fs.student_id = st.id JOIN section_assignments sa ON sa.student_id = st.id JOIN sections s ON sa.section_id = s.id JOIN semesters sm ON s.semester_id = sm.id WHERE ff.module = 'administration' ORDER BY sm.id DESC LIMIT 1");
+    if ($latestAdmQ && $latestAdmRow = $latestAdmQ->fetch_assoc()) {
+        $admFilterSemester = $latestAdmRow['semester_name'];
+    }
+}
+$admAyWhere = $admFilterAY > 0 ? " AND ff.academic_year_id = $admFilterAY" : '';
 if ($admFilterSemester !== '') {
     $semEscAdm = $conn->real_escape_string($admFilterSemester);
     $admRatingsJoin = " JOIN feedback_submissions fs ON fr.form_id = fs.form_id AND fr.created_at = fs.submitted_at JOIN students st ON fs.student_id = st.id JOIN section_assignments sa ON sa.student_id = st.id JOIN sections s ON sa.section_id = s.id JOIN semesters sm ON s.semester_id = sm.id";
-    $admRatingsWhere = "AND sm.semester_name = '$semEscAdm'";
+    $admRatingsWhere = "AND sm.semester_name = '$semEscAdm'$admAyWhere";
     $admSubsJoin = " JOIN students st ON fs.student_id = st.id JOIN section_assignments sa ON sa.student_id = st.id JOIN sections s ON sa.section_id = s.id JOIN semesters sm ON s.semester_id = sm.id";
-    $admSubsWhere = "AND sm.semester_name = '$semEscAdm'";
+    $admSubsWhere = "AND sm.semester_name = '$semEscAdm'$admAyWhere";
     $admFormSubquery = "(SELECT DISTINCT fs.form_id FROM feedback_submissions fs JOIN students st ON fs.student_id = st.id JOIN section_assignments sa ON sa.student_id = st.id JOIN sections s ON sa.section_id = s.id JOIN semesters sm ON s.semester_id = sm.id WHERE sm.semester_name = '$semEscAdm')";
-    $admFormWhere = "AND ff.id IN $admFormSubquery";
+    $admFormWhere = "AND ff.id IN $admFormSubquery$admAyWhere";
 } else {
-    $admRatingsJoin = $admRatingsWhere = $admSubsJoin = $admSubsWhere = $admFormWhere = '';
+    $admRatingsJoin = $admSubsJoin = '';
+    $admRatingsWhere = $admAyWhere;
+    $admSubsWhere = $admAyWhere;
+    $admFormWhere = $admAyWhere;
 }
 $admTotalRatings = (int) $conn->query("SELECT COUNT(DISTINCT fr.id) AS cnt FROM feedback_ratings fr JOIN feedback_forms ff ON fr.form_id = ff.id$admRatingsJoin WHERE ff.module='administration' $admRatingsWhere")->fetch_assoc()['cnt'];
 $admTotalSubmissions = (int) $conn->query("SELECT COUNT(DISTINCT fs.id) AS cnt FROM feedback_submissions fs JOIN feedback_forms ff ON fs.form_id=ff.id$admSubsJoin WHERE ff.module='administration' $admSubsWhere")->fetch_assoc()['cnt'];
@@ -396,13 +458,25 @@ include '../includes/admin_sidebar.php';
 <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6">
 
     <form method="GET" action="#academic-feedback" class="flex flex-wrap items-end gap-4">
-        <div class="flex-1 min-w-[180px] relative" x-data="{
+        <div class="flex-1 min-w-[160px]">
+            <label class="block text-xs font-semibold text-slate-500 mb-1">Academic Year</label>
+            <select name="ay_id"
+                class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none bg-white font-semibold text-slate-700 shadow-sm focus:border-cyan-500">
+                <option value="">All Academic Years</option>
+                <?php foreach ($allAcademicYears as $ay): ?>
+                    <option value="<?= $ay['id'] ?>" <?= $filterAY == $ay['id'] ? 'selected' : '' ?>>
+                        <?= e($ay['year_name']) ?>
+                    </option>
+                <?php endforeach ?>
+            </select>
+        </div>
+        <div class="flex-1 min-w-[160px] relative" x-data="{
             open: false,
             selected: '<?= e($filterSemester) ?>',
-            selectedText: '<?= $filterSemester ? e($filterSemester) : ($LANG['all_semesters'] ?? 'All Semesters') ?>',
+            selectedText: '<?= $filterSemester ? e(semesterToRoman($filterSemester)) : ($LANG['all_semesters'] ?? 'All Semesters') ?>',
             options: [
                 { value: '', text: '<?= $LANG['all_semesters'] ?? 'All Semesters' ?>' },
-                <?php foreach ($semesters as $s): ?>
+                <?php foreach ($allSemesters as $s): ?>
                 { value: '<?= e($s['semester_name']) ?>', text: '<?= e(semesterToRoman($s['semester_name'])) ?>' },
                 <?php endforeach; ?>
             ],
@@ -418,7 +492,25 @@ include '../includes/admin_sidebar.php';
                 <template x-for="opt in options" :key="opt.value"><button type="button" @click="select(opt.value, opt.text)" class="w-full text-left px-3 py-2 text-sm hover:bg-cyan-200 transition-colors flex items-center gap-2" :class="selected === opt.value ? 'bg-cyan-50 text-cyan-700 font-semibold' : 'text-slate-700'"><span x-show="selected === opt.value" class="text-cyan-600">&#10003;</span><span x-text="opt.text"></span></button></template>
             </div>
         </div>
-        <div class="flex-1 min-w-[180px] relative" x-data="{
+        <div class="flex-1 min-w-[200px]">
+            <label class="block text-xs font-semibold text-slate-500 mb-1">Choose a Feedback Form</label>
+            <select name="form_id"
+                class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none bg-white font-semibold text-slate-700 shadow-sm focus:border-cyan-500">
+                <option value="">— Choose a Feedback Form —</option>
+                <?php foreach ($academicForms as $af):
+                    if (!empty($af['course_code'])) {
+                        $afLabel = e($af['course_code']) . ' - ' . e($af['course_name']) . ' - Section ' . e($af['section_name']);
+                    } else {
+                        $afLabel = e($af['academic_year_name'] ?? '') . ' - ' . e($af['title']);
+                    }
+                ?>
+                    <option value="<?= $af['id'] ?>" <?= $filterFormId == $af['id'] ? 'selected' : '' ?>>
+                        <?= $afLabel ?>
+                    </option>
+                <?php endforeach ?>
+            </select>
+        </div>
+        <!-- <div class="flex-1 min-w-[180px] relative" x-data="{
             open: false,
             selected: <?= (int) $filterTeacher ?>,
             selectedText: '<?= $filterTeacher ? e($teachers[array_search($filterTeacher, array_column($teachers, 'id'))]['teacher_name'] ?? '') : ($LANG['all_teachers'] ?? 'All Teachers') ?>',
@@ -483,7 +575,7 @@ include '../includes/admin_sidebar.php';
             <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-1" class="absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg">
                 <template x-for="opt in options" :key="opt.value"><button type="button" @click="select(opt.value, opt.text)" class="w-full text-left px-3 py-2 text-sm hover:bg-cyan-200 transition-colors flex items-center gap-2" :class="selected === opt.value ? 'bg-cyan-50 text-cyan-700 font-semibold' : 'text-slate-700'"><span x-show="selected === opt.value" class="text-cyan-600">&#10003;</span><span x-text="opt.text"></span></button></template>
             </div>
-        </div>
+        </div> -->
         <div class="flex gap-2">
             <button type="submit"
                 class="px-5 py-2 bg-cyan-600 text-white text-sm font-semibold rounded-xl hover:bg-cyan-700 transition-colors">
@@ -585,8 +677,8 @@ include '../includes/admin_sidebar.php';
                         </div>
                     </div>
 
-                    <div class="relative flex items-center justify-center" style="height:160px;">
-                        <canvas id="teacherPie<?= $chartIndex ?>"></canvas>
+                    <div class="relative flex items-center justify-center" style="height:180px;">
+                        <canvas id="teacherBar<?= $chartIndex ?>"></canvas>
                     </div>
 
                     <div class="grid grid-cols-3 gap-2 mt-3">
@@ -629,16 +721,26 @@ include '../includes/admin_sidebar.php';
 
         <!-- SA Semester Filter -->
         <form method="GET" action="#sa-feedback"
-            onsubmit="return function(f){var s=f.querySelector('[name=sa_semester]');if(s&&s.value==='')s.disabled=true;return true}(this)"
             class="bg-white rounded-xl shadow-sm border border-slate-100 p-3 mb-3">
             <div class="flex flex-wrap items-end gap-3">
                 <div class="flex-1 min-w-[140px]">
-                    <label
-                        class="block text-[10px] font-semibold text-slate-500 mb-1"><?= $LANG['semester_filter'] ?? 'Semester' ?></label>
+                    <label class="block text-[10px] font-semibold text-slate-500 mb-1">Academic Year</label>
+                    <select name="sa_ay_id"
+                        class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                        <option value="">All Academic Years</option>
+                        <?php foreach ($allAcademicYears as $ay): ?>
+                            <option value="<?= $ay['id'] ?>" <?= $saFilterAY == $ay['id'] ? 'selected' : '' ?>>
+                                <?= e($ay['year_name']) ?>
+                            </option>
+                        <?php endforeach ?>
+                    </select>
+                </div>
+                <div class="flex-1 min-w-[140px]">
+                    <label class="block text-[10px] font-semibold text-slate-500 mb-1"><?= $LANG['semester_filter'] ?? 'Semester' ?></label>
                     <select name="sa_semester"
                         class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
                         <option value=""><?= $LANG['all_semesters'] ?? 'All Semesters' ?></option>
-                        <?php foreach ($saSemesters as $s): ?>
+                        <?php foreach ($allSemesters as $s): ?>
                             <option value="<?= e($s['semester_name']) ?>" <?= $saFilterSemester === $s['semester_name'] ? 'selected' : '' ?>>
                                 <?= e(semesterToRoman($s['semester_name'])) ?>
                             </option>
@@ -687,7 +789,7 @@ include '../includes/admin_sidebar.php';
                 <?= $LANG['sa_rating_dist'] ?? 'SA Rating Distribution (Good / Fair / Bad)' ?>
             </h4>
             <div class="relative flex items-center justify-center" style="height:200px;">
-                <canvas id="saRatingPie"></canvas>
+                <canvas id="saRatingBar"></canvas>
             </div>
             <?php
             $saTotal = array_sum($saNormalized);
@@ -730,16 +832,26 @@ include '../includes/admin_sidebar.php';
 
         <!-- Admin Semester Filter -->
         <form method="GET" action="#admin-feedback"
-            onsubmit="return function(f){var s=f.querySelector('[name=adm_semester]');if(s&&s.value==='')s.disabled=true;return true}(this)"
             class="bg-white rounded-xl shadow-sm border border-slate-100 p-3 mb-3">
             <div class="flex flex-wrap items-end gap-3">
                 <div class="flex-1 min-w-[140px]">
-                    <label
-                        class="block text-[10px] font-semibold text-slate-500 mb-1"><?= $LANG['semester_filter'] ?? 'Semester' ?></label>
+                    <label class="block text-[10px] font-semibold text-slate-500 mb-1">Academic Year</label>
+                    <select name="adm_ay_id"
+                        class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                        <option value="">All Academic Years</option>
+                        <?php foreach ($allAcademicYears as $ay): ?>
+                            <option value="<?= $ay['id'] ?>" <?= $admFilterAY == $ay['id'] ? 'selected' : '' ?>>
+                                <?= e($ay['year_name']) ?>
+                            </option>
+                        <?php endforeach ?>
+                    </select>
+                </div>
+                <div class="flex-1 min-w-[140px]">
+                    <label class="block text-[10px] font-semibold text-slate-500 mb-1"><?= $LANG['semester_filter'] ?? 'Semester' ?></label>
                     <select name="adm_semester"
                         class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
                         <option value=""><?= $LANG['all_semesters'] ?? 'All Semesters' ?></option>
-                        <?php foreach ($admSemesters as $s): ?>
+                        <?php foreach ($allSemesters as $s): ?>
                             <option value="<?= e($s['semester_name']) ?>" <?= $admFilterSemester === $s['semester_name'] ? 'selected' : '' ?>>
                                 <?= e(semesterToRoman($s['semester_name'])) ?>
                             </option>
@@ -788,7 +900,7 @@ include '../includes/admin_sidebar.php';
                 <?= $LANG['adm_rating_dist'] ?? 'Adm Rating Distribution (Good / Fair / Bad)' ?>
             </h4>
             <div class="relative flex items-center justify-center" style="height:200px;">
-                <canvas id="admRatingPie"></canvas>
+                <canvas id="admRatingBar"></canvas>
             </div>
             <?php
             $admTotal = array_sum($admNormalized);
@@ -837,14 +949,14 @@ include '../includes/admin_sidebar.php';
                         label: function(ctx) {
                             var total = ctx.dataset.data.reduce(function(a, b) { return a + b; }, 0);
                             var pct = total > 0 ? Math.round((ctx.raw / total) * 100) : 0;
-                            return pct + '%';
+                            return ctx.raw + ' (' + pct + '%)';
                         }
                     }
                 }
             }
         };
 
-        // ─── Top 3 Per-Teacher Pie Charts ──────────────────────────
+        // ─── Top 3 Per-Teacher Bar Charts ─────────────────────────
         <?php
         $pIndex = 0;
         foreach ($teacherRatingData as $tName => $tData):
@@ -854,89 +966,101 @@ include '../includes/admin_sidebar.php';
             $tValues = array_column($tData['ratings'], 'qty');
             $tColors = array_map(fn($l) => $chartColorMap[$l] ?? '#6366f1', $tLabels);
             ?>
-            new Chart(document.getElementById('teacherPie<?= $pIndex ?>'), {
-                type: 'doughnut',
+            new Chart(document.getElementById('teacherBar<?= $pIndex ?>'), {
+                type: 'bar',
                 data: {
                     labels: <?= json_encode($tLabels) ?>,
                     datasets: [{
                         data: <?= json_encode($tValues) ?>,
                         backgroundColor: <?= json_encode($tColors) ?>,
-                        borderWidth: 2,
-                        borderColor: '#fff'
+                        borderWidth: 0,
+                        borderRadius: 6,
+                        barPercentage: 0.6
                     }]
                 },
                 options: Object.assign({}, chartDefaults, {
-                    cutout: '50%',
                     plugins: {
-                        legend: { position: 'bottom', labels: { font: { size: 9 }, padding: 8 } },
+                        legend: { display: false },
                         tooltip: {
                             callbacks: {
                                 label: function(ctx) {
                                     var total = ctx.dataset.data.reduce(function(a, b) { return a + b; }, 0);
                                     var pct = total > 0 ? Math.round((ctx.raw / total) * 100) : 0;
-                                    return pct + '%';
+                                    return ctx.label + ': ' + ctx.raw + ' (' + pct + '%)';
                                 }
                             }
                         }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+                        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 }, stepSize: 1 } }
                     }
                 })
             });
             <?php $pIndex++; endforeach; ?>
 
-        // ─── SA Rating Pie ────────────────────────────────────────
-        new Chart(document.getElementById('saRatingPie'), {
-            type: 'doughnut',
+        // ─── SA Rating Bar ────────────────────────────────────────
+        new Chart(document.getElementById('saRatingBar'), {
+            type: 'bar',
             data: {
                 labels: <?= json_encode(array_keys($saNormalized)) ?>,
                 datasets: [{
                     data: <?= json_encode(array_values($saNormalized)) ?>,
                     backgroundColor: ['#22c55e', '#f59e0b', '#ef4444'],
-                    borderWidth: 2,
-                    borderColor: '#fff'
+                    borderWidth: 0,
+                    borderRadius: 6,
+                    barPercentage: 0.55
                 }]
             },
             options: Object.assign({}, chartDefaults, {
-                cutout: '55%',
                 plugins: {
-                    legend: { position: 'bottom', labels: { font: { size: 9 }, padding: 10 } },
+                    legend: { display: false },
                     tooltip: {
                         callbacks: {
                             label: function(ctx) {
                                 var total = ctx.dataset.data.reduce(function(a, b) { return a + b; }, 0);
                                 var pct = total > 0 ? Math.round((ctx.raw / total) * 100) : 0;
-                                return pct + '%';
+                                return ctx.label + ': ' + ctx.raw + ' (' + pct + '%)';
                             }
                         }
                     }
+                },
+                scales: {
+                    x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+                    y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 }, stepSize: 1 } }
                 }
             })
         });
 
-        // ─── Admin Rating Pie ─────────────────────────────────────
-        new Chart(document.getElementById('admRatingPie'), {
-            type: 'doughnut',
+        // ─── Admin Rating Bar ─────────────────────────────────────
+        new Chart(document.getElementById('admRatingBar'), {
+            type: 'bar',
             data: {
                 labels: <?= json_encode(array_keys($admNormalized)) ?>,
                 datasets: [{
                     data: <?= json_encode(array_values($admNormalized)) ?>,
                     backgroundColor: ['#22c55e', '#f59e0b', '#ef4444'],
-                    borderWidth: 2,
-                    borderColor: '#fff'
+                    borderWidth: 0,
+                    borderRadius: 6,
+                    barPercentage: 0.55
                 }]
             },
             options: Object.assign({}, chartDefaults, {
-                cutout: '55%',
                 plugins: {
-                    legend: { position: 'bottom', labels: { font: { size: 9 }, padding: 10 } },
+                    legend: { display: false },
                     tooltip: {
                         callbacks: {
                             label: function(ctx) {
                                 var total = ctx.dataset.data.reduce(function(a, b) { return a + b; }, 0);
                                 var pct = total > 0 ? Math.round((ctx.raw / total) * 100) : 0;
-                                return pct + '%';
+                                return ctx.label + ': ' + ctx.raw + ' (' + pct + '%)';
                             }
                         }
                     }
+                },
+                scales: {
+                    x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+                    y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 }, stepSize: 1 } }
                 }
             })
         });

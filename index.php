@@ -216,9 +216,18 @@ $currentLang = $_SESSION['lang'] ?? 'en';
                     </div>
                 </div>
                 <div class="flex items-center gap-5">
-                    <span class="text-xs text-blue-700/70 hidden md:block font-semibold capitalize tracking-wide">
+                    <!-- <span class="text-xs text-blue-700/70 hidden md:block font-semibold capitalize tracking-wide">
                         <?= $LANG['welcome_portal'] ?? 'Welcome' ?>
-                    </span>
+                    </span> -->
+
+                    <a href="index.php"
+                        class="inline-flex items-center gap-1.5 text-blue-600/80 hover:text-blue-700 font-semibold text-sm transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+                        </svg>
+                        <?= $LANG['home'] ?? 'Home' ?>
+                    </a>
 
                     <div
                         class="flex items-center gap-0.5 bg-white/70 backdrop-blur-sm rounded-xl p-0.5 text-xs font-semibold border border-blue-200/60 shadow-sm">
@@ -231,6 +240,15 @@ $currentLang = $_SESSION['lang'] ?? 'en';
                             မြန်မာ
                         </a>
                     </div>
+
+                    <!-- <a href="index.php"
+                        class="inline-flex items-center gap-1.5 text-blue-600/80 hover:text-blue-700 font-semibold text-sm transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+                        </svg>
+                        Home
+                    </a> -->
                 </div>
             </div>
         </div>
@@ -289,7 +307,7 @@ $currentLang = $_SESSION['lang'] ?? 'en';
             <div class="grid sm:grid-cols-2 gap-6 lg:gap-8 max-w-3xl mx-auto fade-up-4">
 
                 <!-- Enter as Teacher -->
-                <a href="teacher/" id="enter-teacher-btn" class="role-card group cursor-pointer block no-underline">
+                <a href="portal.php?role=teacher" id="enter-teacher-btn" class="role-card group cursor-pointer block no-underline">
                     <div
                         class="role-icon bg-gradient-to-br from-emerald-400/30 to-teal-500/30 border border-emerald-300/30">
                         <svg class="w-8 h-8 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -315,7 +333,7 @@ $currentLang = $_SESSION['lang'] ?? 'en';
                 </a>
 
                 <!-- Enter as Student -->
-                <a href="student/" id="enter-student-btn" class="role-card group cursor-pointer block no-underline">
+                <a href="portal.php?role=student" id="enter-student-btn" class="role-card group cursor-pointer block no-underline">
                     <div
                         class="role-icon bg-gradient-to-br from-blue-400/30 to-indigo-500/30 border border-blue-300/30">
                         <svg class="w-8 h-8 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
