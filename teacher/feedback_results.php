@@ -655,22 +655,22 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                                     <table class="w-full text-left border-collapse min-w-[850px] text-xs">
                                         <thead>
                                             <tr class=" text-white font-bold">
-                                                <th class="p-3 w-12 text-center bg-blue-300"><?= $LANG['col_no'] ?? 'စဉ်' ?></th>
-                                                <th class="p-3 bg-blue-500">
+                                                <th class="p-3 w-12 text-center bg-blue-300 text-lg"><?= $LANG['col_no'] ?? 'စဉ်' ?></th>
+                                                <th class="p-3 bg-blue-500/80 text-lg">
                                                     <?= $LANG['eval_questions_header'] ?? 'Evaluation Questions' ?>
                                                 </th>
-                                                <th class="p-3 w-28 text-center bg-emerald-700">
-                                                    <div><?= $LANG['good'] ?? 'Good' ?></div>
+                                                <th class="p-3 w-28 text-center bg-emerald-700/80">
+                                                    <div class="text-lg"><?= $LANG['good'] ?? 'Good' ?></div>
                                                     <div class="text-[10px] font-normal"><?= $LANG['count_pct'] ?? 'COUNT / %' ?>
                                                     </div>
                                                 </th>
-                                                <th class="p-3 w-28 text-center bg-amber-600">
-                                                    <div><?= $LANG['fair'] ?? 'Fair' ?></div>
+                                                <th class="p-3 w-28 text-center bg-amber-600/80">
+                                                    <div class="text-lg"><?= $LANG['fair'] ?? 'Fair' ?></div>
                                                     <div class="text-[10px] font-normal"><?= $LANG['count_pct'] ?? 'COUNT / %' ?>
                                                     </div>
                                                 </th>
-                                                <th class="p-3 w-28 text-center bg-red-700">
-                                                    <div><?= $LANG['bad'] ?? 'Bad' ?></div>
+                                                <th class="p-3 w-28 text-center bg-red-700/70">
+                                                    <div class="text-lg"><?= $LANG['bad'] ?? 'Bad' ?></div>
                                                     <div class="text-[10px] font-normal"><?= $LANG['count_pct'] ?? 'COUNT / %' ?>
                                                     </div>
                                                 </th>
@@ -688,9 +688,9 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                                                 $badPerc = $totalVotes > 0 ? round(($badCount / $totalVotes) * 100) : 0;
                                                 ?>
                                                 <tr class="hover:bg-blue-50/30 transition-colors">
-                                                    <td class="p-3 text-center font-bold font-mono border-r"><?= e($q['question_no']) ?>
+                                                    <td class="p-3 text-center font-bold font-mono border-r text-lg"><?= e($q['question_no']) ?>
                                                     </td>
-                                                    <td class="p-3 border-r leading-relaxed"><?= e($q['question_text']) ?></td>
+                                                    <td class="p-3 border-r leading-relaxed text-lg"><?= e($q['question_text']) ?></td>
                                                     <td class="p-3 text-center border-r bg-emerald-50/30"><span
                                                             class="text-emerald-700 font-bold block text-sm"><?= $goodCount ?>
                                                             <?= $LANG['persons'] ?? 'persons' ?></span><span
@@ -719,7 +719,7 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                                 <?php foreach ($commentQuestions as $q):
                                     $commentsForThisQuestion = $comments[$q['id']] ?? []; ?>
                                     <div class="space-y-2 text-xs">
-                                        <label class="block font-bold text-slate-700 text-sm">
+                                        <label class="block font-bold text-slate-700 text-lg">
                                             <?= e($q['question_no']) ?>။ <?= e($q['question_text']) ?>
                                             <span
                                                 class="text-slate-400 font-normal text-xs">(<?= $LANG['total_comments'] ?? 'Total comments' ?>
@@ -774,9 +774,9 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                                         <div class="px-6 pt-5 pb-3 border-b border-slate-100">
                                             <div class="flex items-start gap-3">
                                                 <span
-                                                    class="text-xs font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.5 shrink-0"><?= e($q['question_no']) ?></span>
+                                                    class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.5 shrink-0"><?= e($q['question_no']) ?></span>
                                                 <div class="flex-1 min-w-0">
-                                                    <h4 class="text-sm font-bold text-slate-800 leading-snug">
+                                                    <h4 class="text-lg font-bold text-slate-800 leading-snug">
                                                         <?= e($q['question_text']) ?>
                                                     </h4>
                                                     <div
@@ -798,7 +798,7 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                                                     </div>
                                                     <div class="w-full md:w-2/3 space-y-4">
                                                         <!-- 🌟 အများဆုံးရွေးချယ်ထားသော အဖြေစာသား (Most Selected Option) ထုတ်ပြမည့်နေရာ -->
-                                                        <?php if ($totalVotes > 0 && !empty($mostSelected['indices'])): ?>
+                                                        <!-- <?php if ($totalVotes > 0 && !empty($mostSelected['indices'])): ?>
                                                             <span
                                                                 class="inline-flex items-center gap-1 text-violet-700 bg-violet-50 px-2 py-0.5 rounded-md font-semibold">
                                                                 🔥 အများဆုံးရွေးချယ်မှု:
@@ -812,7 +812,7 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                                                                 echo e(implode(' / ', $mostSelectedLabels));
                                                                 ?>
                                                             </span>
-                                                        <?php endif; ?>
+                                                        <?php endif; ?> -->
                                                         <?php foreach ($opts as $idx => $opt):
                                                             $votes = $chartData[$idx];
                                                             $pct = $totalVotes > 0 ? round(($votes / $totalVotes) * 100) : 0;
@@ -850,26 +850,28 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                                                 </div>
                                             </div>
                                             <?php if (!empty($mostSelected['indices'])): ?>
-                                            <div class="mx-6 mb-6 p-4 bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-200 rounded-xl">
-                                                <p class="text-xs font-bold text-violet-600 uppercase tracking-wider mb-2">Most Selected Answer<?= count($mostSelected['indices']) > 1 ? 's' : '' ?></p>
-                                                <?php foreach ($mostSelected['indices'] as $msIdx):
-                                                    $msLabel = $opts[$msIdx] ?? '';
-                                                    $msCount = $mostSelected['max_votes'];
-                                                    $msPct = $totalVotes > 0 ? round(($msCount / $totalVotes) * 100, 1) : 0;
-                                                ?>
-                                                <div class="flex items-center gap-3 mb-2 last:mb-0">
-                                                    <span class="text-lg">⭐</span>
-                                                    <div>
-                                                        <p class="text-sm font-bold text-slate-800"><?= e($msLabel) ?></p>
-                                                        <p class="text-xs text-slate-500">
-                                                            <span class="inline-flex items-center gap-1">👥 <?= $msCount ?> Students</span>
-                                                            <span class="mx-1.5">·</span>
-                                                            <span class="inline-flex items-center gap-1">📊 <?= $msPct ?>%</span>
-                                                        </p>
-                                                    </div>
+                                                <div
+                                                    class="mx-6 mb-6 p-4 bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-200 rounded-xl">
+                                                    <p class="text-xs font-bold text-violet-600 uppercase tracking-wider mb-2">Most Selected
+                                                        Answer<?= count($mostSelected['indices']) > 1 ? 's' : '' ?></p>
+                                                    <?php foreach ($mostSelected['indices'] as $msIdx):
+                                                        $msLabel = $opts[$msIdx] ?? '';
+                                                        $msCount = $mostSelected['max_votes'];
+                                                        $msPct = $totalVotes > 0 ? round(($msCount / $totalVotes) * 100, 1) : 0;
+                                                        ?>
+                                                        <div class="flex items-center gap-3 mb-2 last:mb-0">
+                                                            <span class="text-lg">⭐</span>
+                                                            <div>
+                                                                <p class="text-sm font-bold text-slate-800"><?= e($msLabel) ?></p>
+                                                                <p class="text-xs text-slate-500">
+                                                                    <span class="inline-flex items-center gap-1">👥 <?= $msCount ?> Students</span>
+                                                                    <span class="mx-1.5">·</span>
+                                                                    <span class="inline-flex items-center gap-1">📊 <?= $msPct ?>%</span>
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    <?php endforeach ?>
                                                 </div>
-                                                <?php endforeach ?>
-                                            </div>
                                             <?php endif ?>
                                         <?php else: ?>
                                             <div class="p-6">
@@ -973,7 +975,8 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
@@ -990,7 +993,7 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
             // Custom plugin: draw center text inside doughnut chart
             const centerTextPlugin = {
                 id: 'centerText',
-                afterDraw: function(chart) {
+                afterDraw: function (chart) {
                     const centerConfig = chart.options.plugins.centerText;
                     if (!centerConfig || !centerConfig.display) return;
                     const { ctx, chartArea } = chart;
@@ -1057,7 +1060,8 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                         layout: { padding: 0 },
                         plugins: {
                             legend: {
-                                display: showLegend && !isOverall,
+                                //display: showLegend && !isOverall,
+                                display: false,
                                 position: "bottom",
                                 labels: {
                                     usePointStyle: true,
@@ -1089,22 +1093,10 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                                     }
                                 }
                             },
-                            datalabels: isSurvey ? {
-                                color: '#ffffff',
-                                font: { weight: 'bold', size: 12 },
-                                textShadowColor: 'rgba(0,0,0,0.3)',
-                                textShadowBlur: 4,
-                                formatter: function(value, ctx) {
-                                    var sum = ctx.dataset.data.reduce(function(a, b) { return a + b; }, 0);
-                                    var pct = sum > 0 ? ((value / sum) * 100).toFixed(1) : 0;
-                                    if (pct === '0.0' || pct === 0) return '';
-                                    return pct + '%';
-                                },
-                                display: function(ctx) {
-                                    return ctx.dataset.data[ctx.dataIndex] > 0;
-                                }
-                            } : false,
+                            datalabels: false,
                             centerText: centerText || { display: false }
+                            //datalabels: false,
+
                         },
                         animation: {
                             animateRotate: true,
@@ -1161,7 +1153,7 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
 
             const surveys = <?= json_encode($surveyChartData) ?>;
             Object.keys(surveys).forEach(function (id) {
-                var total = surveys[id].data.reduce(function(a, b) { return a + b; }, 0);
+                var total = surveys[id].data.reduce(function (a, b) { return a + b; }, 0);
                 createChart(
                     "surveyChart_" + id,
                     surveys[id].labels,
@@ -1170,6 +1162,10 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                     true,
                     {
                         display: true,
+                        // mainText: total + ' Total',
+                        // subText: '',
+                        // mainColor: '#1e293b',
+                        // subColor: '#94a3b8'
                         mainText: total.toString(),
                         subText: 'Total',
                         mainColor: '#1e293b',

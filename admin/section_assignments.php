@@ -274,7 +274,7 @@ usort($allStudents, function ($a, $b) {
 // Step 4: Paginate at student level (after grouping — each student appears once)
 $totalStudents = count($allStudents);
 $total = $totalStudents;
-$perPage = max(10, min(100, (int)($_GET['per_page'] ?? 15)));
+$perPage = max(10, min(100, (int) ($_GET['per_page'] ?? 15)));
 $page = max(1, (int) ($_GET['page'] ?? 1));
 $pg = paginate($totalStudents, $perPage, $page);
 $rows = array_slice($allStudents, $pg['offset'], $perPage);
@@ -331,7 +331,7 @@ include '../includes/admin_sidebar.php';
                 class="px-4 py-2 text-sm bg-cyan-600 text-white rounded-xl hover:bg-cyan-700 font-semibold shadow-sm transition-colors whitespace-nowrap"><?= $LANG['filter'] ?? 'Filter' ?></button>
             <?php if ($search || $filter_semester || $filter_section): ?>
                 <a href="section_assignments.php"
-                    class="px-3 py-2 text-sm border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors whitespace-nowrap"><?= $LANG['clear'] ?? 'Clear' ?></a>
+                    class="px-3 py-2 text-sm border border-slate-200 rounded-xl text-white hover:bg-red-700 bg-red-500 transition-colors whitespace-nowrap"><?= $LANG['clear'] ?? 'Clear' ?></a>
             <?php endif ?>
         </form>
         <span class="text-xs text-slate-400 shrink-0"><?= $total ?>
@@ -534,7 +534,8 @@ include '../includes/admin_sidebar.php';
                                     <span
                                         class="font-bold text-cyan-600 bg-cyan-50 border border-cyan-200 px-1 rounded ml-1">Sec
                                         <?= e($sec['section']) ?></span>
-                                    <span class="text-slate-400 ml-2">(<?= e(semesterToRoman($sec['semester_name'])) ?>)</span>
+                                    <span
+                                        class="text-slate-400 ml-2">(<?= e(semesterToRoman($sec['semester_name'])) ?>)</span>
                                 </div>
                             </label>
                         <?php endforeach; ?>
