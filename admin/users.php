@@ -493,7 +493,7 @@ $borderRed = 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-50
 // ─── Fetch ────────────────────────────────────────────────────
 $search = clean($_GET['search'] ?? '');
 $roleF = clean($_GET['role'] ?? '');
-$perPage = 10;
+$perPage = max(10, min(100, (int)($_GET['per_page'] ?? 10)));
 $page = max(1, (int) ($_GET['page'] ?? 1));
 
 $whereParts = [];
@@ -648,7 +648,7 @@ include '../includes/admin_sidebar.php';
         </table>
     </div>
     <div class="px-5 py-4 border-t border-slate-100">
-        <?= paginationLinks($pg, 'users.php' . ($qs ? "?$qs" : '')) ?>
+        <?= paginationLinks($pg, 'users.php' . ($qs ? "?$qs" : ''), $perPage) ?>
     </div>
 </div>
 

@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
 $search  = clean($_GET['search'] ?? '');
 $deptF   = (int)($_GET['dept'] ?? 0);
-$perPage = 10;
+$perPage = max(10, min(100, (int)($_GET['per_page'] ?? 10)));
 $page    = max(1,(int)($_GET['page'] ?? 1));
 
 $conds=[]; $params=[]; $types='';
@@ -121,7 +121,7 @@ include '../includes/admin_sidebar.php';
             </tbody>
         </table>
     </div>
-    <div class="px-5 py-4 border-t border-slate-100"><?= paginationLinks($pg,'majors.php'.($qs?"?$qs":'')) ?></div>
+    <div class="px-5 py-4 border-t border-slate-100"><?= paginationLinks($pg,'majors.php'.($qs?"?$qs":''), $perPage) ?></div>
 </div>
 
 <!-- Add Modal -->

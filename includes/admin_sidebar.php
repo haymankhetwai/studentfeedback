@@ -1,39 +1,27 @@
 <?php
-$academicKeys = ['departments', 'teachers', 'students', 'courses', 'sections', 'assignments'];
+$academicKeys = ['departments', 'teachers', 'students', 'courses', 'sections', 'assignments', 'academic_years', 'semesters'];
 $isAcademicActive = in_array($activeMenu, $academicKeys);
 
-$academicFeedbackKeys = ['forms', 'questions', 'results'];
-$isAcademicFeedbackActive = in_array($activeMenu, $academicFeedbackKeys);
-
-$saKeys = ['sa_forms', 'sa_questions', 'sa_results'];
-$isSaActive = in_array($activeMenu, $saKeys);
-
-$admKeys = ['adm_forms', 'adm_questions', 'adm_results'];
-$isAdmActive = in_array($activeMenu, $admKeys);
+$feedbackKeys = ['question_sets', 'forms', 'results'];
+$isFeedbackActive = in_array($activeMenu, $feedbackKeys);
 
 $nav = [
     ['label' => $LANG['nav_dashboard'] ?? 'Dashboard', 'href' => '/studentfeedbackucsh/admin/dashboard.php', 'key' => 'dashboard', 'icon' => 'home'],
     ['label' => $LANG['nav_user_management'] ?? 'User Management', 'type' => 'group', 'key' => 'user_management', 'isOpen' => in_array($activeMenu, ['users'])],
     ['label' => $LANG['nav_users'] ?? 'Users', 'href' => '/studentfeedbackucsh/admin/users.php', 'key' => 'users', 'icon' => 'users', 'indent' => true, 'group' => 'user_management'],
     ['label' => $LANG['nav_academic_management'] ?? 'Academic Management', 'type' => 'group', 'key' => 'academic', 'isOpen' => $isAcademicActive],
+    ['label' => $LANG['nav_academic_years'] ?? 'Academic Years', 'href' => '/studentfeedbackucsh/admin/academic_years.php', 'key' => 'academic_years', 'icon' => 'academic', 'indent' => true, 'group' => 'academic'],
+    ['label' => $LANG['nav_semesters'] ?? 'Semesters', 'href' => '/studentfeedbackucsh/admin/semesters.php', 'key' => 'semesters', 'icon' => 'clipboard', 'indent' => true, 'group' => 'academic'],
     ['label' => $LANG['nav_departments'] ?? 'Departments', 'href' => '/studentfeedbackucsh/admin/departments.php', 'key' => 'departments', 'icon' => 'building', 'indent' => true, 'group' => 'academic'],
     ['label' => $LANG['nav_students'] ?? 'Students', 'href' => '/studentfeedbackucsh/admin/students.php', 'key' => 'students', 'icon' => 'users', 'indent' => true, 'group' => 'academic'],
     ['label' => $LANG['nav_teachers'] ?? 'Teachers', 'href' => '/studentfeedbackucsh/admin/teachers.php', 'key' => 'teachers', 'icon' => 'user', 'indent' => true, 'group' => 'academic'],
     ['label' => $LANG['nav_courses'] ?? 'Courses', 'href' => '/studentfeedbackucsh/admin/courses.php', 'key' => 'courses', 'icon' => 'book', 'indent' => true, 'group' => 'academic'],
     ['label' => $LANG['nav_sections'] ?? 'Sections', 'href' => '/studentfeedbackucsh/admin/sections.php', 'key' => 'sections', 'icon' => 'grid', 'indent' => true, 'group' => 'academic'],
     ['label' => $LANG['nav_assignments'] ?? 'Assignments', 'href' => '/studentfeedbackucsh/admin/section_assignments.php', 'key' => 'assignments', 'icon' => 'link', 'indent' => true, 'group' => 'academic'],
-    ['label' => $LANG['nav_academic_feedbacks'] ?? 'Academic Feedbacks', 'type' => 'group', 'key' => 'academic_feedback', 'isOpen' => $isAcademicFeedbackActive],
-    ['label' => $LANG['nav_forms'] ?? 'Forms', 'href' => '/studentfeedbackucsh/admin/feedback_forms.php', 'key' => 'forms', 'icon' => 'document', 'indent' => true, 'group' => 'academic_feedback'],
-    ['label' => $LANG['nav_questions'] ?? 'Questions', 'href' => '/studentfeedbackucsh/admin/feedback_questions.php', 'key' => 'questions', 'icon' => 'question', 'indent' => true, 'group' => 'academic_feedback'],
-    ['label' => $LANG['nav_results'] ?? 'Results', 'href' => '/studentfeedbackucsh/admin/feedback_results.php', 'key' => 'results', 'icon' => 'chart', 'indent' => true, 'group' => 'academic_feedback'],
-    ['label' => $LANG['nav_student_affairs'] ?? 'Student Affairs', 'type' => 'group', 'key' => 'student_affairs', 'isOpen' => $isSaActive],
-    ['label' => $LANG['nav_sa_forms'] ?? 'Student Affairs Forms', 'href' => '/studentfeedbackucsh/admin/sa_forms.php', 'key' => 'sa_forms', 'icon' => 'shield', 'indent' => true, 'group' => 'student_affairs'],
-    ['label' => $LANG['nav_sa_questions'] ?? 'Student Affairs Questions', 'href' => '/studentfeedbackucsh/admin/sa_questions.php', 'key' => 'sa_questions', 'icon' => 'question', 'indent' => true, 'group' => 'student_affairs'],
-    ['label' => $LANG['nav_sa_results'] ?? 'Student Affairs Results', 'href' => '/studentfeedbackucsh/admin/sa_results.php', 'key' => 'sa_results', 'icon' => 'chart', 'indent' => true, 'group' => 'student_affairs'],
-    ['label' => $LANG['nav_administration'] ?? 'Administration', 'type' => 'group', 'key' => 'administration', 'isOpen' => $isAdmActive],
-    ['label' => $LANG['nav_adm_forms'] ?? 'Administration Forms', 'href' => '/studentfeedbackucsh/admin/adm_forms.php', 'key' => 'adm_forms', 'icon' => 'office', 'indent' => true, 'group' => 'administration'],
-    ['label' => $LANG['nav_adm_questions'] ?? 'Administration Questions', 'href' => '/studentfeedbackucsh/admin/adm_questions.php', 'key' => 'adm_questions', 'icon' => 'question', 'indent' => true, 'group' => 'administration'],
-    ['label' => $LANG['nav_adm_results'] ?? 'Administration Results', 'href' => '/studentfeedbackucsh/admin/adm_results.php', 'key' => 'adm_results', 'icon' => 'chart', 'indent' => true, 'group' => 'administration'],
+    ['label' => 'Feedback Management', 'type' => 'group', 'key' => 'feedback_management', 'isOpen' => $isFeedbackActive],
+    ['label' => 'Question Sets', 'href' => '/studentfeedbackucsh/admin/question_sets.php', 'key' => 'question_sets', 'icon' => 'question', 'indent' => true, 'group' => 'feedback_management'],
+    ['label' => 'Forms', 'href' => '/studentfeedbackucsh/admin/feedback_forms_all.php', 'key' => 'forms', 'icon' => 'document', 'indent' => true, 'group' => 'feedback_management'],
+    ['label' => 'Results', 'href' => '/studentfeedbackucsh/admin/results_all.php', 'key' => 'results', 'icon' => 'chart', 'indent' => true, 'group' => 'feedback_management'],
 ];
 ?>
 

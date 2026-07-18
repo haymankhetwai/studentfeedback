@@ -14,14 +14,14 @@ $pageTitle  = $LANG['nav_my_sections'] ?? 'My Sections';
 $activeMenu = 'sections';
 
 $search  = clean($_GET['search'] ?? '');
-$perPage = 10;
+$perPage = max(10, min(100, (int)($_GET['per_page'] ?? 10)));
 $page    = max(1,(int)($_GET['page'] ?? 1));
 
 if ($teacherId) {
     if ($search) {
         $s2="%$search%";
-        $c=$conn->prepare("SELECT COUNT(*) AS c FROM sections s JOIN courses c2 ON s.course_id=c2.id WHERE s.teacher_id=? AND (c2.course_name LIKE ? OR s.section LIKE ? OR s.academic_year LIKE ?)");
-        $c->bind_param('isss',$teacherId,$s2,$s2,$s2); $c->execute();
+        $c=$conn->prepare("SELECT COUNT(*) AS c FROM sections s JOIN courses c2 ON s.course_id=c2.id LEFT JOIN academic_years ay ON s.academic_year_id=ay.id LEFT JOIN semesters sm ON s.semester_id=sm.id WHERE s.teacher_id=? AND (c2.course_name LIKE ? OR s.section LIKE ? OR COALESCE(ay.year_name, s.academic_year) LIKE ? OR sm.semester_name LIKE ?)");
+        $c->bind_param('issss',$teacherId,$s2,$s2,$s2,$s2); $c->execute();
         $total=(int)$c->get_result()->fetch_assoc()['c']; $c->close();
     } else {
         $c=$conn->prepare("SELECT COUNT(*) AS c FROM sections WHERE teacher_id=?");
@@ -35,10 +35,10 @@ $pg=paginate($total,$perPage,$page); $off=$pg['offset'];
 if ($teacherId) {
     if ($search) {
         $s2="%$search%";
-        $stmt=$conn->prepare("SELECT s.*, c2.course_name, c2.course_code, (SELECT COUNT(*) FROM section_assignments sa WHERE sa.section_id=s.id) AS student_count, (SELECT COUNT(*) FROM feedback_forms ff WHERE ff.section_id=s.id) AS form_count FROM sections s JOIN courses c2 ON s.course_id=c2.id WHERE s.teacher_id=? AND (c2.course_name LIKE ? OR s.section LIKE ? OR s.academic_year LIKE ?) ORDER BY s.id DESC LIMIT ? OFFSET ?");
-        $stmt->bind_param('isssii',$teacherId,$s2,$s2,$s2,$perPage,$off);
+        $stmt=$conn->prepare("SELECT s.*, c2.course_name, c2.course_code, COALESCE(ay.year_name, s.academic_year) AS display_year, sm.semester_name AS display_semester, (SELECT COUNT(*) FROM section_assignments sa WHERE sa.section_id=s.id) AS student_count, (SELECT COUNT(*) FROM feedback_forms ff WHERE ff.section_id=s.id) AS form_count FROM sections s JOIN courses c2 ON s.course_id=c2.id LEFT JOIN academic_years ay ON s.academic_year_id=ay.id LEFT JOIN semesters sm ON s.semester_id=sm.id WHERE s.teacher_id=? AND (c2.course_name LIKE ? OR s.section LIKE ? OR COALESCE(ay.year_name, s.academic_year) LIKE ? OR sm.semester_name LIKE ?) ORDER BY s.id DESC LIMIT ? OFFSET ?");
+        $stmt->bind_param('issssii',$teacherId,$s2,$s2,$s2,$s2,$perPage,$off);
     } else {
-        $stmt=$conn->prepare("SELECT s.*, c2.course_name, c2.course_code, (SELECT COUNT(*) FROM section_assignments sa WHERE sa.section_id=s.id) AS student_count, (SELECT COUNT(*) FROM feedback_forms ff WHERE ff.section_id=s.id) AS form_count FROM sections s JOIN courses c2 ON s.course_id=c2.id WHERE s.teacher_id=? ORDER BY s.id DESC LIMIT ? OFFSET ?");
+        $stmt=$conn->prepare("SELECT s.*, c2.course_name, c2.course_code, COALESCE(ay.year_name, s.academic_year) AS display_year, sm.semester_name AS display_semester, (SELECT COUNT(*) FROM section_assignments sa WHERE sa.section_id=s.id) AS student_count, (SELECT COUNT(*) FROM feedback_forms ff WHERE ff.section_id=s.id) AS form_count FROM sections s JOIN courses c2 ON s.course_id=c2.id LEFT JOIN academic_years ay ON s.academic_year_id=ay.id LEFT JOIN semesters sm ON s.semester_id=sm.id WHERE s.teacher_id=? ORDER BY s.id DESC LIMIT ? OFFSET ?");
         $stmt->bind_param('iii',$teacherId,$perPage,$off);
     }
     $stmt->execute(); $rows=$stmt->get_result()->fetch_all(MYSQLI_ASSOC); $stmt->close();
@@ -79,7 +79,7 @@ if ($teacherId) {
                     <td class="px-5 py-3 text-sm text-slate-400"><?= $pg['offset']+$i+1 ?></td>
                     <td class="px-5 py-3"><p class="text-sm font-medium text-slate-800"><?= e($row['course_name']) ?></p><p class="text-xs text-slate-400 font-mono"><?= e($row['course_code']) ?></p></td>
                     <td class="px-5 py-3"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800"><?= e($row['section']) ?></span></td>
-                    <td class="px-5 py-3 text-sm text-slate-500"><?= e($row['academic_year']) ?><br><span class="text-xs text-slate-400"><?= e(formatSemester($row['semester'])) ?></span></td>
+                    <td class="px-5 py-3 text-sm text-slate-500"><?= e($row['display_year']) ?><br><span class="text-xs text-slate-400"><?= e(semesterToRoman($row['display_semester'])) ?></span></td>
                     <td class="px-10 py-3 "><span class="text-sm font-bold text-slate-700"><?= $row['student_count'] ?></span></td>
                     <td class="px-10 py-3 "><span class="text-sm font-bold text-emerald-600"><?= $row['form_count'] ?></span></td>
                     <td class="px-5 py-3 text-right">
@@ -94,7 +94,7 @@ if ($teacherId) {
             </tbody>
         </table>
     </div>
-    <div class="px-5 py-4 border-t border-blue-100/50"><?= paginationLinks($pg,'my_sections.php'.($search?'?search='.urlencode($search):'')) ?></div>
+    <div class="px-5 py-4 border-t border-blue-100/50"><?= paginationLinks($pg,'my_sections.php'.($search?'?search='.urlencode($search):''), $perPage) ?></div>
 </div>
 
 <?php require_once '../includes/teacher_footer.php'; ?>

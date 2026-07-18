@@ -10,16 +10,23 @@ $pageTitle  = $LANG['reports_title'] ?? 'Reports & Analytics';
 $activeMenu = 'reports';
 
 // ─── Filter Inputs ─────────────────────────────────────────────
-$filterSemester = clean($_GET['semester'] ?? '');
-$filterTeacher  = (int)($_GET['teacher_id'] ?? 0);
-$filterCourse   = (int)($_GET['course_id'] ?? 0);
-$filterSection  = clean($_GET['section'] ?? '');
-$saFilterSemester = clean($_GET['sa_semester'] ?? '');
-$admFilterSemester = clean($_GET['adm_semester'] ?? '');
+$filterAcademicYear = (int)($_GET['academic_year'] ?? 0);
+$filterSemester     = (int)($_GET['semester'] ?? 0);
+$filterTeacher      = (int)($_GET['teacher_id'] ?? 0);
+$filterCourse       = (int)($_GET['course_id'] ?? 0);
+$filterSection      = clean($_GET['section'] ?? '');
+
+$saFilterAcademicYear = (int)($_GET['sa_academic_year'] ?? 0);
+$saFilterSemester     = (int)($_GET['sa_semester'] ?? 0);
+
+$admFilterAcademicYear = (int)($_GET['adm_academic_year'] ?? 0);
+$admFilterSemester     = (int)($_GET['adm_semester'] ?? 0);
 
 // ─── Filter Options ────────────────────────────────────────────
-$semesters = $conn->query("SELECT DISTINCT semester FROM sections WHERE semester != '' ORDER BY semester DESC")->fetch_all(MYSQLI_ASSOC);
-$teachers  = $conn->query("
+$academicYears = $conn->query("SELECT id, year_name, status FROM academic_years ORDER BY year_name DESC")->fetch_all(MYSQLI_ASSOC);
+$semesters     = $conn->query("SELECT id, semester_name FROM semesters ORDER BY id ASC")->fetch_all(MYSQLI_ASSOC);
+
+$teachers = $conn->query("
     SELECT DISTINCT t.id, u.name AS teacher_name
     FROM feedback_submissions fs
     JOIN feedback_forms ff ON fs.form_id = ff.id
@@ -29,49 +36,55 @@ $teachers  = $conn->query("
     WHERE ff.module = 'academic'
     ORDER BY u.name ASC
 ")->fetch_all(MYSQLI_ASSOC);
-$courses   = $conn->query("
+
+$courses = $conn->query("
     SELECT DISTINCT c.id, c.course_name
     FROM sections s
     JOIN courses c ON s.course_id = c.id
     ORDER BY c.course_name ASC
 ")->fetch_all(MYSQLI_ASSOC);
-$sections  = $conn->query("
+
+$sections = $conn->query("
     SELECT DISTINCT s.section
     FROM sections s
     WHERE s.section != ''
     ORDER BY s.section ASC
 ")->fetch_all(MYSQLI_ASSOC);
+
 $saSemesters = $conn->query("
-    SELECT DISTINCT s.semester
+    SELECT DISTINCT sem.id, sem.semester_name
     FROM feedback_submissions fs
     JOIN feedback_forms ff ON fs.form_id = ff.id
-    JOIN students st ON fs.student_id = st.id
-    JOIN section_assignments sa ON sa.student_id = st.id
-    JOIN sections s ON sa.section_id = s.id
-    WHERE ff.module='student_affairs' AND s.semester IS NOT NULL AND s.semester != ''
-    ORDER BY s.semester DESC
+    JOIN sections sec ON ff.section_id = sec.id
+    JOIN semesters sem ON sec.semester_id = sem.id
+    WHERE ff.module='student_affairs'
+    ORDER BY sem.id DESC
 ")->fetch_all(MYSQLI_ASSOC);
+
 $admSemesters = $conn->query("
-    SELECT DISTINCT s.semester
+    SELECT DISTINCT sem.id, sem.semester_name
     FROM feedback_submissions fs
     JOIN feedback_forms ff ON fs.form_id = ff.id
-    JOIN students st ON fs.student_id = st.id
-    JOIN section_assignments sa ON sa.student_id = st.id
-    JOIN sections s ON sa.section_id = s.id
-    WHERE ff.module='administration' AND s.semester IS NOT NULL AND s.semester != ''
-    ORDER BY s.semester DESC
+    JOIN sections sec ON ff.section_id = sec.id
+    JOIN semesters sem ON sec.semester_id = sem.id
+    WHERE ff.module='administration'
+    ORDER BY sem.id DESC
 ")->fetch_all(MYSQLI_ASSOC);
 
 // ─── Helper: build dynamic WHERE clause for ratings ────────────
-// We need: feedback_ratings → feedback_forms → sections [+ teachers/courses]
 $whereParts = [];
 $params     = [];
 $types      = '';
 
-if ($filterSemester !== '') {
-    $whereParts[] = 'sec.semester = ?';
+if ($filterAcademicYear > 0) {
+    $whereParts[] = 'sec.academic_year_id = ?';
+    $params[]     = $filterAcademicYear;
+    $types       .= 'i';
+}
+if ($filterSemester > 0) {
+    $whereParts[] = 'sec.semester_id = ?';
     $params[]     = $filterSemester;
-    $types       .= 's';
+    $types       .= 'i';
 }
 if ($filterTeacher > 0) {
     $whereParts[] = 'sec.teacher_id = ?';
@@ -144,8 +157,6 @@ $teacherCountSql = "
 $teacherCountResult = runFilteredQuery($conn, $teacherCountSql, $types, $params);
 $totalTeachers = (int) $teacherCountResult->fetch_assoc()['cnt'];
 
-
-
 // ─── Teacher Performance (top teachers by feedback count) ──────
 $teacherPerfSql = "
     SELECT u.name AS teacher_name,
@@ -175,7 +186,8 @@ foreach ($teacherPerfData as $tp) {
         JOIN sections sec ON ff.section_id = sec.id
         JOIN teachers t ON sec.teacher_id = t.id
         WHERE t.id = ?
-        " . ($filterSemester !== '' ? "AND sec.semester = ?" : "") . "
+        " . ($filterAcademicYear > 0 ? "AND sec.academic_year_id = ?" : "") . "
+        " . ($filterSemester > 0 ? "AND sec.semester_id = ?" : "") . "
         " . ($filterCourse > 0 ? "AND sec.course_id = ?" : "") . "
         " . ($filterSection !== '' ? "AND sec.section = ?" : "") . "
         GROUP BY fr.rating
@@ -183,9 +195,10 @@ foreach ($teacherPerfData as $tp) {
     ";
     $trTypes = 'i';
     $trParams = [$tid];
-    if ($filterSemester !== '') { $trTypes .= 's'; $trParams[] = $filterSemester; }
-    if ($filterCourse > 0)     { $trTypes .= 'i'; $trParams[] = $filterCourse; }
-    if ($filterSection !== '') { $trTypes .= 's'; $trParams[] = $filterSection; }
+    if ($filterAcademicYear > 0) { $trTypes .= 'i'; $trParams[] = $filterAcademicYear; }
+    if ($filterSemester > 0)     { $trTypes .= 'i'; $trParams[] = $filterSemester; }
+    if ($filterCourse > 0)       { $trTypes .= 'i'; $trParams[] = $filterCourse; }
+    if ($filterSection !== '')   { $trTypes .= 's'; $trParams[] = $filterSection; }
     $trResult = runFilteredQuery($conn, $trSql, $trTypes, $trParams);
     $rawRatings = $trResult->fetch_all(MYSQLI_ASSOC);
 
@@ -211,34 +224,100 @@ foreach ($teacherPerfData as $tp) {
 // ─── Build filter query string helper ──────────────────────────
 function buildFilterUrl(array $overrides = []): string {
     $params = [];
-    $semester = $overrides['semester'] ?? $_GET['semester'] ?? '';
-    $teacher  = $overrides['teacher_id'] ?? $_GET['teacher_id'] ?? '';
-    $course   = $overrides['course_id'] ?? $_GET['course_id'] ?? '';
-    $section  = $overrides['section'] ?? $_GET['section'] ?? '';
-    if ($semester !== '') $params[] = 'semester=' . urlencode($semester);
-    if ($teacher)         $params[] = 'teacher_id=' . (int)$teacher;
-    if ($course)          $params[] = 'course_id=' . (int)$course;
-    if ($section !== '')  $params[] = 'section=' . urlencode($section);
+    $academicYear = $overrides['academic_year'] ?? $_GET['academic_year'] ?? '';
+    $semester     = $overrides['semester'] ?? $_GET['semester'] ?? '';
+    $teacher      = $overrides['teacher_id'] ?? $_GET['teacher_id'] ?? '';
+    $course       = $overrides['course_id'] ?? $_GET['course_id'] ?? '';
+    $section      = $overrides['section'] ?? $_GET['section'] ?? '';
+    if ($academicYear)         $params[] = 'academic_year=' . (int)$academicYear;
+    if ($semester)             $params[] = 'semester=' . (int)$semester;
+    if ($teacher)              $params[] = 'teacher_id=' . (int)$teacher;
+    if ($course)               $params[] = 'course_id=' . (int)$course;
+    if ($section !== '')       $params[] = 'section=' . urlencode($section);
     return '?' . implode('&', $params);
 }
 
 // ─── SA Feedback Statistics ─────────────────────────────────────
-if ($saFilterSemester !== '') {
-    $semEsc = $conn->real_escape_string($saFilterSemester);
-    $saRatingsJoin = " JOIN feedback_submissions fs ON fr.form_id = fs.form_id AND fr.created_at = fs.submitted_at JOIN students st ON fs.student_id = st.id JOIN section_assignments sa ON sa.student_id = st.id JOIN sections s ON sa.section_id = s.id";
-    $saRatingsWhere = "AND s.semester = '$semEsc'";
-    $saSubsJoin = " JOIN students st ON fs.student_id = st.id JOIN section_assignments sa ON sa.student_id = st.id JOIN sections s ON sa.section_id = s.id";
-    $saSubsWhere = "AND s.semester = '$semEsc'";
-    $saFormSubquery = "(SELECT DISTINCT fs.form_id FROM feedback_submissions fs JOIN students st ON fs.student_id = st.id JOIN section_assignments sa ON sa.student_id = st.id JOIN sections s ON sa.section_id = s.id WHERE s.semester = '$semEsc')";
-    $saFormWhere = "AND ff.id IN $saFormSubquery";
-} else {
-    $saRatingsJoin = $saRatingsWhere = $saSubsJoin = $saSubsWhere = $saFormWhere = '';
-}
-$saTotalRatings = (int) $conn->query("SELECT COUNT(DISTINCT fr.id) AS cnt FROM feedback_ratings fr JOIN feedback_forms ff ON fr.form_id = ff.id$saRatingsJoin WHERE ff.module='student_affairs' $saRatingsWhere")->fetch_assoc()['cnt'];
-$saTotalSubmissions = (int) $conn->query("SELECT COUNT(DISTINCT fs.id) AS cnt FROM feedback_submissions fs JOIN feedback_forms ff ON fs.form_id=ff.id$saSubsJoin WHERE ff.module='student_affairs' $saSubsWhere")->fetch_assoc()['cnt'];
-$saTotalForms = (int) $conn->query("SELECT COUNT(DISTINCT ff.id) AS cnt FROM feedback_forms ff WHERE ff.module='student_affairs' $saFormWhere")->fetch_assoc()['cnt'];
+$saWhereParts = [];
+$saParams     = [];
+$saTypes      = '';
 
-$saRatingDist = $conn->query("SELECT fr.rating, COUNT(DISTINCT fr.id) AS qty FROM feedback_ratings fr JOIN feedback_forms ff ON fr.form_id = ff.id$saRatingsJoin WHERE ff.module='student_affairs' $saRatingsWhere GROUP BY fr.rating ORDER BY FIELD(fr.rating, 'Excellent', 'Good', 'Fair', 'Poor', 'Bad')")->fetch_all(MYSQLI_ASSOC);
+if ($saFilterAcademicYear > 0) {
+    $saWhereParts[] = 'sec.academic_year_id = ?';
+    $saParams[]     = $saFilterAcademicYear;
+    $saTypes       .= 'i';
+}
+if ($saFilterSemester > 0) {
+    $saWhereParts[] = 'sec.semester_id = ?';
+    $saParams[]     = $saFilterSemester;
+    $saTypes       .= 'i';
+}
+
+$saWhereSql = '';
+if ($saWhereParts) {
+    $saWhereSql = 'AND ' . implode(' AND ', $saWhereParts);
+}
+
+$saRatingsJoin = "
+    JOIN feedback_submissions fs ON fr.form_id = fs.form_id AND fr.created_at = fs.submitted_at
+    JOIN students st ON fs.student_id = st.id
+    JOIN section_assignments sa ON sa.student_id = st.id
+    JOIN sections sec ON sa.section_id = sec.id
+";
+$saSubsJoin = "
+    JOIN students st ON fs.student_id = st.id
+    JOIN section_assignments sa ON sa.student_id = st.id
+    JOIN sections sec ON sa.section_id = sec.id
+";
+$saFormSubquery = "
+    SELECT DISTINCT fs.form_id FROM feedback_submissions fs
+    JOIN students st ON fs.student_id = st.id
+    JOIN section_assignments sa ON sa.student_id = st.id
+    JOIN sections sec ON sa.section_id = sec.id
+    WHERE 1=1 $saWhereSql
+";
+$saFormWhere = "AND ff.id IN ($saFormSubquery)";
+
+if ($saTypes !== '') {
+    $saStmt = $conn->prepare("SELECT COUNT(DISTINCT fr.id) AS cnt FROM feedback_ratings fr JOIN feedback_forms ff ON fr.form_id = ff.id $saRatingsJoin WHERE ff.module='student_affairs' $saWhereSql");
+    $saStmt->bind_param($saTypes, ...$saParams);
+    $saStmt->execute();
+    $saTotalRatings = (int) $saStmt->get_result()->fetch_assoc()['cnt'];
+    $saStmt->close();
+
+    $saStmt2 = $conn->prepare("SELECT COUNT(DISTINCT fs.id) AS cnt FROM feedback_submissions fs JOIN feedback_forms ff ON fs.form_id=ff.id $saSubsJoin WHERE ff.module='student_affairs' $saWhereSql");
+    $saStmt2->bind_param($saTypes, ...$saParams);
+    $saStmt2->execute();
+    $saTotalSubmissions = (int) $saStmt2->get_result()->fetch_assoc()['cnt'];
+    $saStmt2->close();
+
+    $saStmt3 = $conn->prepare("SELECT COUNT(DISTINCT ff.id) AS cnt FROM feedback_forms ff WHERE ff.module='student_affairs' $saFormWhere");
+    $saStmt3->bind_param($saTypes, ...$saParams);
+    $saStmt3->execute();
+    $saTotalForms = (int) $saStmt3->get_result()->fetch_assoc()['cnt'];
+    $saStmt3->close();
+
+    $saStmt4 = $conn->prepare("SELECT fr.rating, COUNT(DISTINCT fr.id) AS qty FROM feedback_ratings fr JOIN feedback_forms ff ON fr.form_id = ff.id $saRatingsJoin WHERE ff.module='student_affairs' $saWhereSql GROUP BY fr.rating ORDER BY FIELD(fr.rating, 'Excellent', 'Good', 'Fair', 'Poor', 'Bad')");
+    $saStmt4->bind_param($saTypes, ...$saParams);
+    $saStmt4->execute();
+    $saRatingDist = $saStmt4->get_result()->fetch_all(MYSQLI_ASSOC);
+    $saStmt4->close();
+
+    $saStmt5 = $conn->prepare("SELECT AVG(CASE WHEN fr.rating='Good' THEN 4 WHEN fr.rating='Fair' THEN 3 WHEN fr.rating IN ('Poor','Bad') THEN 1 ELSE 3 END) AS avg_rating FROM feedback_ratings fr JOIN feedback_forms ff ON fr.form_id = ff.id $saRatingsJoin WHERE ff.module='student_affairs' $saWhereSql");
+    $saStmt5->bind_param($saTypes, ...$saParams);
+    $saStmt5->execute();
+    $saAvgResult = $saStmt5->get_result()->fetch_assoc();
+    $saStmt5->close();
+} else {
+    $saTotalRatings    = (int) $conn->query("SELECT COUNT(DISTINCT fr.id) AS cnt FROM feedback_ratings fr JOIN feedback_forms ff ON fr.form_id = ff.id WHERE ff.module='student_affairs'")->fetch_assoc()['cnt'];
+    $saTotalSubmissions = (int) $conn->query("SELECT COUNT(DISTINCT fs.id) AS cnt FROM feedback_submissions fs JOIN feedback_forms ff ON fs.form_id=ff.id WHERE ff.module='student_affairs'")->fetch_assoc()['cnt'];
+    $saTotalForms      = (int) $conn->query("SELECT COUNT(DISTINCT ff.id) AS cnt FROM feedback_forms ff WHERE ff.module='student_affairs'")->fetch_assoc()['cnt'];
+    $saRatingDist      = $conn->query("SELECT fr.rating, COUNT(DISTINCT fr.id) AS qty FROM feedback_ratings fr JOIN feedback_forms ff ON fr.form_id = ff.id WHERE ff.module='student_affairs' GROUP BY fr.rating ORDER BY FIELD(fr.rating, 'Excellent', 'Good', 'Fair', 'Poor', 'Bad')")->fetch_all(MYSQLI_ASSOC);
+    $saAvgResult       = $conn->query("SELECT AVG(CASE WHEN fr.rating='Good' THEN 4 WHEN fr.rating='Fair' THEN 3 WHEN fr.rating IN ('Poor','Bad') THEN 1 ELSE 3 END) AS avg_rating FROM feedback_ratings fr JOIN feedback_forms ff ON fr.form_id = ff.id WHERE ff.module='student_affairs'")->fetch_assoc();
+}
+
+$saAvgRating = $saAvgResult['avg_rating'] ? round((float)$saAvgResult['avg_rating'], 2) : 0;
+
 $saNormalized = ['Good' => 0, 'Fair' => 0, 'Bad' => 0];
 foreach ($saRatingDist as $rd) {
     $r = trim($rd['rating']);
@@ -247,26 +326,87 @@ foreach ($saRatingDist as $rd) {
     elseif (in_array($r, ['Poor', 'Bad'])) $saNormalized['Bad'] += (int)$rd['qty'];
 }
 
-$saAvgResult = $conn->query("SELECT AVG(CASE WHEN fr.rating='Good' THEN 4 WHEN fr.rating='Fair' THEN 3 WHEN fr.rating IN ('Poor','Bad') THEN 1 ELSE 3 END) AS avg_rating FROM feedback_ratings fr JOIN feedback_forms ff ON fr.form_id = ff.id$saRatingsJoin WHERE ff.module='student_affairs' $saRatingsWhere")->fetch_assoc();
-$saAvgRating = $saAvgResult['avg_rating'] ? round((float)$saAvgResult['avg_rating'], 2) : 0;
-
 // ─── Admin Feedback Statistics ──────────────────────────────────
-if ($admFilterSemester !== '') {
-    $semEscAdm = $conn->real_escape_string($admFilterSemester);
-    $admRatingsJoin = " JOIN feedback_submissions fs ON fr.form_id = fs.form_id AND fr.created_at = fs.submitted_at JOIN students st ON fs.student_id = st.id JOIN section_assignments sa ON sa.student_id = st.id JOIN sections s ON sa.section_id = s.id";
-    $admRatingsWhere = "AND s.semester = '$semEscAdm'";
-    $admSubsJoin = " JOIN students st ON fs.student_id = st.id JOIN section_assignments sa ON sa.student_id = st.id JOIN sections s ON sa.section_id = s.id";
-    $admSubsWhere = "AND s.semester = '$semEscAdm'";
-    $admFormSubquery = "(SELECT DISTINCT fs.form_id FROM feedback_submissions fs JOIN students st ON fs.student_id = st.id JOIN section_assignments sa ON sa.student_id = st.id JOIN sections s ON sa.section_id = s.id WHERE s.semester = '$semEscAdm')";
-    $admFormWhere = "AND ff.id IN $admFormSubquery";
-} else {
-    $admRatingsJoin = $admRatingsWhere = $admSubsJoin = $admSubsWhere = $admFormWhere = '';
-}
-$admTotalRatings = (int) $conn->query("SELECT COUNT(DISTINCT fr.id) AS cnt FROM feedback_ratings fr JOIN feedback_forms ff ON fr.form_id = ff.id$admRatingsJoin WHERE ff.module='administration' $admRatingsWhere")->fetch_assoc()['cnt'];
-$admTotalSubmissions = (int) $conn->query("SELECT COUNT(DISTINCT fs.id) AS cnt FROM feedback_submissions fs JOIN feedback_forms ff ON fs.form_id=ff.id$admSubsJoin WHERE ff.module='administration' $admSubsWhere")->fetch_assoc()['cnt'];
-$admTotalForms = (int) $conn->query("SELECT COUNT(DISTINCT ff.id) AS cnt FROM feedback_forms ff WHERE ff.module='administration' $admFormWhere")->fetch_assoc()['cnt'];
+$admWhereParts = [];
+$admParams     = [];
+$admTypes      = '';
 
-$admRatingDist = $conn->query("SELECT fr.rating, COUNT(DISTINCT fr.id) AS qty FROM feedback_ratings fr JOIN feedback_forms ff ON fr.form_id = ff.id$admRatingsJoin WHERE ff.module='administration' $admRatingsWhere GROUP BY fr.rating ORDER BY FIELD(fr.rating, 'Excellent', 'Good', 'Fair', 'Poor', 'Bad')")->fetch_all(MYSQLI_ASSOC);
+if ($admFilterAcademicYear > 0) {
+    $admWhereParts[] = 'sec.academic_year_id = ?';
+    $admParams[]     = $admFilterAcademicYear;
+    $admTypes       .= 'i';
+}
+if ($admFilterSemester > 0) {
+    $admWhereParts[] = 'sec.semester_id = ?';
+    $admParams[]     = $admFilterSemester;
+    $admTypes       .= 'i';
+}
+
+$admWhereSql = '';
+if ($admWhereParts) {
+    $admWhereSql = 'AND ' . implode(' AND ', $admWhereParts);
+}
+
+$admRatingsJoin = "
+    JOIN feedback_submissions fs ON fr.form_id = fs.form_id AND fr.created_at = fs.submitted_at
+    JOIN students st ON fs.student_id = st.id
+    JOIN section_assignments sa ON sa.student_id = st.id
+    JOIN sections sec ON sa.section_id = sec.id
+";
+$admSubsJoin = "
+    JOIN students st ON fs.student_id = st.id
+    JOIN section_assignments sa ON sa.student_id = st.id
+    JOIN sections sec ON sa.section_id = sec.id
+";
+$admFormSubquery = "
+    SELECT DISTINCT fs.form_id FROM feedback_submissions fs
+    JOIN students st ON fs.student_id = st.id
+    JOIN section_assignments sa ON sa.student_id = st.id
+    JOIN sections sec ON sa.section_id = sec.id
+    WHERE 1=1 $admWhereSql
+";
+$admFormWhere = "AND ff.id IN ($admFormSubquery)";
+
+if ($admTypes !== '') {
+    $admStmt = $conn->prepare("SELECT COUNT(DISTINCT fr.id) AS cnt FROM feedback_ratings fr JOIN feedback_forms ff ON fr.form_id = ff.id $admRatingsJoin WHERE ff.module='administration' $admWhereSql");
+    $admStmt->bind_param($admTypes, ...$admParams);
+    $admStmt->execute();
+    $admTotalRatings = (int) $admStmt->get_result()->fetch_assoc()['cnt'];
+    $admStmt->close();
+
+    $admStmt2 = $conn->prepare("SELECT COUNT(DISTINCT fs.id) AS cnt FROM feedback_submissions fs JOIN feedback_forms ff ON fs.form_id=ff.id $admSubsJoin WHERE ff.module='administration' $admWhereSql");
+    $admStmt2->bind_param($admTypes, ...$admParams);
+    $admStmt2->execute();
+    $admTotalSubmissions = (int) $admStmt2->get_result()->fetch_assoc()['cnt'];
+    $admStmt2->close();
+
+    $admStmt3 = $conn->prepare("SELECT COUNT(DISTINCT ff.id) AS cnt FROM feedback_forms ff WHERE ff.module='administration' $admFormWhere");
+    $admStmt3->bind_param($admTypes, ...$admParams);
+    $admStmt3->execute();
+    $admTotalForms = (int) $admStmt3->get_result()->fetch_assoc()['cnt'];
+    $admStmt3->close();
+
+    $admStmt4 = $conn->prepare("SELECT fr.rating, COUNT(DISTINCT fr.id) AS qty FROM feedback_ratings fr JOIN feedback_forms ff ON fr.form_id = ff.id $admRatingsJoin WHERE ff.module='administration' $admWhereSql GROUP BY fr.rating ORDER BY FIELD(fr.rating, 'Excellent', 'Good', 'Fair', 'Poor', 'Bad')");
+    $admStmt4->bind_param($admTypes, ...$admParams);
+    $admStmt4->execute();
+    $admRatingDist = $admStmt4->get_result()->fetch_all(MYSQLI_ASSOC);
+    $admStmt4->close();
+
+    $admStmt5 = $conn->prepare("SELECT AVG(CASE WHEN fr.rating='Good' THEN 4 WHEN fr.rating='Fair' THEN 3 WHEN fr.rating IN ('Poor','Bad') THEN 1 ELSE 3 END) AS avg_rating FROM feedback_ratings fr JOIN feedback_forms ff ON fr.form_id = ff.id $admRatingsJoin WHERE ff.module='administration' $admWhereSql");
+    $admStmt5->bind_param($admTypes, ...$admParams);
+    $admStmt5->execute();
+    $admAvgResult = $admStmt5->get_result()->fetch_assoc();
+    $admStmt5->close();
+} else {
+    $admTotalRatings    = (int) $conn->query("SELECT COUNT(DISTINCT fr.id) AS cnt FROM feedback_ratings fr JOIN feedback_forms ff ON fr.form_id = ff.id WHERE ff.module='administration'")->fetch_assoc()['cnt'];
+    $admTotalSubmissions = (int) $conn->query("SELECT COUNT(DISTINCT fs.id) AS cnt FROM feedback_submissions fs JOIN feedback_forms ff ON fs.form_id=ff.id WHERE ff.module='administration'")->fetch_assoc()['cnt'];
+    $admTotalForms      = (int) $conn->query("SELECT COUNT(DISTINCT ff.id) AS cnt FROM feedback_forms ff WHERE ff.module='administration'")->fetch_assoc()['cnt'];
+    $admRatingDist      = $conn->query("SELECT fr.rating, COUNT(DISTINCT fr.id) AS qty FROM feedback_ratings fr JOIN feedback_forms ff ON fr.form_id = ff.id WHERE ff.module='administration' GROUP BY fr.rating ORDER BY FIELD(fr.rating, 'Excellent', 'Good', 'Fair', 'Poor', 'Bad')")->fetch_all(MYSQLI_ASSOC);
+    $admAvgResult       = $conn->query("SELECT AVG(CASE WHEN fr.rating='Good' THEN 4 WHEN fr.rating='Fair' THEN 3 WHEN fr.rating IN ('Poor','Bad') THEN 1 ELSE 3 END) AS avg_rating FROM feedback_ratings fr JOIN feedback_forms ff ON fr.form_id = ff.id WHERE ff.module='administration'")->fetch_assoc();
+}
+
+$admAvgRating = $admAvgResult['avg_rating'] ? round((float)$admAvgResult['avg_rating'], 2) : 0;
+
 $admNormalized = ['Good' => 0, 'Fair' => 0, 'Bad' => 0];
 foreach ($admRatingDist as $rd) {
     $r = trim($rd['rating']);
@@ -274,9 +414,6 @@ foreach ($admRatingDist as $rd) {
     elseif (in_array($r, ['Fair'])) $admNormalized['Fair'] += (int)$rd['qty'];
     elseif (in_array($r, ['Poor', 'Bad'])) $admNormalized['Bad'] += (int)$rd['qty'];
 }
-
-$admAvgResult = $conn->query("SELECT AVG(CASE WHEN fr.rating='Good' THEN 4 WHEN fr.rating='Fair' THEN 3 WHEN fr.rating IN ('Poor','Bad') THEN 1 ELSE 3 END) AS avg_rating FROM feedback_ratings fr JOIN feedback_forms ff ON fr.form_id = ff.id$admRatingsJoin WHERE ff.module='administration' $admRatingsWhere")->fetch_assoc();
-$admAvgRating = $admAvgResult['avg_rating'] ? round((float)$admAvgResult['avg_rating'], 2) : 0;
 
 include '../includes/admin_header.php';
 include '../includes/admin_sidebar.php';
@@ -299,12 +436,23 @@ include '../includes/admin_sidebar.php';
 <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6">
     <form method="GET" action="#academic-feedback" class="flex flex-wrap items-end gap-4">
         <div class="flex-1 min-w-[180px]">
+            <label class="block text-xs font-semibold text-slate-500 mb-1"><?= $LANG['academic_year_filter'] ?? 'Academic Year' ?></label>
+            <select name="academic_year" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500">
+                <option value="0"><?= $LANG['all_academic_years'] ?? 'All Academic Years' ?></option>
+                <?php foreach ($academicYears as $ay): ?>
+                    <option value="<?= (int)$ay['id'] ?>" <?= $filterAcademicYear === (int)$ay['id'] ? 'selected' : '' ?>>
+                        <?= e($ay['year_name']) ?><?= $ay['status'] === 'active' ? ' (Active)' : '' ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div class="flex-1 min-w-[180px]">
             <label class="block text-xs font-semibold text-slate-500 mb-1"><?= $LANG['semester_filter'] ?? 'Semester' ?></label>
             <select name="semester" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500">
-                <option value=""><?= $LANG['all_semesters'] ?? 'All Semesters' ?></option>
+                <option value="0"><?= $LANG['all_semesters'] ?? 'All Semesters' ?></option>
                 <?php foreach ($semesters as $s): ?>
-                    <option value="<?= e($s['semester']) ?>" <?= $filterSemester === $s['semester'] ? 'selected' : '' ?>>
-                        <?= e(formatSemester($s['semester'])) ?>
+                    <option value="<?= (int)$s['id'] ?>" <?= $filterSemester === (int)$s['id'] ? 'selected' : '' ?>>
+                        <?= e(semesterToRoman($s['semester_name'])) ?>
                     </option>
                 <?php endforeach; ?>
             </select>
@@ -493,16 +641,27 @@ include '../includes/admin_sidebar.php';
     </h3>
 </div>
 
-<!-- SA Semester Filter -->
-<form method="GET" action="#sa-feedback" onsubmit="return function(f){var s=f.querySelector('[name=sa_semester]');if(s&&s.value==='')s.disabled=true;return true}(this)" class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 mb-4">
+<!-- SA Filters -->
+<form method="GET" action="#sa-feedback" class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 mb-4">
     <div class="flex flex-wrap items-end gap-4">
+        <div class="min-w-[180px]">
+            <label class="block text-xs font-semibold text-slate-500 mb-1"><?= $LANG['academic_year_filter'] ?? 'Academic Year' ?></label>
+            <select name="sa_academic_year" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                <option value="0"><?= $LANG['all_academic_years'] ?? 'All Academic Years' ?></option>
+                <?php foreach ($academicYears as $ay): ?>
+                    <option value="<?= (int)$ay['id'] ?>" <?= $saFilterAcademicYear === (int)$ay['id'] ? 'selected' : '' ?>>
+                        <?= e($ay['year_name']) ?><?= $ay['status'] === 'active' ? ' (Active)' : '' ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
         <div class="min-w-[180px]">
             <label class="block text-xs font-semibold text-slate-500 mb-1"><?= $LANG['semester_filter'] ?? 'Semester' ?></label>
             <select name="sa_semester" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
-                <option value=""><?= $LANG['all_semesters'] ?? 'All Semesters' ?></option>
+                <option value="0"><?= $LANG['all_semesters'] ?? 'All Semesters' ?></option>
                 <?php foreach ($saSemesters as $s): ?>
-                    <option value="<?= e($s['semester']) ?>" <?= $saFilterSemester === $s['semester'] ? 'selected' : '' ?>>
-                        <?= e(formatSemester($s['semester'])) ?>
+                    <option value="<?= (int)$s['id'] ?>" <?= $saFilterSemester === (int)$s['id'] ? 'selected' : '' ?>>
+                        <?= e(semesterToRoman($s['semester_name'])) ?>
                     </option>
                 <?php endforeach; ?>
             </select>
@@ -575,16 +734,27 @@ include '../includes/admin_sidebar.php';
     </h3>
 </div>
 
-<!-- Admin Semester Filter -->
-<form method="GET" action="#admin-feedback" onsubmit="return function(f){var s=f.querySelector('[name=adm_semester]');if(s&&s.value==='')s.disabled=true;return true}(this)" class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 mb-4">
+<!-- Admin Filters -->
+<form method="GET" action="#admin-feedback" class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 mb-4">
     <div class="flex flex-wrap items-end gap-4">
+        <div class="min-w-[180px]">
+            <label class="block text-xs font-semibold text-slate-500 mb-1"><?= $LANG['academic_year_filter'] ?? 'Academic Year' ?></label>
+            <select name="adm_academic_year" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                <option value="0"><?= $LANG['all_academic_years'] ?? 'All Academic Years' ?></option>
+                <?php foreach ($academicYears as $ay): ?>
+                    <option value="<?= (int)$ay['id'] ?>" <?= $admFilterAcademicYear === (int)$ay['id'] ? 'selected' : '' ?>>
+                        <?= e($ay['year_name']) ?><?= $ay['status'] === 'active' ? ' (Active)' : '' ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
         <div class="min-w-[180px]">
             <label class="block text-xs font-semibold text-slate-500 mb-1"><?= $LANG['semester_filter'] ?? 'Semester' ?></label>
             <select name="adm_semester" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
-                <option value=""><?= $LANG['all_semesters'] ?? 'All Semesters' ?></option>
+                <option value="0"><?= $LANG['all_semesters'] ?? 'All Semesters' ?></option>
                 <?php foreach ($admSemesters as $s): ?>
-                    <option value="<?= e($s['semester']) ?>" <?= $admFilterSemester === $s['semester'] ? 'selected' : '' ?>>
-                        <?= e(formatSemester($s['semester'])) ?>
+                    <option value="<?= (int)$s['id'] ?>" <?= $admFilterSemester === (int)$s['id'] ? 'selected' : '' ?>>
+                        <?= e(semesterToRoman($s['semester_name'])) ?>
                     </option>
                 <?php endforeach; ?>
             </select>

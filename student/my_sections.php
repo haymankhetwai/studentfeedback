@@ -20,7 +20,7 @@ $today = date('Y-m-d');
 // Load sections and their forms
 $sections = [];
 if ($studentId) {
-    $rs = $conn->prepare("SELECT s.*, c.course_name, c.course_code, u.name AS teacher_name FROM section_assignments sa JOIN sections s ON sa.section_id=s.id JOIN courses c ON s.course_id=c.id JOIN teachers t ON s.teacher_id=t.id JOIN users u ON t.user_id=u.id WHERE sa.student_id=? ORDER BY s.id DESC");
+    $rs = $conn->prepare("SELECT s.*, c.course_name, c.course_code, u.name AS teacher_name, COALESCE(ay.year_name, s.academic_year) AS display_year, sm.semester_name AS display_semester FROM section_assignments sa JOIN sections s ON sa.section_id=s.id JOIN courses c ON s.course_id=c.id JOIN teachers t ON s.teacher_id=t.id JOIN users u ON t.user_id=u.id LEFT JOIN academic_years ay ON s.academic_year_id=ay.id LEFT JOIN semesters sm ON s.semester_id=sm.id WHERE sa.student_id=? ORDER BY s.id DESC");
     $rs->bind_param('i', $studentId);
     $rs->execute();
     $sections = $rs->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -139,7 +139,7 @@ $initials = avatarInitials($user['name']);
                                             class="font-mono text-xs text-slate-400">(<?= e($sec['course_code']) ?>)</span></p>
                                     <p class="text-xs text-slate-400 mt-0.5"><?= $LANG['section_label'] ?? 'Section' ?>
                                         <?= e($sec['section']) ?> ·
-                                        <?= e($sec['academic_year']) ?> · <?= e(formatSemester($sec['semester'])) ?> ·
+                                        <?= e($sec['display_year']) ?> · <?= e(semesterToRoman($sec['display_semester'])) ?> ·
                                         <?= $LANG['taught_by'] ?? 'Taught by' ?>
                                         <?= e($sec['teacher_name']) ?>
                                     </p>

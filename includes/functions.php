@@ -115,42 +115,6 @@ function getTimeUntilStart(string $start): string
     return $diff->i . 'm ' . $suffix;
 }
 
-function formatSemester(string $semester): string
-{
-    $semester = trim($semester);
-    if ($semester === '')
-        return '';
-
-    $romanMap = [
-        1 => 'I',
-        2 => 'II',
-        3 => 'III',
-        4 => 'IV',
-        5 => 'V',
-        6 => 'VI',
-        7 => 'VII',
-        8 => 'VIII',
-        9 => 'IX',
-        10 => 'X',
-    ];
-
-    if (preg_match('/^(\d{1,2})\s*(st|nd|rd|th| Semester| semester)/i', $semester, $m)) {
-        $num = (int) $m[1];
-        global $LANG;
-        $prefix = $LANG['semester_prefix'] ?? 'Semester';
-        return isset($romanMap[$num]) ? $prefix . ' ' . $romanMap[$num] : $semester;
-    }
-
-    if (preg_match('/^Semester\s+(\d{1,2})$/i', $semester, $m)) {
-        $num = (int) $m[1];
-        global $LANG;
-        $prefix = $LANG['semester_prefix'] ?? 'Semester';
-        return isset($romanMap[$num]) ? $prefix . ' ' . $romanMap[$num] : $semester;
-    }
-
-    return $semester;
-}
-
 function avatarInitials(string $name): string
 {
     $parts = array_filter(explode(' ', trim($name)));
@@ -176,33 +140,125 @@ function paginate(int $total, int $perPage, int $current): array
     ];
 }
 
-function paginationLinks(array $pg, string $baseUrl): string
+function paginationLinks(array $pg, string $baseUrl, int $perPage = 10): string
 {
     global $LANG;
-    if ($pg['total_pages'] <= 1)
+    if ($pg['total_pages'] <= 1 && $pg['total'] <= $perPage)
         return '';
     $cur = $pg['current'];
     $total = $pg['total_pages'];
-    $sep = str_contains($baseUrl, '?') ? '&' : '?';
     $showing = $LANG['pagination_showing'] ?? 'Showing';
     $of = $LANG['pagination_of'] ?? 'of';
-    $prev = $LANG['pagination_prev'] ?? '‹ Prev';
-    $next = $LANG['pagination_next'] ?? 'Next ›';
-    $html = '<nav class="flex items-center justify-between mt-5"><div class="text-sm text-slate-500">' . $showing . ' ' . (($cur - 1) * $pg['per_page'] + 1) . '–' . min($cur * $pg['per_page'], $pg['total']) . ' ' . $of . ' ' . $pg['total'] . '</div><div class="flex gap-1">';
 
+    // Build URL helper: preserves all existing params, replaces page/per_page
+    $parsedUrl = parse_url($baseUrl);
+    $existingParams = [];
+    if (!empty($parsedUrl['query'])) {
+        parse_str($parsedUrl['query'], $existingParams);
+    }
+    $path = $parsedUrl['path'] ?? '';
+
+    $buildUrl = function (int $page) use ($path, $existingParams, $perPage) {
+        $params = $existingParams;
+        $params['page'] = $page;
+        $params['per_page'] = $perPage;
+        return $path . '?' . http_build_query($params);
+    };
+
+    // Build page numbers: first, last, current±1, with ellipsis
+    $pages = [];
+    $pages[] = 1;
+    for ($i = max(2, $cur - 1); $i <= min($total - 1, $cur + 1); $i++) {
+        $pages[] = $i;
+    }
+    if ($total > 1) {
+        $pages[] = $total;
+    }
+    $pages = array_unique($pages);
+    sort($pages);
+
+    // Build page links with ellipsis
+    $pageLinks = '';
+    $prevPage = 0;
+    foreach ($pages as $p) {
+        if ($prevPage > 0 && $p - $prevPage > 1) {
+            $pageLinks .= '<span class="px-3 py-2 text-sm text-slate-400 select-none">...</span>';
+        }
+        if ($p === $cur) {
+            $pageLinks .= '<span class="px-3.5 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold shadow-sm">' . $p . '</span>';
+        } else {
+            $pageLinks .= '<a href="' . $buildUrl($p) . '" class="px-3.5 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 font-medium hover:bg-slate-100 hover:border-slate-300 transition-all duration-150">' . $p . '</a>';
+        }
+        $prevPage = $p;
+    }
+
+    // Per-page selector
+    $ppOptions = '';
+    foreach ([10, 25, 50, 100] as $pp) {
+        $ppOptions .= '<option value="' . $pp . '"' . ($pp == $perPage ? ' selected' : '') . '>' . $pp . '</option>';
+    }
+
+    $start = ($cur - 1) * $perPage + 1;
+    $end = min($cur * $perPage, $pg['total']);
+
+    $html = '<nav class="flex flex-col sm:flex-row items-center justify-between gap-4 mt-5 pt-5 border-t border-slate-100">';
+
+    // Left: showing text + per-page selector
+    $html .= '<div class="flex flex-wrap items-center gap-3 text-sm text-slate-500">';
+    $html .= '<span>' . $showing . ' <span class="font-semibold text-slate-700">' . $start . '–' . $end . '</span> ' . $of . ' <span class="font-semibold text-slate-700">' . $pg['total'] . '</span></span>';
+    $html .= '<span class="text-slate-300">|</span>';
+    $html .= '<span class="inline-flex items-center gap-1.5">';
+    $html .= '<span>Show</span>';
+    $html .= '<select onchange="changePerPage(this.value, \'' . htmlspecialchars(addcslashes($path, "'"), ENT_QUOTES) . '\', ' . $perPage . ')" class="border border-slate-200 rounded-lg px-2 py-1 text-sm font-semibold text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer transition-all duration-150">';
+    $html .= $ppOptions;
+    $html .= '</select>';
+    $html .= '<span>per page</span>';
+    $html .= '</span>';
+    $html .= '</div>';
+
+    // Center: page numbers + prev/next
+    $html .= '<div class="flex items-center gap-1.5">';
+
+    // Prev button
     if ($cur > 1) {
-        $html .= '<a href="' . $baseUrl . $sep . 'page=' . ($cur - 1) . '" class="px-3 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50">' . $prev . '</a>';
+        $html .= '<a href="' . $buildUrl($cur - 1) . '" class="px-3.5 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:border-slate-300 transition-all duration-150 inline-flex items-center gap-1">';
+        $html .= '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>';
+        $html .= 'Prev</a>';
+    } else {
+        $html .= '<span class="px-3.5 py-2 rounded-lg border border-slate-100 text-sm font-medium text-slate-300 cursor-not-allowed inline-flex items-center gap-1">';
+        $html .= '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>';
+        $html .= 'Prev</span>';
     }
-    $start = max(1, $cur - 2);
-    $end = min($total, $cur + 2);
-    for ($i = $start; $i <= $end; $i++) {
-        $active = $i === $cur ? 'bg-cyan-600 text-white border-cyan-600' : 'border-slate-200 text-slate-600 hover:bg-slate-50';
-        $html .= '<a href="' . $baseUrl . $sep . 'page=' . $i . '" class="px-3 py-1.5 rounded-lg border text-sm ' . $active . '">' . $i . '</a>';
-    }
+
+    $html .= $pageLinks;
+
+    // Next button
     if ($cur < $total) {
-        $html .= '<a href="' . $baseUrl . $sep . 'page=' . ($cur + 1) . '" class="px-3 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50">' . $next . '</a>';
+        $html .= '<a href="' . $buildUrl($cur + 1) . '" class="px-3.5 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:border-slate-300 transition-all duration-150 inline-flex items-center gap-1">';
+        $html .= 'Next<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>';
+        $html .= '</a>';
+    } else {
+        $html .= '<span class="px-3.5 py-2 rounded-lg border border-slate-100 text-sm font-medium text-slate-300 cursor-not-allowed inline-flex items-center gap-1">';
+        $html .= 'Next<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>';
+        $html .= '</span>';
     }
-    return $html . '</div></nav>';
+
+    $html .= '</div></nav>';
+
+    // Per-page change script (inline, only output once)
+    $html .= '<script>
+if(typeof changePerPage!=="function"){
+    function changePerPage(val,path,currentPP){
+        if(val==currentPP)return;
+        var u=new URL(window.location.href);
+        u.searchParams.set("per_page",val);
+        u.searchParams.delete("page");
+        window.location.href=u.href;
+    }
+}
+</script>';
+
+    return $html;
 }
 
 function badgeRole(string $role): string
@@ -257,6 +313,7 @@ function iconSvg(string $name, string $class = 'w-5 h-5'): string
         'office' => 'M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21',
         'history' => 'M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
         'beaker' => 'M9.75 3.104v5.714a2.25 2.25 0 0 1-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 0 1 4.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0 1 12 15a9.065 9.065 0 0 1-6.23-.693L4.2 15.3m15.6 0-1.57 6.28m-12.46-6.28 1.57 6.28M12 12.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z',
+        'copy' => 'M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75',
     ];
     $d = $paths[$name] ?? '';
     return "<svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 0 24 24\" stroke-width=\"1.5\" stroke=\"currentColor\" class=\"{$class}\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"{$d}\"/></svg>";
@@ -307,4 +364,14 @@ function moduleBadge(string $module): string
         'administration' => '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">🏢 ' . e($LANG['administration_section'] ?? 'Administration') . '</span>',
         default => '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">' . e($module) . '</span>',
     };
+}
+
+function semesterToRoman($value): string
+{
+    $n = (int) $value;
+    if ($n < 1 || $n > 20) return (string) $value;
+    $ones = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'];
+    $tens = ['', 'X', 'XX'];
+    $result = $tens[(int)($n / 10)] . $ones[$n % 10];
+    return 'Semester ' . $result;
 }

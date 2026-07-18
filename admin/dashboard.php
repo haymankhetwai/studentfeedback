@@ -23,6 +23,8 @@ $stats = [
     ['label' => $LANG['section_assignments_stat'] ?? 'Section Assignments', 'value' => count_table($conn, 'section_assignments'), 'icon' => 'link', 'color' => 'cyan', 'href' => '/studentfeedbackucsh/admin/section_assignments.php'],
     ['label' => $LANG['courses_stat'] ?? 'Courses', 'value' => count_table($conn, 'courses'), 'icon' => 'book', 'color' => 'teal', 'href' => '/studentfeedbackucsh/admin/courses.php'],
     ['label' => $LANG['sections_stat'] ?? 'Sections', 'value' => count_table($conn, 'sections'), 'icon' => 'grid', 'color' => 'purple', 'href' => '/studentfeedbackucsh/admin/sections.php'],
+    ['label' => $LANG['total_academic_years_stat'] ?? 'Total Academic Years', 'value' => count_table($conn, 'academic_years'), 'icon' => 'academic', 'color' => 'blue', 'href' => '/studentfeedbackucsh/admin/academic_years.php'],
+    ['label' => $LANG['total_question_sets_stat'] ?? 'Total Question Sets', 'value' => count_table($conn, 'feedback_question_sets'), 'icon' => 'clipboard', 'color' => 'yellow', 'href' => '/studentfeedbackucsh/admin/question_sets.php'],
 ];
 
 $colorMap = [
@@ -43,7 +45,7 @@ $saFilterSemester = clean($_GET['sa_semester'] ?? '');
 $admFilterSemester = clean($_GET['adm_semester'] ?? '');
 
 // ─── Reports: Filter Options ──────────────────────────────────
-$semesters = $conn->query("SELECT DISTINCT semester FROM sections WHERE semester != '' ORDER BY semester DESC")->fetch_all(MYSQLI_ASSOC);
+$semesters = $conn->query("SELECT DISTINCT sm.id, sm.semester_name FROM sections s LEFT JOIN semesters sm ON s.semester_id=sm.id WHERE sm.semester_name IS NOT NULL AND sm.semester_name != '' ORDER BY sm.id ASC")->fetch_all(MYSQLI_ASSOC);
 $teachers = $conn->query("
     SELECT DISTINCT t.id, u.name AS teacher_name
     FROM feedback_submissions fs
@@ -67,24 +69,26 @@ $sections = $conn->query("
     ORDER BY s.section ASC
 ")->fetch_all(MYSQLI_ASSOC);
 $saSemesters = $conn->query("
-    SELECT DISTINCT s.semester
+    SELECT DISTINCT sm.id, sm.semester_name
     FROM feedback_submissions fs
     JOIN feedback_forms ff ON fs.form_id = ff.id
     JOIN students st ON fs.student_id = st.id
     JOIN section_assignments sa ON sa.student_id = st.id
     JOIN sections s ON sa.section_id = s.id
-    WHERE ff.module='student_affairs' AND s.semester IS NOT NULL AND s.semester != ''
-    ORDER BY s.semester DESC
+    LEFT JOIN semesters sm ON s.semester_id = sm.id
+    WHERE ff.module='student_affairs' AND sm.semester_name IS NOT NULL AND sm.semester_name != ''
+    ORDER BY sm.id ASC
 ")->fetch_all(MYSQLI_ASSOC);
 $admSemesters = $conn->query("
-    SELECT DISTINCT s.semester
+    SELECT DISTINCT sm.id, sm.semester_name
     FROM feedback_submissions fs
     JOIN feedback_forms ff ON fs.form_id = ff.id
     JOIN students st ON fs.student_id = st.id
     JOIN section_assignments sa ON sa.student_id = st.id
     JOIN sections s ON sa.section_id = s.id
-    WHERE ff.module='administration' AND s.semester IS NOT NULL AND s.semester != ''
-    ORDER BY s.semester DESC
+    LEFT JOIN semesters sm ON s.semester_id = sm.id
+    WHERE ff.module='administration' AND sm.semester_name IS NOT NULL AND sm.semester_name != ''
+    ORDER BY sm.id ASC
 ")->fetch_all(MYSQLI_ASSOC);
 
 // ─── Reports: Helper: build dynamic WHERE clause for ratings ──
@@ -93,7 +97,7 @@ $params = [];
 $types = '';
 
 if ($filterSemester !== '') {
-    $whereParts[] = 'sec.semester = ?';
+    $whereParts[] = 'sm.semester_name = ?';
     $params[] = $filterSemester;
     $types .= 's';
 }
@@ -277,11 +281,11 @@ function buildFilterUrl(array $overrides = []): string
 // ─── Reports: SA Feedback Statistics ──────────────────────────
 if ($saFilterSemester !== '') {
     $semEsc = $conn->real_escape_string($saFilterSemester);
-    $saRatingsJoin = " JOIN feedback_submissions fs ON fr.form_id = fs.form_id AND fr.created_at = fs.submitted_at JOIN students st ON fs.student_id = st.id JOIN section_assignments sa ON sa.student_id = st.id JOIN sections s ON sa.section_id = s.id";
-    $saRatingsWhere = "AND s.semester = '$semEsc'";
-    $saSubsJoin = " JOIN students st ON fs.student_id = st.id JOIN section_assignments sa ON sa.student_id = st.id JOIN sections s ON sa.section_id = s.id";
-    $saSubsWhere = "AND s.semester = '$semEsc'";
-    $saFormSubquery = "(SELECT DISTINCT fs.form_id FROM feedback_submissions fs JOIN students st ON fs.student_id = st.id JOIN section_assignments sa ON sa.student_id = st.id JOIN sections s ON sa.section_id = s.id WHERE s.semester = '$semEsc')";
+    $saRatingsJoin = " JOIN feedback_submissions fs ON fr.form_id = fs.form_id AND fr.created_at = fs.submitted_at JOIN students st ON fs.student_id = st.id JOIN section_assignments sa ON sa.student_id = st.id JOIN sections s ON sa.section_id = s.id JOIN semesters sm ON s.semester_id = sm.id";
+    $saRatingsWhere = "AND sm.semester_name = '$semEsc'";
+    $saSubsJoin = " JOIN students st ON fs.student_id = st.id JOIN section_assignments sa ON sa.student_id = st.id JOIN sections s ON sa.section_id = s.id JOIN semesters sm ON s.semester_id = sm.id";
+    $saSubsWhere = "AND sm.semester_name = '$semEsc'";
+    $saFormSubquery = "(SELECT DISTINCT fs.form_id FROM feedback_submissions fs JOIN students st ON fs.student_id = st.id JOIN section_assignments sa ON sa.student_id = st.id JOIN sections s ON sa.section_id = s.id JOIN semesters sm ON s.semester_id = sm.id WHERE sm.semester_name = '$semEsc')";
     $saFormWhere = "AND ff.id IN $saFormSubquery";
 } else {
     $saRatingsJoin = $saRatingsWhere = $saSubsJoin = $saSubsWhere = $saFormWhere = '';
@@ -308,11 +312,11 @@ $saAvgRating = $saAvgResult['avg_rating'] ? round((float) $saAvgResult['avg_rati
 // ─── Reports: Admin Feedback Statistics ───────────────────────
 if ($admFilterSemester !== '') {
     $semEscAdm = $conn->real_escape_string($admFilterSemester);
-    $admRatingsJoin = " JOIN feedback_submissions fs ON fr.form_id = fs.form_id AND fr.created_at = fs.submitted_at JOIN students st ON fs.student_id = st.id JOIN section_assignments sa ON sa.student_id = st.id JOIN sections s ON sa.section_id = s.id";
-    $admRatingsWhere = "AND s.semester = '$semEscAdm'";
-    $admSubsJoin = " JOIN students st ON fs.student_id = st.id JOIN section_assignments sa ON sa.student_id = st.id JOIN sections s ON sa.section_id = s.id";
-    $admSubsWhere = "AND s.semester = '$semEscAdm'";
-    $admFormSubquery = "(SELECT DISTINCT fs.form_id FROM feedback_submissions fs JOIN students st ON fs.student_id = st.id JOIN section_assignments sa ON sa.student_id = st.id JOIN sections s ON sa.section_id = s.id WHERE s.semester = '$semEscAdm')";
+    $admRatingsJoin = " JOIN feedback_submissions fs ON fr.form_id = fs.form_id AND fr.created_at = fs.submitted_at JOIN students st ON fs.student_id = st.id JOIN section_assignments sa ON sa.student_id = st.id JOIN sections s ON sa.section_id = s.id JOIN semesters sm ON s.semester_id = sm.id";
+    $admRatingsWhere = "AND sm.semester_name = '$semEscAdm'";
+    $admSubsJoin = " JOIN students st ON fs.student_id = st.id JOIN section_assignments sa ON sa.student_id = st.id JOIN sections s ON sa.section_id = s.id JOIN semesters sm ON s.semester_id = sm.id";
+    $admSubsWhere = "AND sm.semester_name = '$semEscAdm'";
+    $admFormSubquery = "(SELECT DISTINCT fs.form_id FROM feedback_submissions fs JOIN students st ON fs.student_id = st.id JOIN section_assignments sa ON sa.student_id = st.id JOIN sections s ON sa.section_id = s.id JOIN semesters sm ON s.semester_id = sm.id WHERE sm.semester_name = '$semEscAdm')";
     $admFormWhere = "AND ff.id IN $admFormSubquery";
 } else {
     $admRatingsJoin = $admRatingsWhere = $admSubsJoin = $admSubsWhere = $admFormWhere = '';
@@ -361,7 +365,7 @@ include '../includes/admin_sidebar.php';
 </div>
 
 <!-- Stats Grid -->
-<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
     <?php foreach ($stats as $s):
         $c = $colorMap[$s['color']];
         ?>
@@ -395,11 +399,11 @@ include '../includes/admin_sidebar.php';
         <div class="flex-1 min-w-[180px] relative" x-data="{
             open: false,
             selected: '<?= e($filterSemester) ?>',
-            selectedText: '<?= $filterSemester ? e(formatSemester($filterSemester)) : ($LANG['all_semesters'] ?? 'All Semesters') ?>',
+            selectedText: '<?= $filterSemester ? e($filterSemester) : ($LANG['all_semesters'] ?? 'All Semesters') ?>',
             options: [
                 { value: '', text: '<?= $LANG['all_semesters'] ?? 'All Semesters' ?>' },
                 <?php foreach ($semesters as $s): ?>
-                { value: '<?= e($s['semester']) ?>', text: '<?= e(formatSemester($s['semester'])) ?>' },
+                { value: '<?= e($s['semester_name']) ?>', text: '<?= e(semesterToRoman($s['semester_name'])) ?>' },
                 <?php endforeach; ?>
             ],
             select(val, text) { this.selected = val; this.selectedText = text; this.open = false; this.$refs.semInput.value = val; }
@@ -635,8 +639,8 @@ include '../includes/admin_sidebar.php';
                         class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
                         <option value=""><?= $LANG['all_semesters'] ?? 'All Semesters' ?></option>
                         <?php foreach ($saSemesters as $s): ?>
-                            <option value="<?= e($s['semester']) ?>" <?= $saFilterSemester === $s['semester'] ? 'selected' : '' ?>>
-                                <?= e(formatSemester($s['semester'])) ?>
+                            <option value="<?= e($s['semester_name']) ?>" <?= $saFilterSemester === $s['semester_name'] ? 'selected' : '' ?>>
+                                <?= e(semesterToRoman($s['semester_name'])) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -736,8 +740,8 @@ include '../includes/admin_sidebar.php';
                         class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
                         <option value=""><?= $LANG['all_semesters'] ?? 'All Semesters' ?></option>
                         <?php foreach ($admSemesters as $s): ?>
-                            <option value="<?= e($s['semester']) ?>" <?= $admFilterSemester === $s['semester'] ? 'selected' : '' ?>>
-                                <?= e(formatSemester($s['semester'])) ?>
+                            <option value="<?= e($s['semester_name']) ?>" <?= $admFilterSemester === $s['semester_name'] ? 'selected' : '' ?>>
+                                <?= e(semesterToRoman($s['semester_name'])) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>

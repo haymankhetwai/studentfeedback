@@ -24,14 +24,16 @@ if ($studentId) {
        c.course_name,
        c.course_code,
        s.section,
-       s.academic_year,
-       s.semester,
+       COALESCE(ay.year_name, s.academic_year) AS display_year,
+       sm.semester_name AS display_semester,
        ff.start_date,
        ff.end_date
 FROM feedback_submissions fs
 JOIN feedback_forms ff ON fs.form_id = ff.id
 JOIN sections s ON ff.section_id = s.id
 JOIN courses c ON s.course_id = c.id
+LEFT JOIN academic_years ay ON s.academic_year_id = ay.id
+LEFT JOIN semesters sm ON s.semester_id = sm.id
 WHERE fs.student_id = ?
 ORDER BY fs.submitted_at DESC
     ");
@@ -80,7 +82,7 @@ foreach ($academicHistory as $r) {
         'module' => 'academic',
         'submitted_at' => $r['submitted_at'],
         'form_title' => $r['form_title'],
-        'detail' => e($r['course_name']) . ' (' . e($r['course_code']) . ') — Sec ' . e($r['section']) . ' · ' . e($r['academic_year']) . ' ' . e(formatSemester($r['semester'])) . ' · ' . formatDateTime($r['start_date']) . ' – ' . formatDateTime($r['end_date'])
+        'detail' => e($r['course_name']) . ' (' . e($r['course_code']) . ') — Sec ' . e($r['section']) . ' · ' . e($r['display_year']) . ' ' . e(semesterToRoman($r['display_semester'])) . ' · ' . formatDateTime($r['start_date']) . ' – ' . formatDateTime($r['end_date'])
     ];
 }
 foreach ($saHistory as $r) {
@@ -259,7 +261,7 @@ $initials = avatarInitials($user['name']);
                                             <td class="px-5 py-3 text-sm font-medium text-slate-800"><?= e($r['form_title']) ?>
                                             </td>
                                             <td class="px-5 py-3 text-xs text-slate-500"><?= $r['detail'] ?></td>
-                                            <td class="px-5 py-3 text-xs text-slate-400"><?= formatDate($r['submitted_at']) ?>
+                                            <td class="px-5 py-3 text-xs text-slate-400"><?= formatDateTime($r['submitted_at']) ?>
                                             </td>
                                         </tr>
                                     <?php endforeach ?>
