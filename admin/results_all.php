@@ -140,9 +140,9 @@ if (isset($_GET['ajax_forms']) && $_GET['ajax_forms'] === '1') {
     $formattedForms = [];
     foreach ($ajaxFormList as $f) {
         if ($f['module'] === 'academic' && !empty($f['course_code'])) {
-            $formLabel = e($f['course_code']) . ' - ' . e($f['course_name']) . ' - Section ' . e($f['section_name']);
+            $formLabel = ($f['course_code'] ?? '') . ' - ' . ($f['course_name'] ?? '') . ' - Section ' . ($f['section_name'] ?? '');
         } else {
-            $formLabel = e($f['academic_year_name'] ?? $f['academic_year'] ?? '') . ' - ' . e($f['title']);
+            $formLabel = ($f['academic_year_name'] ?? $f['academic_year'] ?? '') . ' - ' . ($f['title'] ?? '');
         }
         $formattedForms[] = [
             'id' => (int) $f['id'],
@@ -740,9 +740,9 @@ include '../includes/admin_sidebar.php';
 
 <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
     <div>
-        <h2 class="text-xl font-bold text-slate-800">Feedback Results</h2>
-        <p class="text-sm text-slate-500 mt-0.5">View results for all modules — Academic, Student Affairs, and
-            Administration.</p>
+        <h2 class="text-xl font-bold text-slate-800"><?= $LANG['all_feedback_results'] ?? "All Feedback Results" ?></h2>
+        <p class="text-sm text-slate-500 mt-0.5"><?= $LANG['feedback_results_subtitle'] ?? "View results for all modules — Academic, Student Affairs, and
+            Administration." ?></p>
     </div>
     <?php if ($form): ?>
         <button onclick="setTimeout(function(){ window.print(); }, 500);"
@@ -824,7 +824,7 @@ include '../includes/admin_sidebar.php';
     </form>
 </div>
 
-<?php if ($hasActiveFilters && !$loadForm): ?>
+<?php if (($hasActiveFilters && !$loadForm) || ($form && $completedCount === 0)): ?>
     <div id="noFormsMsg" class="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 mb-6 flex items-center gap-3">
         <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
             <?= iconSvg('question', 'w-5 h-5 text-amber-600') ?>
@@ -845,6 +845,7 @@ include '../includes/admin_sidebar.php';
 <?php endif; ?>
 
 <?php if ($form): ?>
+<?php if ($completedCount > 0): ?>
     <!-- Progress Stats -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 mt-6 myanmar-font no-print">
         <div onclick="openStudentModal('all')"
@@ -876,17 +877,6 @@ include '../includes/admin_sidebar.php';
             </p>
         </div>
     </div>
-
-    <?php if ($completedCount === 0): ?>
-        <div class="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 mb-6 flex items-center gap-3">
-            <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-                <?= iconSvg('question', 'w-5 h-5 text-amber-600') ?>
-            </div>
-            <div>
-                <p class="text-sm font-semibold text-amber-800">No responses have been submitted for this form yet</p>
-            </div>
-        </div>
-    <?php endif ?>
 
     <!-- Overall Rating Card -->
     <?php if (!empty($ratingQuestions)): ?>
@@ -1602,6 +1592,16 @@ include '../includes/admin_sidebar.php';
             <?= date('F d, Y') ?>
         </div>
     </div>
+<?php else: ?>
+    <div class="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 mb-6 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+            <?= iconSvg('question', 'w-5 h-5 text-amber-600') ?>
+        </div>
+        <div>
+            <p class="text-sm font-semibold text-amber-800">No feedback forms for this section</p>
+        </div>
+    </div>
+<?php endif; ?>
 <?php endif; ?>
 
 
@@ -1709,12 +1709,10 @@ include '../includes/admin_sidebar.php';
             }
 
             if (forms.length === 0) {
-                // No forms found — show message
-                noFormsMsg.classList.remove('hidden');
+                // No forms found — just clear dropdown, don't touch results/message
                 formSelect.value = '';
             } else {
-                // Forms found — hide message, populate dropdown
-                noFormsMsg.classList.add('hidden');
+                // Forms found — populate dropdown
 
                 var currentModule = '';
                 var currentOptgroup = null;
