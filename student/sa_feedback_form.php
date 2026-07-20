@@ -18,6 +18,7 @@ $stmt      = $conn->prepare("SELECT st.id FROM students st WHERE st.user_id=?");
 $stmt->bind_param('i', $user['id']); $stmt->execute();
 $student   = $stmt->get_result()->fetch_assoc(); $stmt->close();
 $studentId = $student['id'] ?? 0;
+$studentYearIds = getStudentAcademicYearIds($conn, $studentId);
 
 if (!$studentId) { 
     setFlash('error',$LANG['flash_student_profile_missing'] ?? 'Student profile not found.'); 
@@ -48,6 +49,13 @@ if (!$form) {
     setFlash('error',$LANG['flash_sa_form_not_found'] ?? 'SA Form not found.'); 
     header('Location: /studentfeedbackucsh/student/dashboard.php'); 
     exit; 
+}
+
+// Verify form belongs to student's academic year
+if (empty($studentYearIds) || !in_array((int)$form['academic_year_id'], $studentYearIds)) {
+    setFlash('error', $LANG['flash_form_not_available'] ?? 'This feedback form is not available for your academic year.');
+    header('Location: /studentfeedbackucsh/student/sa_feedback.php');
+    exit;
 }
 
 // ─── Check already submitted ──────────────────────────────────

@@ -20,6 +20,7 @@ $stmt->execute();
 $student = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 $studentId = $student['id'] ?? 0;
+$studentYearIds = getStudentAcademicYearIds($conn, $studentId);
 
 $pageTitle = 'Student Dashboard';
 $activeMenu = 'dashboard';
@@ -28,59 +29,115 @@ $today = date('Y-m-d');
 
 // ─── Stats ────────────────────────────────────────────────────
 $sectionCount = $studentId ? (int) $conn->query("SELECT COUNT(*) AS c FROM section_assignments WHERE student_id=$studentId")->fetch_assoc()['c'] : 0;
-$submittedCount = 0;
-$pendingCount = 0;
-$saPendingCount = 0;
-$admPendingCount = 0;
+
+$acadAvailableCount = 0;
+$acadPendingCount   = 0;
+$acadCompletedCount = 0;
+$saAvailableCount   = 0;
+$saPendingCount     = 0;
+$saCompletedCount   = 0;
+$admAvailableCount  = 0;
+$admPendingCount    = 0;
+$admCompletedCount  = 0;
+$totalCompletedCount = 0;
 
 if ($studentId) {
-    // Academic pending — count active in-range forms assigned to student with no submission
-    $pAcad = $conn->prepare("SELECT COUNT(DISTINCT ff.id) AS c FROM feedback_forms ff JOIN section_assignments sa ON ff.section_id=sa.section_id WHERE sa.student_id=? AND ff.module='academic' AND ff.start_date<=? AND ff.end_date>=? AND ff.id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=?)");
-    $pAcad->bind_param('isss', $studentId, $now, $now, $studentId);
-    $pAcad->execute();
-    $pendingCount = (int) $pAcad->get_result()->fetch_assoc()['c'];
-    $pAcad->close();
+    // ── Academic: load all forms the student can access (same as my_sections.php) ──
+    $acadFormsStmt = $conn->prepare(
+        "SELECT ff.id, ff.start_date, ff.end_date,
+                (SELECT COUNT(*) FROM feedback_submissions fs WHERE fs.form_id=ff.id AND fs.student_id=?) AS submitted
+         FROM feedback_forms ff
+         JOIN section_assignments sa ON ff.section_id = sa.section_id
+         WHERE sa.student_id = ? AND ff.module = 'academic'"
+    );
+    $acadFormsStmt->bind_param('ii', $studentId, $studentId);
+    $acadFormsStmt->execute();
+    $acadRows = $acadFormsStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $acadFormsStmt->close();
+    foreach ($acadRows as $r) {
+        $acadAvailableCount++;
+        if ((int)$r['submitted'] > 0) {
+            $acadCompletedCount++;
+        } else {
+            $acadPendingCount++;
+        }
+    }
 
-    // Total submitted — count unique form_ids across all modules (only for existing forms)
-    $sStmt = $conn->prepare("SELECT COUNT(DISTINCT fs.form_id) AS c FROM feedback_submissions fs JOIN feedback_forms ff ON fs.form_id=ff.id WHERE fs.student_id=?");
-    $sStmt->bind_param('i', $studentId);
-    $sStmt->execute();
-    $submittedCount = (int) $sStmt->get_result()->fetch_assoc()['c'];
-    $sStmt->close();
+    // ── Year filter for SA and Admin (same as sa_feedback.php / adm_feedback.php) ──
+    $yrPH = '';
+    $yrBT = '';
+    if (!empty($studentYearIds)) {
+        $yrPH = implode(',', array_fill(0, count($studentYearIds), '?'));
+        $yrBT = str_repeat('i', count($studentYearIds));
+    }
 
-    // SA pending
-    $pSA = $conn->prepare("SELECT COUNT(*) AS c FROM feedback_forms WHERE module='student_affairs' AND start_date<=? AND end_date>=? AND id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=?)");
-    $pSA->bind_param('ssi', $now, $now, $studentId);
-    $pSA->execute();
-    $saPendingCount = (int) $pSA->get_result()->fetch_assoc()['c'];
-    $pSA->close();
+    // ── SA: load all forms (same query as sa_feedback.php — no date filter) ──
+    if (!empty($yrPH)) {
+        $saStmt = $conn->prepare(
+            "SELECT f.id, f.start_date, f.end_date,
+                    (SELECT COUNT(*) FROM feedback_submissions s WHERE s.form_id=f.id AND s.student_id=?) AS submitted
+             FROM feedback_forms f
+             WHERE f.module='student_affairs' AND f.academic_year_id IN ($yrPH)"
+        );
+        $saStmt->bind_param('i' . $yrBT, ...array_merge([$studentId], $studentYearIds));
+        $saStmt->execute();
+        $saRows = $saStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $saStmt->close();
+        foreach ($saRows as $r) {
+            $saAvailableCount++;
+            if ((int)$r['submitted'] > 0) {
+                $saCompletedCount++;
+            } else {
+                $saPendingCount++;
+            }
+        }
+    }
 
-    // Adm pending
-    $pAdm = $conn->prepare("SELECT COUNT(*) AS c FROM feedback_forms WHERE module='administration' AND start_date<=? AND end_date>=? AND id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=?)");
-    $pAdm->bind_param('ssi', $now, $now, $studentId);
-    $pAdm->execute();
-    $admPendingCount = (int) $pAdm->get_result()->fetch_assoc()['c'];
-    $pAdm->close();
+    // ── Admin: load all forms (same query as adm_feedback.php — no date filter) ──
+    if (!empty($yrPH)) {
+        $admStmt = $conn->prepare(
+            "SELECT f.id, f.start_date, f.end_date,
+                    (SELECT COUNT(*) FROM feedback_submissions s WHERE s.form_id=f.id AND s.student_id=?) AS submitted
+             FROM feedback_forms f
+             WHERE f.module='administration' AND f.academic_year_id IN ($yrPH)"
+        );
+        $admStmt->bind_param('i' . $yrBT, ...array_merge([$studentId], $studentYearIds));
+        $admStmt->execute();
+        $admRows = $admStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $admStmt->close();
+        foreach ($admRows as $r) {
+            $admAvailableCount++;
+            if ((int)$r['submitted'] > 0) {
+                $admCompletedCount++;
+            } else {
+                $admPendingCount++;
+            }
+        }
+    }
+
+    $totalCompletedCount = $acadCompletedCount + $saCompletedCount + $admCompletedCount;
 }
 
-// ─── Academic Pending Forms ───────────────────────────────────
+// ─── Academic Pending Forms (active, not submitted — for card listing) ─────────
 $pendingForms = [];
 if ($studentId) {
-    $rs = $conn->query("SELECT ff.id AS form_id, ff.title, ff.end_date, c.course_name, s.section, u.name AS teacher_name, COALESCE(ay.year_name, s.academic_year) AS display_year, sm.semester_name AS display_semester FROM feedback_forms ff JOIN sections s ON ff.section_id=s.id JOIN courses c ON s.course_id=c.id JOIN teachers t ON s.teacher_id=t.id JOIN users u ON t.user_id=u.id JOIN section_assignments sa ON sa.section_id=s.id LEFT JOIN academic_years ay ON s.academic_year_id=ay.id LEFT JOIN semesters sm ON s.semester_id=sm.id WHERE sa.student_id=$studentId AND ff.module='academic' AND ff.start_date<='$now' AND ff.end_date>='$now' AND ff.id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=$studentId) ORDER BY ff.end_date ASC LIMIT 4");
+    $rs = $conn->query("SELECT ff.id AS form_id, ff.title, ff.end_date, c.course_name, s.section, u.name AS teacher_name, COALESCE(ay.year_name, s.academic_year) AS display_year, sm.semester_name AS display_semester FROM feedback_forms ff JOIN sections s ON ff.section_id=s.id JOIN courses c ON s.course_id=c.id JOIN teachers t ON s.teacher_id=t.id JOIN users u ON t.user_id=u.id JOIN section_assignments sa ON sa.section_id=s.id LEFT JOIN academic_years ay ON s.academic_year_id=ay.id LEFT JOIN semesters sm ON s.semester_id=sm.id WHERE sa.student_id=$studentId AND ff.module='academic' AND ff.id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=$studentId) ORDER BY ff.end_date ASC LIMIT 4");
     $pendingForms = $rs->fetch_all(MYSQLI_ASSOC);
 }
 
-// ─── SA Pending Forms (ပြင်ဆင်ချက်- ID များကို form_id ဟု Alias ပေးထားပါသည်) ───
+// ─── SA Pending Forms (active, not submitted — same eligibility as sa_feedback.php) ───
 $saPendingForms = [];
-if ($studentId) {
-    $rs = $conn->query("SELECT id AS form_id, title, end_date FROM feedback_forms WHERE module='student_affairs' AND start_date<='$now' AND end_date>='$now' AND id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=$studentId) ORDER BY end_date ASC LIMIT 3");
+if ($studentId && !empty($studentYearIds)) {
+    $yrList = implode(',', $studentYearIds);
+    $rs = $conn->query("SELECT id AS form_id, title, end_date FROM feedback_forms WHERE module='student_affairs' AND academic_year_id IN ($yrList) AND id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=$studentId) ORDER BY end_date ASC LIMIT 3");
     $saPendingForms = $rs->fetch_all(MYSQLI_ASSOC);
 }
 
-// ─── Adm Pending Forms ───
+// ─── Admin Pending Forms (active, not submitted — same eligibility as adm_feedback.php) ───
 $admPendingForms = [];
-if ($studentId) {
-    $rs = $conn->query("SELECT id AS form_id, title, end_date FROM feedback_forms WHERE module='administration' AND start_date<='$now' AND end_date>='$now' AND id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=$studentId) ORDER BY end_date ASC LIMIT 3");
+if ($studentId && !empty($studentYearIds)) {
+    $yrList = implode(',', $studentYearIds);
+    $rs = $conn->query("SELECT id AS form_id, title, end_date FROM feedback_forms WHERE module='administration' AND academic_year_id IN ($yrList) AND id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=$studentId) ORDER BY end_date ASC LIMIT 3");
     $admPendingForms = $rs->fetch_all(MYSQLI_ASSOC);
 }
 
@@ -179,26 +236,26 @@ $initials = avatarInitials($user['name']);
                     </div>
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3">
                         <div>
-                            <p class="text-xl font-bold text-amber-600"><?= $pendingCount ?></p>
+                            <p class="text-xl font-bold text-amber-600"><?= $acadPendingCount ?> <span class="text-xs font-normal text-slate-400">/ <?= $acadAvailableCount ?></span></p>
                             <p class="text-xs text-slate-500"><?= $LANG['academic_pending'] ?? 'Academic Pending' ?></p>
                         </div>
                     </div>
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3">
                         <div>
-                            <p class="text-xl font-bold text-purple-700"><?= $saPendingCount ?></p>
+                            <p class="text-xl font-bold text-purple-700"><?= $saPendingCount ?> <span class="text-xs font-normal text-slate-400">/ <?= $saAvailableCount ?></span></p>
                             <p class="text-xs text-slate-500"><?= $LANG['sa_pending'] ?? 'SA Pending' ?></p>
                         </div>
                     </div>
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3">
                         <div>
-                            <p class="text-xl font-bold text-orange-700"><?= $admPendingCount ?></p>
+                            <p class="text-xl font-bold text-orange-700"><?= $admPendingCount ?> <span class="text-xs font-normal text-slate-400">/ <?= $admAvailableCount ?></span></p>
                             <p class="text-xs text-slate-500"><?= $LANG['adm_pending'] ?? 'Adm Pending' ?></p>
                         </div>
                     </div>
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3">
                         <div>
-                            <p class="text-xl font-bold text-green-700"><?= $submittedCount ?></p>
-                            <p class="text-xs text-slate-500"><?= $LANG['total_submitted'] ?? 'Total Submitted' ?></p>
+                            <p class="text-xl font-bold text-green-700"><?= $totalCompletedCount ?></p>
+                            <p class="text-xs text-slate-500"><?= $LANG['total_completed'] ?? 'Total Completed' ?></p>
                         </div>
                     </div>
                 </div>
@@ -211,6 +268,7 @@ $initials = avatarInitials($user['name']);
                                 <h3 class="text-sm font-semibold text-cyan-800">
                                     <?= $LANG['academic_feedback_section'] ?? 'Academic Feedback' ?>
                                 </h3>
+                                <span class="text-[11px] text-cyan-600 font-medium">(<?= $acadPendingCount ?> <?= $LANG['pending'] ?? 'pending' ?>, <?= $acadCompletedCount ?> <?= $LANG['completed'] ?? 'completed' ?>)</span>
                             </div>
                             <a href="/studentfeedbackucsh/student/my_sections.php"
                                 class="text-xs text-cyan-600 hover:underline"><?= $LANG['view_all'] ?? 'View' ?> →</a>
@@ -243,6 +301,7 @@ $initials = avatarInitials($user['name']);
                                 <h3 class="text-sm font-semibold text-purple-800">
                                     <?= $LANG['student_affairs_section'] ?? 'Student Affairs' ?>
                                 </h3>
+                                <span class="text-[11px] text-purple-600 font-medium">(<?= $saPendingCount ?> <?= $LANG['pending'] ?? 'pending' ?>, <?= $saCompletedCount ?> <?= $LANG['completed'] ?? 'completed' ?>)</span>
                             </div>
                             <a href="/studentfeedbackucsh/student/sa_feedback.php"
                                 class="text-xs text-purple-600 hover:underline"><?= $LANG['view_all'] ?? 'View' ?> →</a>
@@ -273,6 +332,7 @@ $initials = avatarInitials($user['name']);
                                 <h3 class="text-sm font-semibold text-orange-800">
                                     <?= $LANG['administration_section'] ?? 'Administration' ?>
                                 </h3>
+                                <span class="text-[11px] text-orange-600 font-medium">(<?= $admPendingCount ?> <?= $LANG['pending'] ?? 'pending' ?>, <?= $admCompletedCount ?> <?= $LANG['completed'] ?? 'completed' ?>)</span>
                             </div>
                             <a href="/studentfeedbackucsh/student/adm_feedback.php"
                                 class="text-xs text-orange-600 hover:underline"><?= $LANG['view_all'] ?? 'View' ?> →</a>

@@ -20,6 +20,7 @@ $stmt->execute();
 $student = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 $studentId = $student['id'] ?? 0;
+$studentYearIds = getStudentAcademicYearIds($conn, $studentId);
 
 if (!$studentId) {
     setFlash('error', $LANG['flash_student_profile_missing'] ?? 'Student profile not found.');
@@ -50,6 +51,13 @@ $fs->close();
 if (!$form) {
     setFlash('error', $LANG['flash_adm_form_not_found'] ?? 'Administration form not found.');
     header('Location: adm_feedback.php');
+    exit;
+}
+
+// Verify form belongs to student's academic year
+if (empty($studentYearIds) || !in_array((int)$form['academic_year_id'], $studentYearIds)) {
+    setFlash('error', $LANG['flash_form_not_available'] ?? 'This feedback form is not available for your academic year.');
+    header('Location: /studentfeedbackucsh/student/adm_feedback.php');
     exit;
 }
 

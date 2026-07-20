@@ -20,24 +20,26 @@ $stmt->execute();
 $student = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 $studentId = $student['id'] ?? 0;
+$studentYearIds = getStudentAcademicYearIds($conn, $studentId);
 
 $pageTitle = $LANG['sa_feedback_page_title'] ?? 'Student Affairs Feedback';
 $activeMenu = 'sa';
 $today = date('Y-m-d');
 
-// Load all active SA forms and submission status
+// Load all SA forms and submission status (filtered by student's academic year)
 $forms = [];
-if ($studentId) {
-    // Check if table exists first
+if ($studentId && !empty($studentYearIds)) {
     $tableCheck = $conn->query("SHOW TABLES LIKE 'feedback_forms'");
     if ($tableCheck && $tableCheck->num_rows > 0) {
+        $yrPH = implode(',', array_fill(0, count($studentYearIds), '?'));
+        $yrBT = str_repeat('i', count($studentYearIds));
         $rs = $conn->prepare("
             SELECT f.*, (SELECT COUNT(*) FROM feedback_submissions s WHERE s.form_id=f.id AND s.student_id=?) AS submitted
             FROM feedback_forms f
-            WHERE f.module='student_affairs'
+            WHERE f.module='student_affairs' AND f.academic_year_id IN ($yrPH)
             ORDER BY f.end_date ASC, f.id DESC
         ");
-        $rs->bind_param('i', $studentId);
+        $rs->bind_param('i' . $yrBT, ...array_merge([$studentId], $studentYearIds));
         $rs->execute();
         $forms = $rs->get_result()->fetch_all(MYSQLI_ASSOC);
         $rs->close();
