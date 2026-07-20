@@ -6,22 +6,26 @@ $feedbackKeys = ['question_sets', 'forms', 'results'];
 $isFeedbackActive = in_array($activeMenu, $feedbackKeys);
 
 $nav = [
-    ['label' => $LANG['nav_dashboard'] ?? 'Dashboard', 'href' => '/studentfeedbackucsh/admin/dashboard.php', 'key' => 'dashboard', 'icon' => 'home'],
+    ['label' => $LANG['nav_dashboard'] ?? 'Dashboard', 'href' => '/studentfeedbackucsh/admin/dashboard.php', 'key' => 'dashboard', 'icon' => 'home', 'iconColor' => 'text-blue-700'],
     ['label' => $LANG['nav_user_management'] ?? 'User Management', 'type' => 'group', 'key' => 'user_management', 'isOpen' => in_array($activeMenu, ['users'])],
-    ['label' => $LANG['nav_users'] ?? 'Users', 'href' => '/studentfeedbackucsh/admin/users.php', 'key' => 'users', 'icon' => 'users', 'indent' => true, 'group' => 'user_management'],
+    ['label' => $LANG['nav_users'] ?? 'Users', 'href' => '/studentfeedbackucsh/admin/users.php', 'key' => 'users', 'icon' => 'users', 'indent' => true, 'group' => 'user_management', 'iconColor' => 'text-rose-300'],
     ['label' => $LANG['nav_academic_management'] ?? 'Academic Management', 'type' => 'group', 'key' => 'academic', 'isOpen' => $isAcademicActive],
-    ['label' => $LANG['nav_academic_years'] ?? 'Academic Years', 'href' => '/studentfeedbackucsh/admin/academic_years.php', 'key' => 'academic_years', 'icon' => 'academic', 'indent' => true, 'group' => 'academic'],
-    ['label' => $LANG['nav_semesters'] ?? 'Semesters', 'href' => '/studentfeedbackucsh/admin/semesters.php', 'key' => 'semesters', 'icon' => 'clipboard', 'indent' => true, 'group' => 'academic'],
-    ['label' => $LANG['nav_departments'] ?? 'Departments', 'href' => '/studentfeedbackucsh/admin/departments.php', 'key' => 'departments', 'icon' => 'building', 'indent' => true, 'group' => 'academic'],
-    ['label' => $LANG['nav_students'] ?? 'Students', 'href' => '/studentfeedbackucsh/admin/students.php', 'key' => 'students', 'icon' => 'users', 'indent' => true, 'group' => 'academic'],
-    ['label' => $LANG['nav_teachers'] ?? 'Teachers', 'href' => '/studentfeedbackucsh/admin/teachers.php', 'key' => 'teachers', 'icon' => 'user', 'indent' => true, 'group' => 'academic'],
-    ['label' => $LANG['nav_courses'] ?? 'Courses', 'href' => '/studentfeedbackucsh/admin/courses.php', 'key' => 'courses', 'icon' => 'book', 'indent' => true, 'group' => 'academic'],
-    ['label' => $LANG['nav_sections'] ?? 'Sections', 'href' => '/studentfeedbackucsh/admin/sections.php', 'key' => 'sections', 'icon' => 'grid', 'indent' => true, 'group' => 'academic'],
-    ['label' => $LANG['nav_assignments'] ?? 'Assignments', 'href' => '/studentfeedbackucsh/admin/section_assignments.php', 'key' => 'assignments', 'icon' => 'link', 'indent' => true, 'group' => 'academic'],
+    ['label' => $LANG['nav_academic_years'] ?? 'Academic Years', 'href' => '/studentfeedbackucsh/admin/academic_years.php', 'key' => 'academic_years', 'icon' => 'academic', 'indent' => true, 'group' => 'academic', 'iconColor' => 'text-amber-500'],
+    ['label' => $LANG['nav_semesters'] ?? 'Semesters', 'href' => '/studentfeedbackucsh/admin/semesters.php', 'key' => 'semesters', 'icon' => 'clipboard', 'indent' => true, 'group' => 'academic', 'iconColor' => 'text-orange-500'],
+    ['label' => $LANG['nav_departments'] ?? 'Departments', 'href' => '/studentfeedbackucsh/admin/departments.php', 'key' => 'departments', 'icon' => 'building', 'indent' => true, 'group' => 'academic', 'iconColor' => 'text-teal-500'],
+    ['label' => $LANG['nav_students'] ?? 'Students', 'href' => '/studentfeedbackucsh/admin/students.php', 'key' => 'students', 'icon' => 'users', 'indent' => true, 'group' => 'academic', 'iconColor' => 'text-cyan-500'],
+    ['label' => $LANG['nav_teachers'] ?? 'Teachers', 'href' => '/studentfeedbackucsh/admin/teachers.php', 'key' => 'teachers', 'icon' => 'user', 'indent' => true, 'group' => 'academic', 'iconColor' => 'text-emerald-500'],
+    ['label' => $LANG['nav_courses'] ?? 'Courses', 'href' => '/studentfeedbackucsh/admin/courses.php', 'key' => 'courses', 'icon' => 'book', 'indent' => true, 'group' => 'academic', 'iconColor' => 'text-lime-500'],
+    ['label' => $LANG['nav_sections'] ?? 'Sections', 'href' => '/studentfeedbackucsh/admin/sections.php', 'key' => 'sections', 'icon' => 'grid', 'indent' => true, 'group' => 'academic', 'iconColor' => 'text-violet-700'],
+    ['label' => $LANG['nav_assignments'] ?? 'Assignments', 'href' => '/studentfeedbackucsh/admin/section_assignments.php', 'key' => 'assignments', 'icon' => 'link', 'indent' => true, 'group' => 'academic', 'iconColor' => 'text-pink-500'],
     ['label' => $LANG['nav_feedback_management'] ?? 'Feedback Management', 'type' => 'group', 'key' => 'feedback_management', 'isOpen' => $isFeedbackActive],
-    ['label' => $LANG['nav_question_sets'] ?? 'Question Sets', 'href' => '/studentfeedbackucsh/admin/question_sets.php', 'key' => 'question_sets', 'icon' => 'question', 'indent' => true, 'group' => 'feedback_management'],
-    ['label' => $LANG['nav_forms'] ?? 'Forms', 'href' => '/studentfeedbackucsh/admin/feedback_forms_all.php', 'key' => 'forms', 'icon' => 'document', 'indent' => true, 'group' => 'feedback_management'],
-    ['label' => $LANG['nav_results'] ?? 'Results', 'href' => '/studentfeedbackucsh/admin/results_all.php', 'key' => 'results', 'icon' => 'chart', 'indent' => true, 'group' => 'feedback_management'],
+    ['label' => $LANG['nav_question_sets'] ?? 'Question Sets', 'href' => '/studentfeedbackucsh/admin/question_sets.php', 'key' => 'question_sets', 'icon' => 'question', 'indent' => true, 'group' => 'feedback_management', 'iconColor' => 'text-indigo-700'],
+    ['label' => $LANG['nav_forms'] ?? 'Forms', 'href' => '/studentfeedbackucsh/admin/feedback_forms_all.php', 'key' => 'forms', 'icon' => 'document', 'indent' => true, 'group' => 'feedback_management', 'iconColor' => 'text-sky-500'],
+    ['label' => $LANG['nav_results'] ?? 'Results', 'href' => '/studentfeedbackucsh/admin/results_all.php', 'key' => 'results', 'icon' => 'chart', 'indent' => true, 'group' => 'feedback_management', 'iconColor' => 'text-fuchsia-500'],
+    ['label' => $LANG['nav_trend_analysis'] ?? 'Trend Analysis', 'type' => 'group', 'key' => 'trend_analysis', 'isOpen' => in_array($activeMenu, ['trend_academic', 'trend_sa', 'trend_adm'])],
+    ['label' => $LANG['nav_academic_trend'] ?? 'Academic Trend', 'href' => '/studentfeedbackucsh/admin/trend_academic.php', 'key' => 'trend_academic', 'icon' => 'history', 'indent' => true, 'group' => 'trend_analysis', 'iconColor' => 'text-yellow-500'],
+    ['label' => $LANG['nav_sa_trend'] ?? 'Student Affairs Trend', 'href' => '/studentfeedbackucsh/admin/trend_sa.php', 'key' => 'trend_sa', 'icon' => 'shield', 'indent' => true, 'group' => 'trend_analysis', 'iconColor' => 'text-red-500'],
+    ['label' => $LANG['nav_adm_trend'] ?? 'Administration Trend', 'href' => '/studentfeedbackucsh/admin/trend_adm.php', 'key' => 'trend_adm', 'icon' => 'office', 'indent' => true, 'group' => 'trend_analysis', 'iconColor' => 'text-green-500'],
 ];
 ?>
 
@@ -34,7 +38,7 @@ $nav = [
     <!-- Brand -->
     <div class="flex items-center gap-3 px-5 py-5 border-b border-white/15">
         <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shadow-lg flex-shrink-0">
-            <?= iconSvg('academic', 'w-5 h-5 text-white') ?>
+            <?= iconSvg('academic', 'w-5 h-5 text-blue-700') ?>
         </div>
         <div>
             <p class="text-sm font-bold leading-tight"><?= $LANG['admin_portal'] ?? 'SFMS Admin' ?></p>
@@ -83,7 +87,7 @@ $nav = [
                 ?>
                     <a href="<?= $item['href'] ?>"
                         class="flex items-center gap-3 <?= $indent ?> pr-3 py-2.5 rounded-xl text-[16px] transition-all duration-150 <?= $activeCs ?>">
-                        <?= iconSvg($item['icon'], 'w-4 h-4 flex-shrink-0') ?>
+                        <?= iconSvg($item['icon'], 'w-5 h-5 flex-shrink-0 ' . ($item['iconColor'] ?? 'text-white/80')) ?>
                         <?= e($item['label']) ?>
                         <?php if ($isActive): ?>
                             <span class="ml-auto w-1.5 h-1.5 rounded-full bg-white"></span>

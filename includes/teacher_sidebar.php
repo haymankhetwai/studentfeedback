@@ -7,9 +7,20 @@ $navItems = $navItems ?? [
     ['label' => $LANG['nav_my_sections'] ?? 'My Sections', 'href' => '/studentfeedbackucsh/teacher/my_sections.php', 'key' => 'sections', 'icon' => 'grid'],
     ['label' => $LANG['nav_feedback_results'] ?? 'Feedback Results', 'href' => '/studentfeedbackucsh/teacher/feedback_results.php', 'key' => 'results', 'icon' => 'chart'],
     ['label' => $LANG['nav_analytics'] ?? 'Analytics', 'href' => '/studentfeedbackucsh/teacher/analytics.php', 'key' => 'analytics', 'icon' => 'report'],
+    ['label' => $LANG['nav_trend_analysis'] ?? 'Trend Analysis', 'href' => '/studentfeedbackucsh/teacher/trend_analysis.php', 'key' => 'trend', 'icon' => 'history'],
     ['label' => $LANG['nav_profile'] ?? 'Profile', 'href' => '/studentfeedbackucsh/teacher/profile.php', 'key' => 'profile', 'icon' => 'user'],
 ];
 $initials = avatarInitials($user['name']);
+
+// Icon color map — edit these to change sidebar icon colors
+$iconColors = [
+    'dashboard' => 'text-blue-700',
+    'sections'  => 'text-emerald-500',
+    'results'   => 'text-amber-500',
+    'analytics' => 'text-purple-500',
+    'trend'     => 'text-cyan-700',
+    'profile'   => 'text-pink-500',
+];
 ?>
 <div id="overlay" class="fixed inset-0 bg-black/40 z-30 hidden lg:hidden" onclick="closeSidebar()"></div>
 <div class="flex h-screen overflow-hidden">
@@ -40,7 +51,7 @@ $initials = avatarInitials($user['name']);
                 ?>
                 <a href="<?= $item['href'] ?>"
                     class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm transition-all <?= $cls ?>">
-                    <?= iconSvg($item['icon'], 'w-4 h-4 flex-shrink-0') ?>
+                    <?= iconSvg($item['icon'], 'w-5 h-5 flex-shrink-0 ' . ($iconColors[$item['key']] ?? 'text-white/80')) ?>
                     <?= e($item['label']) ?>
                     <?php if ($active): ?><span class="ml-auto w-1.5 h-1.5 rounded-full bg-white"></span><?php endif ?>
                 </a>
