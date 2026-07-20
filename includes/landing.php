@@ -267,6 +267,7 @@ if ($r)
                     </div>
                 </div>
                 <div class="flex items-center gap-5">
+                    <?php if (($loginType ?? '') !== 'admin'): ?>
                     <a href="/studentfeedbackucsh/index.php"
                         class="inline-flex items-center gap-1.5 text-blue-600/80 hover:text-blue-700 font-semibold text-sm transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -275,6 +276,7 @@ if ($r)
                         </svg>
                         <?= $LANG['home'] ?? 'Home' ?>
                     </a>
+                    <?php endif; ?>
                     <!-- <span
                         class="text-xs text-blue-700/70 hidden md:block font-semibold capitalize tracking-wide"><?= e($loginType) ?>
                         <?= $LANG['portal'] ?? 'Portal' ?></span> -->

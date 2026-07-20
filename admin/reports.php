@@ -541,7 +541,7 @@ include '../includes/admin_sidebar.php';
             </div>
         </div>
         <div class="flex gap-2">
-            <button type="submit" class="px-5 py-2 bg-cyan-600 text-white text-sm font-semibold rounded-xl hover:bg-cyan-700 transition-colors">
+            <button type="submit" class="px-5 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors">
                 <?= $LANG['filter'] ?? 'Filter' ?>
             </button>
             <a href="reports.php#academic-feedback" class="px-4 py-2 bg-slate-100 text-slate-600 text-sm font-semibold rounded-xl hover:bg-slate-200 transition-colors">
@@ -555,7 +555,7 @@ include '../includes/admin_sidebar.php';
 <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
     
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3">
-        <div class="w-11 h-11 rounded-xl bg-blue-600 flex items-center justify-center shadow-sm"><?= iconSvg('academic', 'w-5 h-5 text-white') ?></div>
+        <div class="w-11 h-11 rounded-xl bg-indigo-600 flex items-center justify-center shadow-sm"><?= iconSvg('academic', 'w-5 h-5 text-white') ?></div>
         <div><p class="text-xl font-bold text-blue-700"><?= number_format($totalSubmissions) ?></p><p class="text-[10px] text-slate-500 font-medium"><?= $LANG['submissions_stat'] ?? 'Submissions' ?></p></div>
     </div>
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3">
@@ -563,7 +563,7 @@ include '../includes/admin_sidebar.php';
         <div><p class="text-xl font-bold text-indigo-700"><?= number_format($totalTeachers) ?></p><p class="text-[10px] text-slate-500 font-medium"><?= $LANG['teachers_stat'] ?? 'Teachers' ?></p></div>
     </div>
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3">
-        <div class="w-11 h-11 rounded-xl bg-emerald-600 flex items-center justify-center shadow-sm"><?= iconSvg('document', 'w-5 h-5 text-white') ?></div>
+        <div class="w-11 h-11 rounded-xl bg-indigo-600 flex items-center justify-center shadow-sm"><?= iconSvg('document', 'w-5 h-5 text-white') ?></div>
         <div><p class="text-xl font-bold text-emerald-700"><?= number_format($totalForms) ?></p><p class="text-[10px] text-slate-500 font-medium"><?= $LANG['forms_stat'] ?? 'Forms' ?></p></div>
     </div>
     
@@ -667,7 +667,7 @@ include '../includes/admin_sidebar.php';
             </select>
         </div>
         <div class="flex gap-2">
-            <button type="submit" class="px-5 py-2 bg-purple-600 text-white text-sm font-semibold rounded-xl hover:bg-purple-700 transition-colors">
+            <button type="submit" class="px-5 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors">
                 <?= $LANG['filter'] ?? 'Filter' ?>
             </button>
             <a href="reports.php#sa-feedback" class="px-4 py-2 bg-slate-100 text-slate-600 text-sm font-semibold rounded-xl hover:bg-slate-200 transition-colors">

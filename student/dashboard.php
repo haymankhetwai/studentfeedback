@@ -226,7 +226,7 @@ $initials = avatarInitials($user['name']);
                                             </p>
                                         </div>
                                         <a href="/studentfeedbackucsh/student/feedback_form.php?form_id=<?= $f['form_id'] ?>"
-                                            class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-white bg-cyan-600 hover:bg-cyan-700 rounded-lg flex-shrink-0"><?= $LANG['fill'] ?? 'Fill' ?></a>
+                                            class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg flex-shrink-0"><?= $LANG['fill'] ?? 'Fill' ?></a>
                                     </div>
                                 <?php endforeach ?>
                             </div>
@@ -256,7 +256,7 @@ $initials = avatarInitials($user['name']);
                                             <p class="text-[11px] text-slate-400">Due: <?= formatDateTime($f['end_date']) ?></p>
                                         </div>
                                         <a href="/studentfeedbackucsh/student/sa_feedback_form.php?form_id=<?= $f['form_id'] ?>"
-                                            class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-lg flex-shrink-0"><?= $LANG['fill'] ?? 'Fill' ?></a>
+                                            class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg flex-shrink-0"><?= $LANG['fill'] ?? 'Fill' ?></a>
                                     </div>
                                 <?php endforeach ?>
                             </div>

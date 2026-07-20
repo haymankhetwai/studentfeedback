@@ -29,6 +29,6 @@ foreach ($queries as $sql) {
     </div>
     <?php endforeach ?>
     <p class="text-xs text-slate-400 mt-6">Delete this file after running: <code>migrate.php</code></p>
-    <a href="admin/index.php" class="inline-block mt-4 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg">→ Go to Admin</a>
+    <a href="admin/index.php" class="inline-block mt-4 px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg">→ Go to Admin</a>
 </div>
 </body></html>

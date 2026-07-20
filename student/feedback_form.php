@@ -262,27 +262,27 @@ $initials = avatarInitials($user['name']);
                     <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Form Information</h3>
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                         <div>
-                            <p class="text-[11px] font-semibold text-slate-400 uppercase">Academic Year</p>
+                            <p class="text-[11px] font-semibold text-slate-400 uppercase"><?= $LANG["academic_year"] ?? "Academic Year" ?></p>
                             <p class="text-sm font-bold text-slate-800"><?= e($form['academic_year'] ?? '—') ?></p>
                         </div>
                         <div>
-                            <p class="text-[11px] font-semibold text-slate-400 uppercase">Semester</p>
+                            <p class="text-[11px] font-semibold text-slate-400 uppercase"><?= $LANG["semester_filter"] ?? "Semester" ?></p>
                             <p class="text-sm font-bold text-slate-800"><?= e(semesterToRoman($form['semester'] ?? '')) ?></p>
                         </div>
                         <div>
-                            <p class="text-[11px] font-semibold text-slate-400 uppercase">Course Code</p>
+                            <p class="text-[11px] font-semibold text-slate-400 uppercase"><?= $LANG["course_code"] ?? "Course Code" ?></p>
                             <p class="text-sm font-bold text-slate-800"><?= e($form['course_code'] ?? '—') ?></p>
                         </div>
                         <div>
-                            <p class="text-[11px] font-semibold text-slate-400 uppercase">Course Name</p>
+                            <p class="text-[11px] font-semibold text-slate-400 uppercase"><?= $LANG["course_name"] ?? "Course Name" ?></p>
                             <p class="text-sm font-bold text-slate-800"><?= e($form['course_name'] ?? '—') ?></p>
                         </div>
                         <div>
-                            <p class="text-[11px] font-semibold text-slate-400 uppercase">Section</p>
+                            <p class="text-[11px] font-semibold text-slate-400 uppercase"><?= $LANG["section_name"] ?? "Section" ?></p>
                             <p class="text-sm font-bold text-slate-800"><?= e($form['section'] ?? '—') ?></p>
                         </div>
                         <div>
-                            <p class="text-[11px] font-semibold text-slate-400 uppercase">Teacher Name</p>
+                            <p class="text-[11px] font-semibold text-slate-400 uppercase"><?= $LANG["teacher_name"] ?? "Teacher Name" ?></p>
                             <p class="text-sm font-bold text-slate-800"><?= e($form['teacher_name'] ?? '—') ?></p>
                         </div>
                     </div>
@@ -403,11 +403,11 @@ $initials = avatarInitials($user['name']);
                         </div>
                         
                         <div class="flex items-center gap-4 w-full md:w-auto justify-end">
-                            <a href="my_sections.php" class="px-5 py-2.5 text-sm border border-slate-300 rounded-xl text-slate-600 hover:bg-slate-50 font-medium"><?= $LANG['cancel'] ?? 'Cancel' ?></a>
+                            <a href="my_sections.php" class="px-5 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></a>
                             
                             <?php if ($canSubmit): ?>
                             <button type="submit" id="submit-btn"
-                                    class="w-full md:w-auto px-8 py-2.5 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl shadow-md transition-all">
+                                    class="w-full md:w-auto px-8 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md transition-all">
                                 <?= $LANG['submit_form'] ?? 'Submit Form' ?>
                             </button>
                             <?php elseif ($status === 'Upcoming'): ?>

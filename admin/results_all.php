@@ -96,13 +96,73 @@ if (isset($_GET['ajax_students']) && $_GET['ajax_students'] === '1') {
     exit;
 }
 
-$pageTitle = 'All Feedback Results';
+// AJAX endpoint for fetching forms by AY/Sem
+if (isset($_GET['ajax_forms']) && $_GET['ajax_forms'] === '1') {
+    header('Content-Type: application/json');
+    $ajaxAY = (int) ($_GET['ay_id'] ?? 0);
+    $ajaxSem = (int) ($_GET['sem_id'] ?? 0);
+
+    $ajaxFormConds = [];
+    $ajaxFormTypes = '';
+    if ($ajaxAY) {
+        $ajaxFormConds[] = "ff.academic_year_id=?";
+        $ajaxFormTypes .= 'i';
+    }
+    if ($ajaxSem) {
+        $ajaxFormConds[] = "ff.semester_id=?";
+        $ajaxFormTypes .= 'i';
+    }
+    $ajaxFormWhere = $ajaxFormConds ? 'WHERE ' . implode(' AND ', $ajaxFormConds) : '';
+    $ajaxFormSql = "SELECT ff.id, ff.title, ff.module, ff.academic_year, ff.section_id, ff.academic_year_id, ff.semester_id,
+        ay.year_name AS academic_year_name, sm.semester_name,
+        c.course_code, c.course_name, sec.section AS section_name
+        FROM feedback_forms ff
+        LEFT JOIN academic_years ay ON ff.academic_year_id = ay.id
+        LEFT JOIN semesters sm ON ff.semester_id = sm.id
+        LEFT JOIN sections sec ON ff.section_id = sec.id
+        LEFT JOIN courses c ON sec.course_id = c.id
+        $ajaxFormWhere
+        ORDER BY ff.module ASC, ay.year_name DESC, ff.id DESC";
+
+    if ($ajaxFormTypes) {
+        $ajaxFormStmt = $conn->prepare($ajaxFormSql);
+        $ajaxFormBind = [];
+        if ($ajaxAY) $ajaxFormBind[] = $ajaxAY;
+        if ($ajaxSem) $ajaxFormBind[] = $ajaxSem;
+        $ajaxFormStmt->bind_param($ajaxFormTypes, ...$ajaxFormBind);
+        $ajaxFormStmt->execute();
+        $ajaxFormList = $ajaxFormStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $ajaxFormStmt->close();
+    } else {
+        $ajaxFormList = $conn->query($ajaxFormSql)->fetch_all(MYSQLI_ASSOC);
+    }
+
+    $formattedForms = [];
+    foreach ($ajaxFormList as $f) {
+        if ($f['module'] === 'academic' && !empty($f['course_code'])) {
+            $formLabel = e($f['course_code']) . ' - ' . e($f['course_name']) . ' - Section ' . e($f['section_name']);
+        } else {
+            $formLabel = e($f['academic_year_name'] ?? $f['academic_year'] ?? '') . ' - ' . e($f['title']);
+        }
+        $formattedForms[] = [
+            'id' => (int) $f['id'],
+            'label' => $formLabel,
+            'module' => $f['module'],
+        ];
+    }
+
+    echo json_encode(['forms' => $formattedForms]);
+    exit;
+}
+
+$pageTitle = $LANG['all_feedback_results'] ?? 'All Feedback Results';
 $activeMenu = 'results';
 
 $formId = (int) ($_GET['form_id'] ?? 0);
 $filterMod = clean($_GET['module'] ?? '');
 $filterAY = (int) ($_GET['ay_id'] ?? 0);
 $filterSem = (int) ($_GET['sem_id'] ?? 0);
+$hasActiveFilters = ($filterAY > 0) || ($filterSem > 0) || ($formId > 0);
 
 $academicYears = $conn->query("SELECT id, year_name FROM academic_years WHERE status='active' ORDER BY year_name DESC")->fetch_all(MYSQLI_ASSOC);
 $semesters = $conn->query("SELECT id, semester_name FROM semesters ORDER BY id ASC")->fetch_all(MYSQLI_ASSOC);
@@ -151,10 +211,7 @@ if ($formTypes) {
 
 // Determine which form to load based on filters
 $loadForm = false;
-if ($filterAY > 0 && $filterSem > 0 && $formId > 0) {
-    // All three filters selected — load the chosen form
-    $loadForm = true;
-} elseif ($filterAY === 0 && $filterSem === 0 && $formId === 0) {
+if (!$hasActiveFilters) {
     // No filters selected — auto-load the latest submitted form
     $latestQ = $conn->prepare("SELECT ff.id FROM feedback_forms ff JOIN feedback_submissions fs ON fs.form_id = ff.id ORDER BY ff.id DESC LIMIT 1");
     $latestQ->execute();
@@ -162,6 +219,41 @@ if ($filterAY > 0 && $filterSem > 0 && $formId > 0) {
     $latestQ->close();
     if ($latestRow) {
         $formId = (int) $latestRow['id'];
+        $loadForm = true;
+    }
+} elseif ($formId > 0) {
+    // User explicitly selected a form — load it if it exists in the filtered list
+    $formExists = false;
+    foreach ($formList as $fl) {
+        if ((int) $fl['id'] === $formId) {
+            $formExists = true;
+            break;
+        }
+    }
+    if ($formExists) {
+        $loadForm = true;
+    }
+    // If formId was provided but doesn't exist in filtered list, $loadForm stays false (empty state)
+} elseif ($filterAY > 0 || $filterSem > 0) {
+    // Filters are set but no form was explicitly selected — try to auto-load the latest matching form
+    $autoQ = $conn->prepare("SELECT ff.id FROM feedback_forms ff JOIN feedback_submissions fs ON fs.form_id = ff.id
+        LEFT JOIN academic_years ay ON ff.academic_year_id = ay.id
+        LEFT JOIN semesters sm ON ff.semester_id = sm.id
+        " . ($filterAY > 0 ? "WHERE ff.academic_year_id = ?" : "") .
+        ($filterSem > 0 ? ($filterAY > 0 ? " AND " : "WHERE ") . "ff.semester_id = ?" : "") .
+        " ORDER BY ff.id DESC LIMIT 1");
+    if ($filterAY > 0 && $filterSem > 0) {
+        $autoQ->bind_param('ii', $filterAY, $filterSem);
+    } elseif ($filterAY > 0) {
+        $autoQ->bind_param('i', $filterAY);
+    } elseif ($filterSem > 0) {
+        $autoQ->bind_param('i', $filterSem);
+    }
+    $autoQ->execute();
+    $autoRow = $autoQ->get_result()->fetch_assoc();
+    $autoQ->close();
+    if ($autoRow) {
+        $formId = (int) $autoRow['id'];
         $loadForm = true;
     }
 }
@@ -665,10 +757,11 @@ include '../includes/admin_sidebar.php';
     <form method="GET" class="space-y-3">
         <div class="flex flex-col sm:flex-row gap-4 items-end">
             <div class="flex-1 min-w-[160px]">
-                <label class="block text-xs font-bold text-slate-500 mb-1">Academic Year</label>
-                <select name="ay_id"
+                <label
+                    class="block text-xs font-bold text-slate-500 mb-1"><?= $LANG["academic_year"] ?? "Academic Year" ?></label>
+                <select name="ay_id" id="aySelect"
                     class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none bg-white font-semibold text-slate-700 shadow-sm focus:border-slate-500">
-                    <option value="">All Academic Years</option>
+                    <option value=""><?= $LANG["all_academic_years"] ?? "All Academic Years" ?></option>
                     <?php foreach ($academicYears as $ay): ?>
                         <option value="<?= $ay['id'] ?>" <?= $filterAY == $ay['id'] ? 'selected' : '' ?>>
                             <?= e($ay['year_name']) ?>
@@ -677,10 +770,11 @@ include '../includes/admin_sidebar.php';
                 </select>
             </div>
             <div class="flex-1 min-w-[160px]">
-                <label class="block text-xs font-bold text-slate-500 mb-1">Semester</label>
-                <select name="sem_id"
+                <label
+                    class="block text-xs font-bold text-slate-500 mb-1"><?= $LANG["semester_filter"] ?? "Semester" ?></label>
+                <select name="sem_id" id="semSelect"
                     class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none bg-white font-semibold text-slate-700 shadow-sm focus:border-slate-500">
-                    <option value="">All Semesters</option>
+                    <option value=""><?= $LANG['all_semesters'] ?? 'All Semesters' ?></option>
                     <?php foreach ($semesters as $sm): ?>
                         <option value="<?= $sm['id'] ?>" <?= $filterSem == $sm['id'] ? 'selected' : '' ?>>
                             <?= e(semesterToRoman($sm['semester_name'])) ?>
@@ -689,10 +783,13 @@ include '../includes/admin_sidebar.php';
                 </select>
             </div>
             <div class="flex-1 max-w-xl">
-                <label class="block text-xs font-bold text-slate-500 mb-1">Choose a Feedback Form:</label>
-                <select name="form_id"
+                <label
+                    class="block text-xs font-bold text-slate-500 mb-1"><?= $LANG["choose_form"] ?? "Choose a Feedback Form" ?></label>
+                <select name="form_id" id="formSelect"
                     class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none bg-white font-semibold text-slate-700 shadow-sm focus:border-slate-500">
-                    <option value="">— Choose a Feedback Form —</option>
+                    <option value="">
+                        <?= $LANG["choose_form_placeholder"] ?? "— Choose a Feedback Form —" ?>
+                    </option>
                     <?php
                     $currentMod = '';
                     foreach ($formList as $f):
@@ -719,16 +816,25 @@ include '../includes/admin_sidebar.php';
             </div>
             <div class="flex gap-2 shrink-0">
                 <button type="submit"
-                    class="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-all h-[42px]">Filter</button>
+                    class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-all h-[42px]"><?= $LANG["search"] ?? "Search" ?></button>
                 <a href="results_all.php"
-                    class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-semibold rounded-xl transition-all h-[42px] inline-flex items-center">Reset</a>
+                    class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-semibold rounded-xl transition-all h-[42px] inline-flex items-center"><?= $LANG["reset"] ?? "Reset" ?></a>
             </div>
         </div>
     </form>
 </div>
 
-<?php if ($filterAY > 0 && $filterSem > 0 && empty($formList)): ?>
-    <div class="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 mb-6 flex items-center gap-3">
+<?php if ($hasActiveFilters && !$loadForm): ?>
+    <div id="noFormsMsg" class="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 mb-6 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+            <?= iconSvg('question', 'w-5 h-5 text-amber-600') ?>
+        </div>
+        <div>
+            <p class="text-sm font-semibold text-amber-800">No feedback forms for this section</p>
+        </div>
+    </div>
+<?php else: ?>
+    <div id="noFormsMsg" class="hidden bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 mb-6 flex items-center gap-3">
         <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
             <?= iconSvg('question', 'w-5 h-5 text-amber-600') ?>
         </div>
@@ -777,7 +883,7 @@ include '../includes/admin_sidebar.php';
                 <?= iconSvg('question', 'w-5 h-5 text-amber-600') ?>
             </div>
             <div>
-                <p class="text-sm font-semibold text-amber-800">No feedback forms for this section</p>
+                <p class="text-sm font-semibold text-amber-800">No responses have been submitted for this form yet</p>
             </div>
         </div>
     <?php endif ?>
@@ -815,7 +921,9 @@ include '../includes/admin_sidebar.php';
                             </div>
                             <div class="grid grid-cols-2 gap-3 text-xs">
                                 <div class="bg-white/5 backdrop-blur rounded-lg p-3 border border-white/10">
-                                    <p class="text-slate-400 font-semibold mb-0.5">Total Responses</p>
+                                    <p class="text-slate-400 font-semibold mb-0.5">
+                                        <?= $LANG["total_responses"] ?? "Total Responses" ?>
+                                    </p>
                                     <p class="text-lg font-black text-white"><?= $completedCount ?></p>
                                 </div>
                                 <div class="bg-white/5 backdrop-blur rounded-lg p-3 border border-white/10">
@@ -887,28 +995,40 @@ include '../includes/admin_sidebar.php';
                     <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Form Information</h3>
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                         <div>
-                            <p class="text-[11px] font-semibold text-slate-400 uppercase">Academic Year</p>
+                            <p class="text-[11px] font-semibold text-slate-400 uppercase">
+                                <?= $LANG["academic_year"] ?? "Academic Year" ?>
+                            </p>
                             <p class="text-sm font-bold text-slate-800"><?= e($formMeta['academic_year'] ?? '—') ?></p>
                         </div>
                         <div>
-                            <p class="text-[11px] font-semibold text-slate-400 uppercase">Semester</p>
+                            <p class="text-[11px] font-semibold text-slate-400 uppercase">
+                                <?= $LANG["semester_filter"] ?? "Semester" ?>
+                            </p>
                             <p class="text-sm font-bold text-slate-800"><?= e(semesterToRoman($formMeta['semester'] ?? '')) ?>
                             </p>
                         </div>
                         <div>
-                            <p class="text-[11px] font-semibold text-slate-400 uppercase">Course Code</p>
+                            <p class="text-[11px] font-semibold text-slate-400 uppercase">
+                                <?= $LANG["course_code"] ?? "Course Code" ?>
+                            </p>
                             <p class="text-sm font-bold text-slate-800"><?= e($formMeta['course_code'] ?? '—') ?></p>
                         </div>
                         <div>
-                            <p class="text-[11px] font-semibold text-slate-400 uppercase">Course Name</p>
+                            <p class="text-[11px] font-semibold text-slate-400 uppercase">
+                                <?= $LANG["course_name"] ?? "Course Name" ?>
+                            </p>
                             <p class="text-sm font-bold text-slate-800"><?= e($formMeta['course_name'] ?? '—') ?></p>
                         </div>
                         <div>
-                            <p class="text-[11px] font-semibold text-slate-400 uppercase">Section</p>
+                            <p class="text-[11px] font-semibold text-slate-400 uppercase">
+                                <?= $LANG["section_name"] ?? "Section" ?>
+                            </p>
                             <p class="text-sm font-bold text-slate-800"><?= e($formMeta['section'] ?? '—') ?></p>
                         </div>
                         <div>
-                            <p class="text-[11px] font-semibold text-slate-400 uppercase">Teacher Name</p>
+                            <p class="text-[11px] font-semibold text-slate-400 uppercase">
+                                <?= $LANG["teacher_name"] ?? "Teacher Name" ?>
+                            </p>
                             <p class="text-sm font-bold text-slate-800"><?= e($formMeta['teacher_name'] ?? '—') ?></p>
                         </div>
                     </div>
@@ -918,19 +1038,27 @@ include '../includes/admin_sidebar.php';
                     <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Form Information</h3>
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                         <div>
-                            <p class="text-[11px] font-semibold text-slate-400 uppercase">University Name</p>
+                            <p class="text-[11px] font-semibold text-slate-400 uppercase">
+                                <?= $LANG["university_name"] ?? "University Name" ?>
+                            </p>
                             <p class="text-sm font-bold text-slate-800"><?= e($formMeta['university_name'] ?? '—') ?></p>
                         </div>
                         <div>
-                            <p class="text-[11px] font-semibold text-slate-400 uppercase">Campus</p>
+                            <p class="text-[11px] font-semibold text-slate-400 uppercase">
+                                <?= $LANG["university_campus"] ?? "Campus" ?>
+                            </p>
                             <p class="text-sm font-bold text-slate-800"><?= e($formMeta['university_campus'] ?? '—') ?></p>
                         </div>
                         <div>
-                            <p class="text-[11px] font-semibold text-slate-400 uppercase">Academic Year</p>
+                            <p class="text-[11px] font-semibold text-slate-400 uppercase">
+                                <?= $LANG["academic_year"] ?? "Academic Year" ?>
+                            </p>
                             <p class="text-sm font-bold text-slate-800"><?= e($formMeta['academic_year'] ?? '—') ?></p>
                         </div>
                         <div>
-                            <p class="text-[11px] font-semibold text-slate-400 uppercase">Semester</p>
+                            <p class="text-[11px] font-semibold text-slate-400 uppercase">
+                                <?= $LANG["semester_filter"] ?? "Semester" ?>
+                            </p>
                             <p class="text-sm font-bold text-slate-800"><?= e(semesterToRoman($formMeta['semester'] ?? '')) ?>
                             </p>
                         </div>
@@ -944,7 +1072,8 @@ include '../includes/admin_sidebar.php';
 
             <?php if (!empty($ratingQuestions)): ?>
                 <div class="mb-8">
-                    <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3">Rating Questions — Results</h3>
+                    <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3">
+                        <?= $LANG['question_stats_header'] ?? 'Question-wise Statistical Results' ?></h3>
                     <div class="overflow-x-auto border border-slate-300 rounded-lg">
                         <table class="w-full text-left border-collapse min-w-[850px] text-xs">
                             <!-- <thead>
@@ -1265,7 +1394,7 @@ include '../includes/admin_sidebar.php';
                 <div class="print-rating-summary">
                     <div class="print-rating-item">
                         <div class="value"><?= $overallPct ?>%</div>
-                        <div class="label">Overall Rating</div>
+                        <div class="label"><?= $LANG["overall_rating"] ?? "Overall Rating" ?></div>
                     </div>
                     <div class="print-rating-item">
                         <div class="value"><span class="print-grade-badge"><?= $grade ?></span></div>
@@ -1478,15 +1607,23 @@ include '../includes/admin_sidebar.php';
 
 <script>
     var currentFormId = <?= (int) $formId ?>;
+    var LANG = <?= json_encode([
+        'loading' => $LANG['loading'] ?? 'Loading...',
+        'completed' => $LANG['completed'] ?? 'Completed',
+        'pending' => $LANG['pending'] ?? 'Pending',
+        'total_responses' => $LANG['total_responses'] ?? 'Total Responses',
+        'no_data' => $LANG['no_data_yet'] ?? 'No data yet',
+        'all_assigned_students' => $LANG['all_assigned_students'] ?? 'All Assigned Students',
+    ]) ?>;
 
     function openStudentModal(type) {
         var modal = document.getElementById('studentModal');
         var title = document.getElementById('modalTitle');
         var body = document.getElementById('modalBody');
-        if (type === 'all') title.textContent = 'All Assigned Students';
-        if (type === 'completed') title.textContent = 'Completed';
-        if (type === 'pending') title.textContent = 'Pending';
-        body.innerHTML = '<p class="text-center text-slate-400 py-8 text-sm">Loading...</p>';
+        if (type === 'all') title.textContent = LANG.all_assigned_students;
+        if (type === 'completed') title.textContent = LANG.completed;
+        if (type === 'pending') title.textContent = LANG.pending;
+        body.innerHTML = '<p class="text-center text-slate-400 py-8 text-sm">' + LANG.loading + '</p>';
         modal.classList.remove('hidden');
         fetch('results_all.php?ajax_students=1&form_id=' + currentFormId + '&type=' + type)
             .then(function (r) { return r.json(); })
@@ -1531,6 +1668,91 @@ include '../includes/admin_sidebar.php';
         <div id="modalBody" class="px-6 py-4 overflow-y-auto flex-1"></div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var aySelect = document.getElementById('aySelect');
+        var semSelect = document.getElementById('semSelect');
+        var formSelect = document.getElementById('formSelect');
+        var noFormsMsg = document.getElementById('noFormsMsg');
+
+        if (!aySelect || !semSelect || !formSelect) return;
+
+        function fetchForms() {
+            var ayId = aySelect.value;
+            var semId = semSelect.value;
+
+            var url = 'results_all.php?ajax_forms=1&ay_id=' + encodeURIComponent(ayId) + '&sem_id=' + encodeURIComponent(semId);
+
+            fetch(url)
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    updateFormDropdown(data.forms || []);
+                })
+                .catch(function () {
+                    // On error, keep current dropdown state
+                });
+        }
+
+        function updateFormDropdown(forms) {
+            var currentVal = formSelect.value;
+
+            // Remove all options except the placeholder
+            while (formSelect.options.length > 1) {
+                formSelect.remove(1);
+            }
+
+            // Remove any existing optgroups
+            var existingGroups = formSelect.querySelectorAll('optgroup');
+            for (var g = 0; g < existingGroups.length; g++) {
+                existingGroups[g].remove();
+            }
+
+            if (forms.length === 0) {
+                // No forms found — show message
+                noFormsMsg.classList.remove('hidden');
+                formSelect.value = '';
+            } else {
+                // Forms found — hide message, populate dropdown
+                noFormsMsg.classList.add('hidden');
+
+                var currentModule = '';
+                var currentOptgroup = null;
+                var modLabels = {
+                    'academic': 'Academic',
+                    'student_affairs': 'Student Affairs',
+                    'administration': 'Administration'
+                };
+
+                for (var i = 0; i < forms.length; i++) {
+                    var f = forms[i];
+                    if (f.module !== currentModule) {
+                        currentModule = f.module;
+                        currentOptgroup = document.createElement('optgroup');
+                        currentOptgroup.label = modLabels[f.module] || f.module;
+                        formSelect.appendChild(currentOptgroup);
+                    }
+                    var option = document.createElement('option');
+                    option.value = f.id;
+                    option.textContent = f.label;
+                    currentOptgroup.appendChild(option);
+                }
+
+                // Try to restore previous selection
+                if (currentVal) {
+                    var restoreOption = formSelect.querySelector('option[value="' + currentVal + '"]');
+                    if (restoreOption) {
+                        formSelect.value = currentVal;
+                    }
+                }
+            }
+        }
+
+        // Add event listeners for dynamic form loading
+        aySelect.addEventListener('change', fetchForms);
+        semSelect.addEventListener('change', fetchForms);
+    });
+</script>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script

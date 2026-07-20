@@ -459,10 +459,10 @@ include '../includes/admin_sidebar.php';
 
     <form method="GET" action="#academic-feedback" class="flex flex-wrap items-end gap-4">
         <div class="flex-1 min-w-[160px]">
-            <label class="block text-xs font-semibold text-slate-500 mb-1">Academic Year</label>
+            <label class="block text-xs font-semibold text-slate-500 mb-1"><?= $LANG["academic_year"] ?? "Academic Year" ?></label>
             <select name="ay_id"
                 class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none bg-white font-semibold text-slate-700 shadow-sm focus:border-cyan-500">
-                <option value="">All Academic Years</option>
+                <option value=""><?= $LANG["all_academic_years"] ?? "All Academic Years" ?></option>
                 <?php foreach ($allAcademicYears as $ay): ?>
                     <option value="<?= $ay['id'] ?>" <?= $filterAY == $ay['id'] ? 'selected' : '' ?>>
                         <?= e($ay['year_name']) ?>
@@ -493,10 +493,10 @@ include '../includes/admin_sidebar.php';
             </div>
         </div>
         <div class="flex-1 min-w-[200px]">
-            <label class="block text-xs font-semibold text-slate-500 mb-1">Choose a Feedback Form</label>
+            <label class="block text-xs font-semibold text-slate-500 mb-1"><?= $LANG["choose_form"] ?? "Choose a Feedback Form" ?></label>
             <select name="form_id"
                 class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none bg-white font-semibold text-slate-700 shadow-sm focus:border-cyan-500">
-                <option value="">— Choose a Feedback Form —</option>
+                <option value=""><?= $LANG["choose_form_placeholder"] ?? "— Choose a Feedback Form —" ?></option>
                 <?php foreach ($academicForms as $af):
                     if (!empty($af['course_code'])) {
                         $afLabel = e($af['course_code']) . ' - ' . e($af['course_name']) . ' - Section ' . e($af['section_name']);
@@ -578,7 +578,7 @@ include '../includes/admin_sidebar.php';
         </div> -->
         <div class="flex gap-2">
             <button type="submit"
-                class="px-5 py-2 bg-cyan-600 text-white text-sm font-semibold rounded-xl hover:bg-cyan-700 transition-colors">
+                class="px-5 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors">
                 <?= $LANG['filter'] ?? 'Filter' ?>
             </button>
             <a href="dashboard.php#academic-feedback"
@@ -593,7 +593,7 @@ include '../includes/admin_sidebar.php';
 <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
 
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3">
-        <div class="w-11 h-11 rounded-xl bg-blue-600 flex items-center justify-center shadow-sm">
+        <div class="w-11 h-11 rounded-xl bg-indigo-600 flex items-center justify-center shadow-sm">
             <?= iconSvg('academic', 'w-5 h-5 text-white') ?>
         </div>
         <div>
@@ -611,7 +611,7 @@ include '../includes/admin_sidebar.php';
         </div>
     </div>
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3">
-        <div class="w-11 h-11 rounded-xl bg-emerald-600 flex items-center justify-center shadow-sm">
+        <div class="w-11 h-11 rounded-xl bg-indigo-600 flex items-center justify-center shadow-sm">
             <?= iconSvg('document', 'w-5 h-5 text-white') ?>
         </div>
         <div>
@@ -664,7 +664,7 @@ include '../includes/admin_sidebar.php';
                     </div>
 
                     <div class="flex items-center gap-3 mb-3">
-                        <div class="w-10 h-10 rounded-xl bg-cyan-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+                        <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center flex-shrink-0 shadow-sm">
                             <?= iconSvg('user', 'w-5 h-5 text-white') ?>
                         </div>
                         <div class="min-w-0">
@@ -724,10 +724,10 @@ include '../includes/admin_sidebar.php';
             class="bg-white rounded-xl shadow-sm border border-slate-100 p-3 mb-3">
             <div class="flex flex-wrap items-end gap-3">
                 <div class="flex-1 min-w-[140px]">
-                    <label class="block text-[10px] font-semibold text-slate-500 mb-1">Academic Year</label>
+                    <label class="block text-[10px] font-semibold text-slate-500 mb-1"><?= $LANG["academic_year"] ?? "Academic Year" ?></label>
                     <select name="sa_ay_id"
                         class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
-                        <option value="">All Academic Years</option>
+                        <option value=""><?= $LANG["all_academic_years"] ?? "All Academic Years" ?></option>
                         <?php foreach ($allAcademicYears as $ay): ?>
                             <option value="<?= $ay['id'] ?>" <?= $saFilterAY == $ay['id'] ? 'selected' : '' ?>>
                                 <?= e($ay['year_name']) ?>
@@ -749,7 +749,7 @@ include '../includes/admin_sidebar.php';
                 </div>
                 <div class="flex gap-1.5">
                     <button type="submit"
-                        class="px-3 py-1.5 bg-purple-600 text-white text-xs font-semibold rounded-lg hover:bg-purple-700 transition-colors">
+                        class="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-colors">
                         <?= $LANG['filter'] ?? 'Filter' ?>
                     </button>
                     <a href="dashboard.php#sa-feedback"
@@ -835,10 +835,10 @@ include '../includes/admin_sidebar.php';
             class="bg-white rounded-xl shadow-sm border border-slate-100 p-3 mb-3">
             <div class="flex flex-wrap items-end gap-3">
                 <div class="flex-1 min-w-[140px]">
-                    <label class="block text-[10px] font-semibold text-slate-500 mb-1">Academic Year</label>
+                    <label class="block text-[10px] font-semibold text-slate-500 mb-1"><?= $LANG["academic_year"] ?? "Academic Year" ?></label>
                     <select name="adm_ay_id"
                         class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
-                        <option value="">All Academic Years</option>
+                        <option value=""><?= $LANG["all_academic_years"] ?? "All Academic Years" ?></option>
                         <?php foreach ($allAcademicYears as $ay): ?>
                             <option value="<?= $ay['id'] ?>" <?= $admFilterAY == $ay['id'] ? 'selected' : '' ?>>
                                 <?= e($ay['year_name']) ?>

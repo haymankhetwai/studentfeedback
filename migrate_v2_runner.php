@@ -36,6 +36,6 @@ if ($fail > 0) {
     echo "<p class='text-green-800 font-semibold'>All SA and Administration tables created successfully!</p>";
     echo "</div>";
 }
-echo "<a href='admin/index.php' class='inline-block px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700'>→ Go to Admin</a>";
+echo "<a href='admin/index.php' class='inline-block px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700'>→ Go to Admin</a>";
 echo "</div></body></html>";
 $conn->close();

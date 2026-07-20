@@ -299,7 +299,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
                     <div class="flex justify-end">
                         <button type="submit"
-                            class="px-6 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors"><?= $LANG['update_btn'] ?? 'Update Profile' ?></button>
+                            class="px-6 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors"><?= $LANG['update_btn'] ?? 'Update Profile' ?></button>
                     </div>
                 </form>
             </div>

@@ -624,29 +624,35 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                                 <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Form Information</h3>
                                 <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                                     <div>
-                                        <p class="text-[11px] font-semibold text-slate-400 uppercase">Academic Year</p>
+                                        <p class="text-[11px] font-semibold text-slate-400 uppercase">
+                                            <?= $LANG["academic_year"] ?? "Academic Year" ?></p>
                                         <p class="text-sm font-bold text-slate-800"><?= e($formMeta['academic_year'] ?? '—') ?></p>
                                     </div>
                                     <div>
-                                        <p class="text-[11px] font-semibold text-slate-400 uppercase">Semester</p>
+                                        <p class="text-[11px] font-semibold text-slate-400 uppercase">
+                                            <?= $LANG["semester_filter"] ?? "Semester" ?></p>
                                         <p class="text-sm font-bold text-slate-800">
                                             <?= e(semesterToRoman($formMeta['semester'] ?? '')) ?>
                                         </p>
                                     </div>
                                     <div>
-                                        <p class="text-[11px] font-semibold text-slate-400 uppercase">Course Code</p>
+                                        <p class="text-[11px] font-semibold text-slate-400 uppercase">
+                                            <?= $LANG["course_code"] ?? "Course Code" ?></p>
                                         <p class="text-sm font-bold text-slate-800"><?= e($formMeta['course_code'] ?? '—') ?></p>
                                     </div>
                                     <div>
-                                        <p class="text-[11px] font-semibold text-slate-400 uppercase">Course Name</p>
+                                        <p class="text-[11px] font-semibold text-slate-400 uppercase">
+                                            <?= $LANG["course_name"] ?? "Course Name" ?></p>
                                         <p class="text-sm font-bold text-slate-800"><?= e($formMeta['course_name'] ?? '—') ?></p>
                                     </div>
                                     <div>
-                                        <p class="text-[11px] font-semibold text-slate-400 uppercase">Section</p>
+                                        <p class="text-[11px] font-semibold text-slate-400 uppercase">
+                                            <?= $LANG["section_name"] ?? "Section" ?></p>
                                         <p class="text-sm font-bold text-slate-800"><?= e($formMeta['section'] ?? '—') ?></p>
                                     </div>
                                     <div>
-                                        <p class="text-[11px] font-semibold text-slate-400 uppercase">Teacher Name</p>
+                                        <p class="text-[11px] font-semibold text-slate-400 uppercase">
+                                            <?= $LANG["teacher_name"] ?? "Teacher Name" ?></p>
                                         <p class="text-sm font-bold text-slate-800"><?= e($formMeta['teacher_name'] ?? '—') ?></p>
                                     </div>
                                 </div>
@@ -662,7 +668,8 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                                     <table class="w-full text-left border-collapse min-w-[850px] text-xs">
                                         <thead>
                                             <tr class=" text-white font-bold">
-                                                <th class="p-3 w-12 text-center bg-blue-300 text-lg"><?= $LANG['col_no'] ?? 'စဉ်' ?></th>
+                                                <th class="p-3 w-12 text-center bg-blue-300 text-lg"><?= $LANG['col_no'] ?? 'စဉ်' ?>
+                                                </th>
                                                 <th class="p-3 bg-blue-500/80 text-lg">
                                                     <?= $LANG['eval_questions_header'] ?? 'Evaluation Questions' ?>
                                                 </th>
@@ -695,7 +702,8 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                                                 $badPerc = $totalVotes > 0 ? round(($badCount / $totalVotes) * 100) : 0;
                                                 ?>
                                                 <tr class="hover:bg-blue-50/30 transition-colors">
-                                                    <td class="p-3 text-center font-bold font-mono border-r text-lg"><?= e(displayQuestionNumber($q['question_no'], $_SESSION['lang'] ?? 'en')) ?>
+                                                    <td class="p-3 text-center font-bold font-mono border-r text-lg">
+                                                        <?= e(displayQuestionNumber($q['question_no'], $_SESSION['lang'] ?? 'en')) ?>
                                                     </td>
                                                     <td class="p-3 border-r leading-relaxed text-lg"><?= e($q['question_text']) ?></td>
                                                     <td class="p-3 text-center border-r bg-emerald-50/30"><span
@@ -727,7 +735,8 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                                     $commentsForThisQuestion = $comments[$q['id']] ?? []; ?>
                                     <div class="space-y-2 text-xs">
                                         <label class="block font-bold text-slate-700 text-lg">
-                                            <?= displayQuestionNumber($q['question_no'], $_SESSION['lang'] ?? 'en') ?> <?= e($q['question_text']) ?>
+                                            <?= displayQuestionNumber($q['question_no'], $_SESSION['lang'] ?? 'en') ?>
+                                            <?= e($q['question_text']) ?>
                                             <span
                                                 class="text-slate-400 font-normal text-xs">(<?= $LANG['total_comments'] ?? 'Total comments' ?>
                                                 - <?= count($commentsForThisQuestion) ?>

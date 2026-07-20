@@ -200,7 +200,7 @@ function paginationLinks(array $pg, string $baseUrl, int $perPage = 10): string
             $pageLinks .= '<span class="px-3 py-2 text-sm text-slate-400 select-none">...</span>';
         }
         if ($p === $cur) {
-            $pageLinks .= '<span class="px-3.5 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold shadow-sm">' . $p . '</span>';
+            $pageLinks .= '<span class="px-3.5 py-2 rounded-lg bg-indigo-600 text-white text-sm font-bold shadow-sm">' . $p . '</span>';
         } else {
             $pageLinks .= '<a href="' . $buildUrl($p) . '" class="px-3.5 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 font-medium hover:bg-slate-100 hover:border-slate-300 transition-all duration-150">' . $p . '</a>';
         }

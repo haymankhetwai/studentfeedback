@@ -71,7 +71,7 @@ if ($teacherId) {
                         </div>
                     </div>
                     <div class="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-emerald-100/50 p-5 flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-xl bg-emerald-600 flex items-center justify-center shadow">
+                        <div class="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center shadow">
                             <?= iconSvg('document', 'w-6 h-6 text-white') ?></div>
                         <div>
                             <p class="text-2xl font-bold text-emerald-700"><?= $formCount ?></p>

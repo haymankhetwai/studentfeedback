@@ -225,7 +225,7 @@ $sectionBreakdown = runQuery($conn, $sectionBreakdownSql, $types, $params)->fetc
 
             <div class="flex gap-2">
                 <button type="submit"
-                    class="px-5 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors"><?= $LANG['filter'] ?? 'Filter' ?></button>
+                    class="px-5 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors"><?= $LANG['filter'] ?? 'Filter' ?></button>
                 <a href="analytics.php"
                     class="px-4 py-2 bg-blue-50/50 text-blue-600 text-sm font-semibold rounded-xl hover:bg-blue-100/50 transition-colors"><?= $LANG['reset'] ?? 'Reset' ?></a>
             </div>
@@ -236,7 +236,7 @@ $sectionBreakdown = runQuery($conn, $sectionBreakdownSql, $types, $params)->fetc
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
         <div
             class="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-blue-100/50 p-5 flex items-center gap-4">
-            <div class="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center shadow">
+            <div class="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center shadow">
                 <?= iconSvg('clipboard', 'w-6 h-6 text-white') ?>
             </div>
             <div>
@@ -248,7 +248,7 @@ $sectionBreakdown = runQuery($conn, $sectionBreakdownSql, $types, $params)->fetc
 
         <div
             class="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-blue-100/50 p-5 flex items-center gap-4">
-            <div class="w-12 h-12 rounded-xl bg-emerald-600 flex items-center justify-center shadow">
+            <div class="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center shadow">
                 <?= iconSvg('document', 'w-6 h-6 text-white') ?>
             </div>
             <div>
