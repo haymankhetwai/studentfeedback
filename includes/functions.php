@@ -390,3 +390,18 @@ function semesterToRoman($value): string
     $result = $tens[(int)($n / 10)] . $ones[$n % 10];
     return 'Semester ' . $result;
 }
+
+function getStudentAcademicYearIds($conn, int $studentId): array
+{
+    if (!$studentId) return [];
+    $stmt = $conn->prepare("SELECT DISTINCT s.academic_year_id FROM section_assignments sa JOIN sections s ON sa.section_id = s.id WHERE sa.student_id = ? AND s.academic_year_id IS NOT NULL");
+    $stmt->bind_param('i', $studentId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $ids = [];
+    while ($row = $result->fetch_assoc()) {
+        $ids[] = (int)$row['academic_year_id'];
+    }
+    $stmt->close();
+    return $ids;
+}

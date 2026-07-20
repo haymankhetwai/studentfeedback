@@ -80,31 +80,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                 $insQ->execute();
                 $copied = $insQ->affected_rows;
                 $insQ->close();
-            } else {
-                // No previous year exists — use built-in default questions
-                require_once __DIR__ . '/../config/default_questions.php';
-                $defaultQs = getDefaultQuestions($module);
-
-                if ($defaultQs) {
-                    $insQ = $conn->prepare("INSERT INTO feedback_questions (question_set_id, module, question_no, question_text, question_type, options_json) VALUES (?,?,?,?,?,?)");
-                    foreach ($defaultQs as $dq) {
-                        $optsJson = $dq['options'] ? json_encode($dq['options'], JSON_UNESCAPED_UNICODE) : null;
-                        $insQ->bind_param('isisss', $newSetId, $module, $dq['no'], $dq['text'], $dq['type'], $optsJson);
-                        if (!$insQ->execute()) {
-                            throw new Exception("Question insert failed: " . $insQ->error . " (errno: " . $insQ->errno . ")");
-                        }
-                        $copied++;
-                    }
-                    $insQ->close();
-                }
             }
 
             $conn->commit();
             if ($copied > 0) {
-                $source = $prevRow ? 'copied from previous year' : 'default questions added';
-                setFlash('success', "Question Set created with $copied questions ($source).");
+                setFlash('success', "Question Set created with $copied questions copied from previous year.");
             } else {
-                setFlash('success', 'Question Set created. No questions found — add questions manually.');
+                setFlash('success', 'Question Set created. No previous year data found — add questions manually.');
             }
         } catch (Exception $e) {
             $conn->rollback();
