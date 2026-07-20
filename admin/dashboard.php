@@ -40,8 +40,10 @@ if (isset($_GET['ajax_forms']) && $_GET['ajax_forms'] === '1') {
     if ($ajaxFormTypes) {
         $ajaxFormStmt = $conn->prepare($ajaxFormSql);
         $ajaxFormBind = [];
-        if ($ajaxAY) $ajaxFormBind[] = $ajaxAY;
-        if ($ajaxSem) $ajaxFormBind[] = $ajaxSem;
+        if ($ajaxAY)
+            $ajaxFormBind[] = $ajaxAY;
+        if ($ajaxSem)
+            $ajaxFormBind[] = $ajaxSem;
         $ajaxFormStmt->bind_param($ajaxFormTypes, ...$ajaxFormBind);
         $ajaxFormStmt->execute();
         $ajaxFormList = $ajaxFormStmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -167,8 +169,10 @@ $afSql = "SELECT ff.id, ff.title, c.course_code, c.course_name, sec.section AS s
 if ($afTypes) {
     $afStmt = $conn->prepare($afSql);
     $afBind = [];
-    if ($filterAY > 0) $afBind[] = $filterAY;
-    if ($filterSemester !== '') $afBind[] = $filterSemester;
+    if ($filterAY > 0)
+        $afBind[] = $filterAY;
+    if ($filterSemester !== '')
+        $afBind[] = $filterSemester;
     $afStmt->bind_param($afTypes, ...$afBind);
     $afStmt->execute();
     $academicForms = $afStmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -523,7 +527,8 @@ include '../includes/admin_sidebar.php';
 <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6">
     <form method="GET" action="#academic-feedback" class="flex flex-col sm:flex-row gap-4 items-end">
         <div class="flex-1 min-w-[160px]">
-            <label class="block text-xs font-bold text-slate-500 mb-1"><?= $LANG["academic_year"] ?? "Academic Year" ?></label>
+            <label
+                class="block text-xs font-bold text-slate-500 mb-1"><?= $LANG["academic_year"] ?? "Academic Year" ?></label>
             <select name="ay_id" id="aySelect"
                 class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none bg-white font-semibold text-slate-700 shadow-sm focus:border-slate-500">
                 <option value=""><?= $LANG["all_academic_years"] ?? "All Academic Years" ?></option>
@@ -535,7 +540,8 @@ include '../includes/admin_sidebar.php';
             </select>
         </div>
         <div class="flex-1 min-w-[160px]">
-            <label class="block text-xs font-bold text-slate-500 mb-1"><?= $LANG["semester_filter"] ?? "Semester" ?></label>
+            <label
+                class="block text-xs font-bold text-slate-500 mb-1"><?= $LANG["semester_filter"] ?? "Semester" ?></label>
             <select name="sem_id" id="semSelect"
                 class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none bg-white font-semibold text-slate-700 shadow-sm focus:border-slate-500">
                 <option value=""><?= $LANG['all_semesters'] ?? 'All Semesters' ?></option>
@@ -547,7 +553,8 @@ include '../includes/admin_sidebar.php';
             </select>
         </div>
         <div class="flex-1 max-w-xl">
-            <label class="block text-xs font-bold text-slate-500 mb-1"><?= $LANG["choose_form"] ?? "Choose a Feedback Form" ?></label>
+            <label
+                class="block text-xs font-bold text-slate-500 mb-1"><?= $LANG["choose_form"] ?? "Choose a Feedback Form" ?></label>
             <select name="form_id" id="formSelect"
                 class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none bg-white font-semibold text-slate-700 shadow-sm focus:border-slate-500">
                 <option value=""><?= $LANG["choose_form_placeholder"] ?? "— Choose a Feedback Form —" ?></option>
@@ -557,7 +564,7 @@ include '../includes/admin_sidebar.php';
                     } else {
                         $afLabel = e($af['academic_year_name'] ?? '') . ' - ' . e($af['title']);
                     }
-                ?>
+                    ?>
                     <option value="<?= $af['id'] ?>" <?= $filterFormId == $af['id'] ? 'selected' : '' ?>>
                         <?= $afLabel ?>
                     </option>
@@ -568,7 +575,7 @@ include '../includes/admin_sidebar.php';
             <button type="submit"
                 class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-all h-[42px]"><?= $LANG["search"] ?? "Search" ?></button>
             <a href="dashboard.php#academic-feedback"
-                class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-semibold rounded-xl transition-all h-[42px] inline-flex items-center"><?= $LANG["reset"] ?? "Reset" ?></a>
+                class="px-5 py-2.5 bg-red-500 hover:bg-red-700 text-white text-sm font-semibold rounded-xl transition-all h-[42px] inline-flex items-center"><?= $LANG["reset"] ?? "Reset" ?></a>
         </div>
     </form>
 </div>
@@ -648,7 +655,8 @@ include '../includes/admin_sidebar.php';
                     </div>
 
                     <div class="flex items-center gap-3 mb-3">
-                        <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center flex-shrink-0 shadow-sm">
                             <?= iconSvg('user', 'w-5 h-5 text-white') ?>
                         </div>
                         <div class="min-w-0">
@@ -670,19 +678,22 @@ include '../includes/admin_sidebar.php';
                             <p class="text-lg font-bold text-emerald-600"><?= $tPctGood ?>%</p>
                             <p class="text-[10px] font-semibold text-emerald-700"><?= $LANG['good'] ?? 'Good' ?></p>
                             <p class="text-[9px] text-slate-400"><?= number_format($tGood) ?>
-                                <?= $LANG['ratings'] ?? 'ratings' ?></p>
+                                <?= $LANG['ratings'] ?? 'ratings' ?>
+                            </p>
                         </div>
                         <div class="text-center p-2 rounded-lg bg-amber-50 border border-amber-100">
                             <p class="text-lg font-bold text-amber-600"><?= $tPctFair ?>%</p>
                             <p class="text-[10px] font-semibold text-amber-700"><?= $LANG['fair'] ?? 'Fair' ?></p>
                             <p class="text-[9px] text-slate-400"><?= number_format($tFair) ?>
-                                <?= $LANG['ratings'] ?? 'ratings' ?></p>
+                                <?= $LANG['ratings'] ?? 'ratings' ?>
+                            </p>
                         </div>
                         <div class="text-center p-2 rounded-lg bg-red-50 border border-red-100">
                             <p class="text-lg font-bold text-red-600"><?= $tPctBad ?>%</p>
                             <p class="text-[10px] font-semibold text-red-700"><?= $LANG['bad'] ?? 'Bad' ?></p>
                             <p class="text-[9px] text-slate-400"><?= number_format($tBad) ?>
-                                <?= $LANG['ratings'] ?? 'ratings' ?></p>
+                                <?= $LANG['ratings'] ?? 'ratings' ?>
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -704,11 +715,11 @@ include '../includes/admin_sidebar.php';
         </h3>
 
         <!-- SA Semester Filter -->
-        <form method="GET" action="#sa-feedback"
-            class="bg-white rounded-xl shadow-sm border border-slate-100 p-3 mb-3">
+        <form method="GET" action="#sa-feedback" class="bg-white rounded-xl shadow-sm border border-slate-100 p-3 mb-3">
             <div class="flex flex-wrap items-end gap-3">
                 <div class="flex-1 min-w-[140px]">
-                    <label class="block text-[10px] font-semibold text-slate-500 mb-1"><?= $LANG["academic_year"] ?? "Academic Year" ?></label>
+                    <label
+                        class="block text-[10px] font-semibold text-slate-500 mb-1"><?= $LANG["academic_year"] ?? "Academic Year" ?></label>
                     <select name="sa_ay_id"
                         class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
                         <option value=""><?= $LANG["all_academic_years"] ?? "All Academic Years" ?></option>
@@ -720,7 +731,8 @@ include '../includes/admin_sidebar.php';
                     </select>
                 </div>
                 <div class="flex-1 min-w-[140px]">
-                    <label class="block text-[10px] font-semibold text-slate-500 mb-1"><?= $LANG['semester_filter'] ?? 'Semester' ?></label>
+                    <label
+                        class="block text-[10px] font-semibold text-slate-500 mb-1"><?= $LANG['semester_filter'] ?? 'Semester' ?></label>
                     <select name="sa_semester"
                         class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
                         <option value=""><?= $LANG['all_semesters'] ?? 'All Semesters' ?></option>
@@ -737,7 +749,7 @@ include '../includes/admin_sidebar.php';
                         <?= $LANG['filter'] ?? 'Filter' ?>
                     </button>
                     <a href="dashboard.php#sa-feedback"
-                        class="px-3 py-1.5 bg-slate-100 text-slate-600 text-xs font-semibold rounded-lg hover:bg-slate-200 transition-colors">
+                        class="px-3 py-1.5 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition-colors">
                         <?= $LANG['reset'] ?? 'Reset' ?>
                     </a>
                 </div>
@@ -819,7 +831,8 @@ include '../includes/admin_sidebar.php';
             class="bg-white rounded-xl shadow-sm border border-slate-100 p-3 mb-3">
             <div class="flex flex-wrap items-end gap-3">
                 <div class="flex-1 min-w-[140px]">
-                    <label class="block text-[10px] font-semibold text-slate-500 mb-1"><?= $LANG["academic_year"] ?? "Academic Year" ?></label>
+                    <label
+                        class="block text-[10px] font-semibold text-slate-500 mb-1"><?= $LANG["academic_year"] ?? "Academic Year" ?></label>
                     <select name="adm_ay_id"
                         class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
                         <option value=""><?= $LANG["all_academic_years"] ?? "All Academic Years" ?></option>
@@ -831,7 +844,8 @@ include '../includes/admin_sidebar.php';
                     </select>
                 </div>
                 <div class="flex-1 min-w-[140px]">
-                    <label class="block text-[10px] font-semibold text-slate-500 mb-1"><?= $LANG['semester_filter'] ?? 'Semester' ?></label>
+                    <label
+                        class="block text-[10px] font-semibold text-slate-500 mb-1"><?= $LANG['semester_filter'] ?? 'Semester' ?></label>
                     <select name="adm_semester"
                         class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
                         <option value=""><?= $LANG['all_semesters'] ?? 'All Semesters' ?></option>
@@ -844,11 +858,11 @@ include '../includes/admin_sidebar.php';
                 </div>
                 <div class="flex gap-1.5">
                     <button type="submit"
-                        class="px-3 py-1.5 bg-orange-600 text-white text-xs font-semibold rounded-lg hover:bg-orange-700 transition-colors">
+                        class="px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors">
                         <?= $LANG['filter'] ?? 'Filter' ?>
                     </button>
                     <a href="dashboard.php#admin-feedback"
-                        class="px-3 py-1.5 bg-slate-100 text-slate-600 text-xs font-semibold rounded-lg hover:bg-slate-200 transition-colors">
+                        class="px-3 py-1.5 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition-colors">
                         <?= $LANG['reset'] ?? 'Reset' ?>
                     </a>
                 </div>
@@ -864,7 +878,8 @@ include '../includes/admin_sidebar.php';
                 <div>
                     <p class="text-base font-bold text-orange-600"><?= number_format($admTotalSubmissions) ?></p>
                     <p class="text-[9px] text-slate-500 font-medium">
-                        <?= $LANG['adm_submissions'] ?? 'Adm Submissions' ?></p>
+                        <?= $LANG['adm_submissions'] ?? 'Adm Submissions' ?>
+                    </p>
                 </div>
             </div>
             <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-3 flex items-center gap-2">
@@ -988,8 +1003,8 @@ include '../includes/admin_sidebar.php';
                 legend: { labels: { font: { family: 'Inter', size: 11 } } },
                 tooltip: {
                     callbacks: {
-                        label: function(ctx) {
-                            var total = ctx.dataset.data.reduce(function(a, b) { return a + b; }, 0);
+                        label: function (ctx) {
+                            var total = ctx.dataset.data.reduce(function (a, b) { return a + b; }, 0);
                             var pct = total > 0 ? Math.round((ctx.raw / total) * 100) : 0;
                             return ctx.raw + ' (' + pct + '%)';
                         }
@@ -1025,8 +1040,8 @@ include '../includes/admin_sidebar.php';
                         legend: { display: false },
                         tooltip: {
                             callbacks: {
-                                label: function(ctx) {
-                                    var total = ctx.dataset.data.reduce(function(a, b) { return a + b; }, 0);
+                                label: function (ctx) {
+                                    var total = ctx.dataset.data.reduce(function (a, b) { return a + b; }, 0);
                                     var pct = total > 0 ? Math.round((ctx.raw / total) * 100) : 0;
                                     return ctx.label + ': ' + ctx.raw + ' (' + pct + '%)';
                                 }
@@ -1059,8 +1074,8 @@ include '../includes/admin_sidebar.php';
                     legend: { display: false },
                     tooltip: {
                         callbacks: {
-                            label: function(ctx) {
-                                var total = ctx.dataset.data.reduce(function(a, b) { return a + b; }, 0);
+                            label: function (ctx) {
+                                var total = ctx.dataset.data.reduce(function (a, b) { return a + b; }, 0);
                                 var pct = total > 0 ? Math.round((ctx.raw / total) * 100) : 0;
                                 return ctx.label + ': ' + ctx.raw + ' (' + pct + '%)';
                             }
@@ -1092,8 +1107,8 @@ include '../includes/admin_sidebar.php';
                     legend: { display: false },
                     tooltip: {
                         callbacks: {
-                            label: function(ctx) {
-                                var total = ctx.dataset.data.reduce(function(a, b) { return a + b; }, 0);
+                            label: function (ctx) {
+                                var total = ctx.dataset.data.reduce(function (a, b) { return a + b; }, 0);
                                 var pct = total > 0 ? Math.round((ctx.raw / total) * 100) : 0;
                                 return ctx.label + ': ' + ctx.raw + ' (' + pct + '%)';
                             }

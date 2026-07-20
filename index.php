@@ -107,12 +107,35 @@ $currentLang = $_SESSION['lang'] ?? 'en';
             }
         }
 
-        .shimmer-text {
+        /*.shimmer-text {
             background: linear-gradient(90deg, rgba(125, 211, 252, 0.8) 0%, rgba(255, 255, 255, 1) 50%, rgba(125, 211, 252, 0.8) 100%);
             background-size: 200% auto;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+            animation: shimmer 4s linear infinite;
+        }*/
+
+        .shimmer-text {
+            display: inline-block;
+
+            background: linear-gradient(90deg,
+                    #7dd3fc,
+                    #ffffff,
+                    #7dd3fc);
+
+            background-size: 200% auto;
+
+            -webkit-background-clip: text;
+            background-clip: text;
+
+            -webkit-text-fill-color: transparent;
+
+            font-family: "Noto Sans Myanmar", sans-serif;
+            font-weight: 700;
+
+            line-height: 1.6;
+
             animation: shimmer 4s linear infinite;
         }
 
@@ -290,12 +313,29 @@ $currentLang = $_SESSION['lang'] ?? 'en';
                 </p>
 
                 <h2
-                    class="text-4xl sm:text-5xl lg:text-6xl text-white font-bold tracking-tight leading-[1.3] mt-6 fade-up-2">
+                    class="text-4xl sm:text-5xl lg:text-6xl text-white font-bold tracking-tight leading-[1.3] mt-6 fade-up-2 ">
                     <?= $LANG['welcome_to'] ?? 'Welcome to' ?> <br>
-                    <span class="block mt-4 shimmer-text">
+                    <span class="inline-block mt-4 shimmer-text">
                         <?= $LANG['student_feedback_system'] ?? 'Student Feedback Management System' ?>
                     </span>
                 </h2>
+
+                <!-- <h2
+                    class="text-3xl sm:text-4xl lg:text-5xl text-white font-bold tracking-normal leading-relaxed mt-6 fade-up-2">
+
+                    <?= $LANG['welcome_to'] ?? 'Welcome to' ?>
+
+                    <br>
+
+                    <span class="block mt-4 
+        bg-gradient-to-r from-cyan-300 via-blue-300 to-purple-300 
+        bg-clip-text text-transparent">
+
+                        <?= $LANG['student_feedback_system'] ?? 'Student Feedback Management System' ?>
+
+                    </span>
+
+                </h2> -->
 
                 <p
                     class="text-lg sm:text-xl text-blue-50/70 font-light max-w-2xl mx-auto leading-relaxed mt-6 fade-up-3">
@@ -307,7 +347,8 @@ $currentLang = $_SESSION['lang'] ?? 'en';
             <div class="grid sm:grid-cols-2 gap-6 lg:gap-8 max-w-3xl mx-auto fade-up-4">
 
                 <!-- Enter as Teacher -->
-                <a href="portal.php?role=teacher" id="enter-teacher-btn" class="role-card group cursor-pointer block no-underline">
+                <a href="portal.php?role=teacher" id="enter-teacher-btn"
+                    class="role-card group cursor-pointer block no-underline">
                     <div
                         class="role-icon bg-gradient-to-br from-emerald-400/30 to-teal-500/30 border border-emerald-300/30">
                         <svg class="w-8 h-8 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -333,7 +374,8 @@ $currentLang = $_SESSION['lang'] ?? 'en';
                 </a>
 
                 <!-- Enter as Student -->
-                <a href="portal.php?role=student" id="enter-student-btn" class="role-card group cursor-pointer block no-underline">
+                <a href="portal.php?role=student" id="enter-student-btn"
+                    class="role-card group cursor-pointer block no-underline">
                     <div
                         class="role-icon bg-gradient-to-br from-blue-400/30 to-indigo-500/30 border border-blue-300/30">
                         <svg class="w-8 h-8 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
