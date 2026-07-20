@@ -262,7 +262,7 @@ if ($r)
                     <div>
                         <h1 class="text-lg font-bold tracking-tight text-blue-900 leading-none">UCSH</h1>
                         <p class="text-xs text-blue-500/80 leading-tight hidden sm:block font-medium">
-                            <?= $LANG['university_name'] ?? 'University of Computer Studies (Hinthada)' ?>
+                            <?= $LANG['university_name_title'] ?? 'University of Computer Studies (Hinthada)' ?>
                         </p>
                     </div>
                 </div>

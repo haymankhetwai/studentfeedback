@@ -90,7 +90,7 @@ $LANG = [
     // ─── Landing Page ────────────────────────────────────────
     'welcome_to' => 'Welcome to',
     'student_feedback_system' => 'Student Feedback Management System',
-    'university_name' => 'University of Computer Studies (Hinthada)',
+    'university_name_title' => 'University of Computer Studies (Hinthada)',
     'get_started' => 'Get Started',
     'view_statistics' => 'View Statistics',
     'welcome_portal' => 'Welcome',
@@ -320,7 +320,7 @@ $LANG = [
 
     // ─── SA/ADM Results ──────────────────────────────────────
     'sa_results_content_heading' => 'Student Affairs Feedback Results',
-    'sa_results_title'=> 'Student Affairs Feedback Results Matrix',
+    'sa_results_title' => 'Student Affairs Feedback Results Matrix',
     'adm_results_content_heading' => 'Administration Feedback Results',
     'adm_results_title' => 'Administration Feedback Results Matrix',
 
@@ -994,6 +994,7 @@ $LANG = [
     'question_text_label' => 'Question Text',
     'question_type_label' => 'Type',
     'question_set_label' => 'Question Set',
+    'question_sets_title' => 'Question Sets',
     'options_label' => 'Options',
     'preview' => 'Preview',
     'clone' => 'Clone',
@@ -1918,6 +1919,7 @@ $LANG = [
 
     // ─── Results ──────────────────────────────────────────────
     'all_feedback_results' => 'All Feedback Results',
+    'feedback_results_subtitle' => 'View results for all modules — Academic, Student Affairs, and Administration.',
 
     // ─── Questions ────────────────────────────────────────────
     'question_text' => 'Question Text',

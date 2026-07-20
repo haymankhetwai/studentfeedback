@@ -9,6 +9,64 @@ updateAllFeedbackStatuses($conn);
 $pageTitle = $LANG['nav_dashboard'] ?? 'Dashboard';
 $activeMenu = 'dashboard';
 
+// AJAX endpoint for fetching academic forms by AY/Sem
+if (isset($_GET['ajax_forms']) && $_GET['ajax_forms'] === '1') {
+    header('Content-Type: application/json');
+    $ajaxAY = (int) ($_GET['ay_id'] ?? 0);
+    $ajaxSem = (int) ($_GET['sem_id'] ?? 0);
+
+    $ajaxFormConds = ["ff.module = 'academic'"];
+    $ajaxFormTypes = '';
+    if ($ajaxAY) {
+        $ajaxFormConds[] = "ff.academic_year_id=?";
+        $ajaxFormTypes .= 'i';
+    }
+    if ($ajaxSem) {
+        $ajaxFormConds[] = "ff.semester_id=?";
+        $ajaxFormTypes .= 'i';
+    }
+    $ajaxFormWhere = 'WHERE ' . implode(' AND ', $ajaxFormConds);
+    $ajaxFormSql = "SELECT ff.id, ff.title, ff.section_id, ff.academic_year_id, ff.semester_id,
+        ay.year_name AS academic_year_name, sm.semester_name,
+        c.course_code, c.course_name, sec.section AS section_name
+        FROM feedback_forms ff
+        LEFT JOIN academic_years ay ON ff.academic_year_id = ay.id
+        LEFT JOIN semesters sm ON ff.semester_id = sm.id
+        LEFT JOIN sections sec ON ff.section_id = sec.id
+        LEFT JOIN courses c ON sec.course_id = c.id
+        $ajaxFormWhere
+        ORDER BY ay.year_name DESC, ff.id DESC";
+
+    if ($ajaxFormTypes) {
+        $ajaxFormStmt = $conn->prepare($ajaxFormSql);
+        $ajaxFormBind = [];
+        if ($ajaxAY) $ajaxFormBind[] = $ajaxAY;
+        if ($ajaxSem) $ajaxFormBind[] = $ajaxSem;
+        $ajaxFormStmt->bind_param($ajaxFormTypes, ...$ajaxFormBind);
+        $ajaxFormStmt->execute();
+        $ajaxFormList = $ajaxFormStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $ajaxFormStmt->close();
+    } else {
+        $ajaxFormList = $conn->query($ajaxFormSql)->fetch_all(MYSQLI_ASSOC);
+    }
+
+    $formattedForms = [];
+    foreach ($ajaxFormList as $f) {
+        if (!empty($f['course_code'])) {
+            $formLabel = ($f['course_code'] ?? '') . ' - ' . ($f['course_name'] ?? '') . ' - Section ' . ($f['section_name'] ?? '');
+        } else {
+            $formLabel = ($f['academic_year_name'] ?? '') . ' - ' . ($f['title'] ?? '');
+        }
+        $formattedForms[] = [
+            'id' => (int) $f['id'],
+            'label' => $formLabel,
+        ];
+    }
+
+    echo json_encode(['forms' => $formattedForms]);
+    exit;
+}
+
 function count_table($conn, $table, $where = '')
 {
     $sql = "SELECT COUNT(*) AS cnt FROM `$table`" . ($where ? " WHERE $where" : '');
@@ -37,7 +95,14 @@ $colorMap = [
 ];
 
 // ─── Reports: Filter Inputs ───────────────────────────────────
-$filterSemester = clean($_GET['semester'] ?? '');
+$filterSem = (int) ($_GET['sem_id'] ?? 0);
+$filterSemester = '';
+if ($filterSem > 0) {
+    $semLookup = $conn->query("SELECT semester_name FROM semesters WHERE id = " . (int) $filterSem);
+    if ($semLookup && $semLookupRow = $semLookup->fetch_assoc()) {
+        $filterSemester = $semLookupRow['semester_name'];
+    }
+}
 $filterTeacher = (int) ($_GET['teacher_id'] ?? 0);
 $filterCourse = (int) ($_GET['course_id'] ?? 0);
 $filterSection = clean($_GET['section'] ?? '');
@@ -456,12 +521,11 @@ include '../includes/admin_sidebar.php';
 
 <!-- Filters -->
 <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6">
-
-    <form method="GET" action="#academic-feedback" class="flex flex-wrap items-end gap-4">
+    <form method="GET" action="#academic-feedback" class="flex flex-col sm:flex-row gap-4 items-end">
         <div class="flex-1 min-w-[160px]">
-            <label class="block text-xs font-semibold text-slate-500 mb-1"><?= $LANG["academic_year"] ?? "Academic Year" ?></label>
-            <select name="ay_id"
-                class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none bg-white font-semibold text-slate-700 shadow-sm focus:border-cyan-500">
+            <label class="block text-xs font-bold text-slate-500 mb-1"><?= $LANG["academic_year"] ?? "Academic Year" ?></label>
+            <select name="ay_id" id="aySelect"
+                class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none bg-white font-semibold text-slate-700 shadow-sm focus:border-slate-500">
                 <option value=""><?= $LANG["all_academic_years"] ?? "All Academic Years" ?></option>
                 <?php foreach ($allAcademicYears as $ay): ?>
                     <option value="<?= $ay['id'] ?>" <?= $filterAY == $ay['id'] ? 'selected' : '' ?>>
@@ -470,32 +534,22 @@ include '../includes/admin_sidebar.php';
                 <?php endforeach ?>
             </select>
         </div>
-        <div class="flex-1 min-w-[160px] relative" x-data="{
-            open: false,
-            selected: '<?= e($filterSemester) ?>',
-            selectedText: '<?= $filterSemester ? e(semesterToRoman($filterSemester)) : ($LANG['all_semesters'] ?? 'All Semesters') ?>',
-            options: [
-                { value: '', text: '<?= $LANG['all_semesters'] ?? 'All Semesters' ?>' },
-                <?php foreach ($allSemesters as $s): ?>
-                { value: '<?= e($s['semester_name']) ?>', text: '<?= e(semesterToRoman($s['semester_name'])) ?>' },
-                <?php endforeach; ?>
-            ],
-            select(val, text) { this.selected = val; this.selectedText = text; this.open = false; this.$refs.semInput.value = val; }
-        }" @click.outside="open = false">
-            <label class="block text-xs font-semibold text-slate-500 mb-1"><?= $LANG['semester_filter'] ?? 'Semester' ?></label>
-            <input type="hidden" name="semester" x-ref="semInput" :value="selected">
-            <button type="button" @click="open = !open" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-left focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-white">
-                <span x-text="selectedText"></span>
-                <svg class="w-4 h-4 text-slate-400 inline-block align-middle float-right mt-0.5 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-            </button>
-            <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-1" class="absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg">
-                <template x-for="opt in options" :key="opt.value"><button type="button" @click="select(opt.value, opt.text)" class="w-full text-left px-3 py-2 text-sm hover:bg-cyan-200 transition-colors flex items-center gap-2" :class="selected === opt.value ? 'bg-cyan-50 text-cyan-700 font-semibold' : 'text-slate-700'"><span x-show="selected === opt.value" class="text-cyan-600">&#10003;</span><span x-text="opt.text"></span></button></template>
-            </div>
+        <div class="flex-1 min-w-[160px]">
+            <label class="block text-xs font-bold text-slate-500 mb-1"><?= $LANG["semester_filter"] ?? "Semester" ?></label>
+            <select name="sem_id" id="semSelect"
+                class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none bg-white font-semibold text-slate-700 shadow-sm focus:border-slate-500">
+                <option value=""><?= $LANG['all_semesters'] ?? 'All Semesters' ?></option>
+                <?php foreach ($allSemesters as $sm): ?>
+                    <option value="<?= $sm['id'] ?>" <?= $filterSem == $sm['id'] ? 'selected' : '' ?>>
+                        <?= e(semesterToRoman($sm['semester_name'])) ?>
+                    </option>
+                <?php endforeach ?>
+            </select>
         </div>
-        <div class="flex-1 min-w-[200px]">
-            <label class="block text-xs font-semibold text-slate-500 mb-1"><?= $LANG["choose_form"] ?? "Choose a Feedback Form" ?></label>
-            <select name="form_id"
-                class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none bg-white font-semibold text-slate-700 shadow-sm focus:border-cyan-500">
+        <div class="flex-1 max-w-xl">
+            <label class="block text-xs font-bold text-slate-500 mb-1"><?= $LANG["choose_form"] ?? "Choose a Feedback Form" ?></label>
+            <select name="form_id" id="formSelect"
+                class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none bg-white font-semibold text-slate-700 shadow-sm focus:border-slate-500">
                 <option value=""><?= $LANG["choose_form_placeholder"] ?? "— Choose a Feedback Form —" ?></option>
                 <?php foreach ($academicForms as $af):
                     if (!empty($af['course_code'])) {
@@ -510,81 +564,11 @@ include '../includes/admin_sidebar.php';
                 <?php endforeach ?>
             </select>
         </div>
-        <!-- <div class="flex-1 min-w-[180px] relative" x-data="{
-            open: false,
-            selected: <?= (int) $filterTeacher ?>,
-            selectedText: '<?= $filterTeacher ? e($teachers[array_search($filterTeacher, array_column($teachers, 'id'))]['teacher_name'] ?? '') : ($LANG['all_teachers'] ?? 'All Teachers') ?>',
-            options: [
-                { value: 0, text: '<?= $LANG['all_teachers'] ?? 'All Teachers' ?>' },
-                <?php foreach ($teachers as $t): ?>
-                { value: <?= (int) $t['id'] ?>, text: '<?= e($t['teacher_name']) ?>' },
-                <?php endforeach; ?>
-            ],
-            select(val, text) { this.selected = val; this.selectedText = text; this.open = false; this.$refs.teachInput.value = val; }
-        }" @click.outside="open = false">
-            <label class="block text-xs font-semibold text-slate-500 mb-1"><?= $LANG['teacher_filter'] ?? 'Teacher' ?></label>
-            <input type="hidden" name="teacher_id" x-ref="teachInput" :value="selected">
-            <button type="button" @click="open = !open" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-left focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-white">
-                <span x-text="selectedText"></span>
-                <svg class="w-4 h-4 text-slate-400 inline-block align-middle float-right mt-0.5 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-            </button>
-            <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-1" class="absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg">
-                <template x-for="opt in options" :key="opt.value"><button type="button" @click="select(opt.value, opt.text)" class="w-full text-left px-3 py-2 text-sm hover:bg-cyan-200 transition-colors flex items-center gap-2" :class="selected === opt.value ? 'bg-cyan-50 text-cyan-700 font-semibold' : 'text-slate-700'"><span x-show="selected === opt.value" class="text-cyan-600">&#10003;</span><span x-text="opt.text"></span></button></template>
-            </div>
-        </div>
-        <div class="flex-1 min-w-[180px] relative" x-data="{
-            open: false,
-            selected: <?= (int) $filterCourse ?>,
-            selectedText: '<?= $filterCourse ? e($courses[array_search($filterCourse, array_column($courses, 'id'))]['course_name'] ?? '') : ($LANG['all_subjects'] ?? 'All Subjects') ?>',
-            options: [
-                { value: 0, text: '<?= $LANG['all_subjects'] ?? 'All Subjects' ?>' },
-                <?php foreach ($courses as $c): ?>
-                { value: <?= (int) $c['id'] ?>, text: '<?= e($c['course_name']) ?>' },
-                <?php endforeach; ?>
-            ],
-            select(val, text) { this.selected = val; this.selectedText = text; this.open = false; this.$refs.courseInput.value = val; }
-        }" @click.outside="open = false">
-            <label class="block text-xs font-semibold text-slate-500 mb-1"><?= $LANG['subject_filter'] ?? 'Subject' ?></label>
-            <input type="hidden" name="course_id" x-ref="courseInput" :value="selected">
-            <button type="button" @click="open = !open" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-left focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-white">
-                <span x-text="selectedText"></span>
-                <svg class="w-4 h-4 text-slate-400 inline-block align-middle float-right mt-0.5 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-            </button>
-            <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-1" class="absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg">
-                <template x-for="opt in options" :key="opt.value"><button type="button" @click="select(opt.value, opt.text)" class="w-full text-left px-3 py-2 text-sm hover:bg-cyan-200 transition-colors flex items-center gap-2" :class="selected === opt.value ? 'bg-cyan-50 text-cyan-700 font-semibold' : 'text-slate-700'"><span x-show="selected === opt.value" class="text-cyan-600">&#10003;</span><span x-text="opt.text"></span></button></template>
-            </div>
-        </div>
-        <div class="flex-1 min-w-[180px] relative" x-data="{
-            open: false,
-            selected: '<?= e($filterSection) ?>',
-            selectedText: '<?= $filterSection ? e($filterSection) : ($LANG['all_sections'] ?? 'All Sections') ?>',
-            options: [
-                { value: '', text: '<?= $LANG['all_sections'] ?? 'All Sections' ?>' },
-                <?php foreach ($sections as $sec): ?>
-                { value: '<?= e($sec['section']) ?>', text: '<?= e($sec['section']) ?>' },
-                <?php endforeach; ?>
-            ],
-            select(val, text) { this.selected = val; this.selectedText = text; this.open = false; this.$refs.secInput.value = val; }
-        }" @click.outside="open = false">
-            <label class="block text-xs font-semibold text-slate-500 mb-1"><?= $LANG['section_filter'] ?? 'Section' ?></label>
-            <input type="hidden" name="section" x-ref="secInput" :value="selected">
-            <button type="button" @click="open = !open" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-left focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-white">
-                <span x-text="selectedText"></span>
-                <svg class="w-4 h-4 text-slate-400 inline-block align-middle float-right mt-0.5 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-            </button>
-            <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-1" class="absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg">
-                <template x-for="opt in options" :key="opt.value"><button type="button" @click="select(opt.value, opt.text)" class="w-full text-left px-3 py-2 text-sm hover:bg-cyan-200 transition-colors flex items-center gap-2" :class="selected === opt.value ? 'bg-cyan-50 text-cyan-700 font-semibold' : 'text-slate-700'"><span x-show="selected === opt.value" class="text-cyan-600">&#10003;</span><span x-text="opt.text"></span></button></template>
-            </div>
-        </div> -->
-        <div class="flex gap-2">
+        <div class="flex gap-2 shrink-0">
             <button type="submit"
-                class="px-5 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors">
-                <?= $LANG['filter'] ?? 'Filter' ?>
-            </button>
+                class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-all h-[42px]"><?= $LANG["search"] ?? "Search" ?></button>
             <a href="dashboard.php#academic-feedback"
-                class="px-4 py-2 bg-slate-100 text-slate-600 text-sm font-semibold rounded-xl hover:bg-slate-200 transition-colors">
-                <?= $LANG['reset'] ?? 'Reset' ?>
-            </a>
+                class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-semibold rounded-xl transition-all h-[42px] inline-flex items-center"><?= $LANG["reset"] ?? "Reset" ?></a>
         </div>
     </form>
 </div>
@@ -935,6 +919,64 @@ include '../includes/admin_sidebar.php';
     </div>
 
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var aySelect = document.getElementById('aySelect');
+        var semSelect = document.getElementById('semSelect');
+        var formSelect = document.getElementById('formSelect');
+
+        if (!aySelect || !semSelect || !formSelect) return;
+
+        function fetchForms() {
+            var ayId = aySelect.value;
+            var semId = semSelect.value;
+
+            var url = 'dashboard.php?ajax_forms=1&ay_id=' + encodeURIComponent(ayId) + '&sem_id=' + encodeURIComponent(semId);
+
+            fetch(url)
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    updateFormDropdown(data.forms || []);
+                })
+                .catch(function () {
+                    // On error, keep current dropdown state
+                });
+        }
+
+        function updateFormDropdown(forms) {
+            var currentVal = formSelect.value;
+
+            // Remove all options except the placeholder
+            while (formSelect.options.length > 1) {
+                formSelect.remove(1);
+            }
+
+            if (forms.length === 0) {
+                formSelect.value = '';
+            } else {
+                for (var i = 0; i < forms.length; i++) {
+                    var f = forms[i];
+                    var option = document.createElement('option');
+                    option.value = f.id;
+                    option.textContent = f.label;
+                    formSelect.appendChild(option);
+                }
+
+                // Try to restore previous selection
+                if (currentVal) {
+                    var restoreOption = formSelect.querySelector('option[value="' + currentVal + '"]');
+                    if (restoreOption) {
+                        formSelect.value = currentVal;
+                    }
+                }
+            }
+        }
+
+        aySelect.addEventListener('change', fetchForms);
+        semSelect.addEventListener('change', fetchForms);
+    });
+</script>
 
 <!-- ─── Chart Initialization Scripts ──────────────────────────── -->
 <script>
