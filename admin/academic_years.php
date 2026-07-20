@@ -136,12 +136,11 @@ include '../includes/admin_sidebar.php';
             <?= iconSvg('academic', 'w-5 h-5 text-indigo-600') ?>
             <h2 class="text-xl font-bold text-slate-800"><?= $LANG['academic_years_title'] ?? 'Academic Years' ?></h2>
         </div>
-        <p class="text-sm text-slate-500 mt-0.5">Manage academic year versions. Each year has its own question sets.</p>
+        <p class="text-sm text-slate-500 mt-0.5"><?= $LANG["academic_years_subtitle"] ?? "Manage academic year versions. Each year has its own question sets." ?></p>
     </div>
     <button onclick="openModal('addModal')"
         class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm shadow-indigo-600/20 transition-all hover:-translate-y-0.5">
-        <?= iconSvg('plus', 'w-4 h-4') ?> Add Academic Year
-    </button>
+        <?= iconSvg('plus', 'w-4 h-4') ?><?= $LANG["add_academic_year"] ?? "Add Academic Year" ?></button>
 </div>
 <?php renderFlash() ?>
 
@@ -151,7 +150,7 @@ include '../includes/admin_sidebar.php';
             <div class="relative flex-1 max-w-xs">
                 <span
                     class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><?= iconSvg('search', 'w-4 h-4') ?></span>
-                <input type="text" name="search" value="<?= e($search) ?>" placeholder="Search academic years..."
+                <input type="text" name="search" value="<?= e($search) ?>" placeholder="<?= $LANG["search_academic_years_placeholder"] ?? "Search academic years..." ?>"
                     class="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none">
             </div>
             <button type="submit"
@@ -166,12 +165,12 @@ include '../includes/admin_sidebar.php';
             <thead class="bg-slate-200 border-b border-slate-200">
                 <tr>
                     <th class="text-left px-5 py-3 text-slate-500 w-12 text-sm font-semibold">#</th>
-                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">Year Name</th>
-                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">Status</th>
-                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">Sections</th>
-                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">Forms</th>
-                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">Question Sets</th>
-                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">Actions</th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG["year_name_label"] ?? "Year Name" ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG["status"] ?? "Status" ?></th>
+                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG["sections"] ?? "Sections" ?></th>
+                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG["forms"] ?? "Forms" ?></th>
+                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG["question_sets"] ?? "Question Sets" ?></th>
+                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG["col_actions"] ?? "Actions" ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -186,13 +185,11 @@ include '../includes/admin_sidebar.php';
                                 <?php if ($row['status'] === 'active'): ?>
                                     <span
                                         class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span> Active
-                                    </span>
+                                        <span class="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span><?= $LANG["active"] ?? "Active" ?></span>
                                 <?php else: ?>
                                     <span
                                         class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block"></span> Inactive
-                                    </span>
+                                        <span class="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block"></span><?= $LANG["inactive"] ?? "Inactive" ?></span>
                                 <?php endif ?>
                             </td>
                             <td class="px-5 py-3 text-center">
@@ -211,12 +208,10 @@ include '../includes/admin_sidebar.php';
                                 <div class="flex items-center justify-center gap-2">
                                     <button onclick="openEdit(<?= htmlspecialchars(json_encode($row), ENT_QUOTES) ?>)"
                                         class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg">
-                                        <?= iconSvg('edit', 'w-3.5 h-3.5') ?> Edit
-                                    </button>
+                                        <?= iconSvg('edit', 'w-3.5 h-3.5') ?><?= $LANG["edit"] ?? "Edit" ?></button>
                                     <button onclick="openDelete(<?= $row['id'] ?>, '<?= e($row['year_name']) ?>')"
                                         class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg">
-                                        <?= iconSvg('trash', 'w-3.5 h-3.5') ?> Delete
-                                    </button>
+                                        <?= iconSvg('trash', 'w-3.5 h-3.5') ?><?= $LANG["delete"] ?? "Delete" ?></button>
                                 </div>
                             </td>
                         </tr>
@@ -224,7 +219,7 @@ include '../includes/admin_sidebar.php';
                     <tr>
                         <td colspan="7" class="text-center py-16 text-slate-400">
                             <?= iconSvg('academic', 'w-10 h-10 mx-auto mb-3 opacity-40') ?>
-                            <p class="text-sm">No academic years found.</p>
+                            <p class="text-sm"><?= $LANG["no_academic_years_found"] ?? "No academic years found." ?></p>
                         </td>
                     </tr>
                 <?php endif ?>
@@ -241,7 +236,7 @@ include '../includes/admin_sidebar.php';
     data-modal-backdrop>
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md modal-box">
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-            <h3 class="font-semibold text-slate-800">Add Academic Year</h3>
+            <h3 class="font-semibold text-slate-800"><?= $LANG["add_academic_year"] ?? "Add Academic Year" ?></h3>
             <button onclick="closeModal('addModal')"
                 class="text-slate-400 hover:text-slate-600"><?= iconSvg('x', 'w-5 h-5') ?></button>
         </div>
@@ -249,7 +244,7 @@ include '../includes/admin_sidebar.php';
                 value="add">
             <div class="px-6 py-5 space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Academic Year Name <span class="text-red-500">*
+                    <label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG["year_name_label"] ?? "Academic Year Name" ?> <span class="text-red-500">*
                             (e.g. 2025-2026)</span></label>
                     <input type="text" name="year_name" required pattern="\d{4}-\d{4}" maxlength="9"
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none">
@@ -260,10 +255,9 @@ include '../includes/admin_sidebar.php';
             </div>
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
                 <button type="button" onclick="closeModal('addModal')"
-                    class="px-4 py-2 text-sm text-white border border-slate-200 rounded-xl hover:bg-red-700 bg-red-500">Cancel</button>
+                    class="px-4 py-2 text-sm text-white border border-slate-200 rounded-xl hover:bg-red-700 bg-red-500"><?= $LANG["cancel"] ?? "Cancel" ?></button>
                 <button type="submit"
-                    class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl">Add
-                    Year</button>
+                    class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG["add"] ?? "Add" ?></button>
             </div>
         </form>
     </div>
@@ -274,7 +268,7 @@ include '../includes/admin_sidebar.php';
     data-modal-backdrop>
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md modal-box">
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-            <h3 class="font-semibold text-slate-800">Edit Academic Year</h3>
+            <h3 class="font-semibold text-slate-800"><?= $LANG["edit_academic_year"] ?? "Edit Academic Year" ?></h3>
             <button onclick="closeModal('editModal')"
                 class="text-slate-400 hover:text-slate-600"><?= iconSvg('x', 'w-5 h-5') ?></button>
         </div>
@@ -282,23 +276,23 @@ include '../includes/admin_sidebar.php';
                 value="edit"><input type="hidden" name="id" id="edit_id">
             <div class="px-6 py-5 space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Academic Year Name</label>
+                    <label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG["year_name_label"] ?? "Academic Year Name" ?></label>
                     <input type="text" name="year_name" id="edit_year_name" required pattern="\d{4}-\d{4}" maxlength="9"
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none">
                     <p id="editYearError" class="text-xs text-red-500 mt-1 hidden"></p>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Status</label>
+                    <label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG["status"] ?? "Status" ?></label>
                     <select name="status" id="edit_status"
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none bg-white">
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
+                        <option value="active"><?= $LANG["active"] ?? "Active" ?></option>
+                        <option value="inactive"><?= $LANG["inactive"] ?? "Inactive" ?></option>
                     </select>
                 </div>
             </div>
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
                 <button type="button" onclick="closeModal('editModal')"
-                    class="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-100"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
+                    class="px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
                 <button type="submit"
                     class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG['save'] ?? 'Save' ?></button>
             </div>
@@ -314,15 +308,15 @@ include '../includes/admin_sidebar.php';
             <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
                 <?= iconSvg('trash', 'w-7 h-7 text-red-600') ?>
             </div>
-            <h3 class="text-lg font-semibold text-slate-800">Delete Academic Year</h3>
+            <h3 class="text-lg font-semibold text-slate-800"><?= $LANG["delete_academic_year"] ?? "Delete Academic Year" ?></h3>
             <p class="text-sm text-slate-500 mt-2">Delete <strong id="delete_name" class="text-slate-700"></strong>?</p>
-            <p class="text-xs text-red-500 mt-2">Cannot delete if referenced by sections or forms.</p>
+            <p class="text-xs text-red-500 mt-2"><?= $LANG["cannot_delete_referenced"] ?? "Cannot delete if referenced by sections or forms." ?></p>
         </div>
         <form method="POST"><?= csrfField() ?><input type="hidden" name="action" value="delete"><input type="hidden"
                 name="id" id="delete_id">
             <div class="flex gap-3 px-6 pb-6">
                 <button type="button" onclick="closeModal('deleteModal')"
-                    class="flex-1 px-4 py-2.5 text-sm border border-slate-200 rounded-xl"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
                 <button type="submit"
                     class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl"><?= $LANG['delete'] ?? 'Delete' ?></button>
             </div>
@@ -331,6 +325,10 @@ include '../includes/admin_sidebar.php';
 </div>
 
 <script>
+    var LANG = <?= json_encode([
+        'val_year_format' => $LANG['val_year_format'] ?? 'Format must be YYYY-YYYY (e.g. 2025-2026).',
+        'val_second_year_after_first' => $LANG['val_second_year_after_first'] ?? 'The second year must be exactly one year after the first (e.g. 2025-2026, not 2025-2027).',
+    ]) ?>;
     function validateYear(form) {
         const input = form.querySelector('input[name="year_name"]');
         const errorEl = form.querySelector('[id$="YearError"]');
@@ -339,7 +337,7 @@ include '../includes/admin_sidebar.php';
         errorEl.classList.add('hidden');
 
         if (!/^\d{4}-\d{4}$/.test(val)) {
-            errorEl.textContent = 'Format must be YYYY-YYYY (e.g. 2025-2026).';
+            errorEl.textContent = LANG.val_year_format;
             errorEl.classList.remove('hidden');
             input.focus();
             return false;
@@ -348,7 +346,7 @@ include '../includes/admin_sidebar.php';
         const y1 = parseInt(parts[0], 10);
         const y2 = parseInt(parts[1], 10);
         if (y2 !== y1 + 1) {
-            errorEl.textContent = 'The second year must be exactly one year after the first (e.g. 2025-2026, not 2025-2027).';
+            errorEl.textContent = LANG.val_second_year_after_first;
             errorEl.classList.remove('hidden');
             input.focus();
             return false;

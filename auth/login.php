@@ -65,7 +65,7 @@ include '../includes/header.php';
 <section class="flex-1 flex items-center justify-center px-4 relative">
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
         <div class="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-cyan-500/10 blur-3xl"></div>
-        <div class="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-cyan-600/10 blur-3xl"></div>
+        <div class="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-indigo-600/10 blur-3xl"></div>
     </div>
 
     <div class="relative w-full max-w-sm mx-auto">
@@ -162,7 +162,7 @@ include '../includes/header.php';
                         </div>
 
                         <button type="submit"
-                            class="w-full bg-cyan-600 hover:bg-cyan-700 active:bg-cyan-800 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-all hover:shadow-lg hover:-translate-y-0.5 text-sm">
+                            class="w-full bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-all hover:shadow-lg hover:-translate-y-0.5 text-sm">
                             <?= $LANG['sign_in'] ?? 'Sign In' ?>
                         </button>
                     </div>

@@ -73,7 +73,7 @@ include '../includes/admin_sidebar.php';
 
 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
     <div><h2 class="text-xl font-bold text-slate-800"><?= $LANG['majors_title'] ?? 'Majors' ?></h2><p class="text-sm text-slate-500 mt-0.5"><?= $LANG['majors_subtitle'] ?? 'Manage academic majors per department' ?></p></div>
-    <button onclick="openModal('addModal')" class="inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm shadow-cyan-600/20 transition-all hover:-translate-y-0.5">
+    <button onclick="openModal('addModal')" class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm shadow-indigo-600/20 transition-all hover:-translate-y-0.5">
         <?= iconSvg('plus','w-4 h-4') ?> <?= $LANG['add_major'] ?? 'Add Major' ?>
     </button>
 </div>
@@ -87,7 +87,7 @@ include '../includes/admin_sidebar.php';
                 <option value=""><?= $LANG['all_departments'] ?? 'All Departments' ?></option>
                 <?php foreach($deptList as $d): ?><option value="<?= $d['id'] ?>" <?= $deptF==$d['id']?'selected':'' ?>><?= e($d['department_name']) ?></option><?php endforeach ?>
             </select>
-            <button type="submit" class="px-3 py-2 text-sm bg-cyan-600 text-white rounded-xl hover:bg-cyan-700"><?= $LANG['filter'] ?? 'Filter' ?></button>
+            <button type="submit" class="px-3 py-2 text-sm bg-indigo-600 text-white rounded-xl hover:bg-indigo-700"><?= $LANG['filter'] ?? 'Filter' ?></button>
             <?php if ($search||$deptF): ?><a href="majors.php" class="px-3 py-2 text-sm border border-slate-200 rounded-xl text-slate-600"><?= $LANG['clear'] ?? 'Clear' ?></a><?php endif ?>
         </form>
         <span class="text-xs text-slate-400"><?= $total ?> <?= $total!==1 ? ($LANG['records'] ?? 'record(s)') : ($LANG['record'] ?? 'record') ?></span>
@@ -133,7 +133,7 @@ include '../includes/admin_sidebar.php';
                 <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['col_department'] ?? 'Department' ?> <span class="text-red-500">*</span></label><select name="department_id" required class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white"><option value=""><?= $LANG['select_department'] ?? 'Select Department' ?></option><?php foreach($deptList as $d): ?><option value="<?= $d['id'] ?>"><?= e($d['department_name']) ?></option><?php endforeach ?></select></div>
                 <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['major_name_label'] ?? 'Major Name' ?> <span class="text-red-500">*</span></label><input type="text" name="major_name" required placeholder="<?= $LANG['major_name_placeholder'] ?? 'e.g. Computer Science' ?>" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none"></div>
             </div>
-            <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl"><button type="button" onclick="closeModal('addModal')" class="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-100"><?= $LANG['cancel'] ?? 'Cancel' ?></button><button type="submit" class="px-5 py-2 text-sm font-semibold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl"><?= $LANG['add_major'] ?? 'Add Major' ?></button></div>
+            <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl"><button type="button" onclick="closeModal('addModal')" class="px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button><button type="submit" class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG['add_major'] ?? 'Add Major' ?></button></div>
         </form>
     </div>
 </div>
@@ -147,7 +147,7 @@ include '../includes/admin_sidebar.php';
                 <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['col_department'] ?? 'Department' ?></label><select name="department_id" id="edit_dept" required class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white"><?php foreach($deptList as $d): ?><option value="<?= $d['id'] ?>"><?= e($d['department_name']) ?></option><?php endforeach ?></select></div>
                 <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['major_name_label'] ?? 'Major Name' ?></label><input type="text" name="major_name" id="edit_name" required class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none"></div>
             </div>
-            <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl"><button type="button" onclick="closeModal('editModal')" class="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-100"><?= $LANG['cancel'] ?? 'Cancel' ?></button><button type="submit" class="px-5 py-2 text-sm font-semibold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl"><?= $LANG['save'] ?? 'Save' ?></button></div>
+            <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl"><button type="button" onclick="closeModal('editModal')" class="px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button><button type="submit" class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG['save'] ?? 'Save' ?></button></div>
         </form>
     </div>
 </div>
@@ -157,7 +157,7 @@ include '../includes/admin_sidebar.php';
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm modal-box">
         <div class="px-6 py-6 text-center"><div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4"><?= iconSvg('trash','w-7 h-7 text-red-600') ?></div><h3 class="text-lg font-semibold text-slate-800"><?= $LANG['delete_major_modal'] ?? 'Delete Major' ?></h3><p class="text-sm text-slate-500 mt-2">Delete <strong id="delete_name" class="text-slate-700"></strong>?</p></div>
         <form method="POST"><?= csrfField() ?><input type="hidden" name="action" value="delete"><input type="hidden" name="id" id="delete_id">
-            <div class="flex gap-3 px-6 pb-6"><button type="button" onclick="closeModal('deleteModal')" class="flex-1 px-4 py-2.5 text-sm border border-slate-200 rounded-xl"><?= $LANG['cancel'] ?? 'Cancel' ?></button><button type="submit" class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl"><?= $LANG['delete'] ?? 'Delete' ?></button></div>
+            <div class="flex gap-3 px-6 pb-6"><button type="button" onclick="closeModal('deleteModal')" class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button><button type="submit" class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl"><?= $LANG['delete'] ?? 'Delete' ?></button></div>
         </form>
     </div>
 </div>

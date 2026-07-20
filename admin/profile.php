@@ -99,7 +99,7 @@ include '../includes/admin_sidebar.php';
                     <input type="email" name="email" required value="<?= e($userData['email']) ?>" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
                 </div>
                 <div class="flex justify-end">
-                    <button type="submit" class="px-6 py-2.5 text-sm font-semibold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl shadow-sm"><?= $LANG['save_changes_btn'] ?? 'Save Changes' ?></button>
+                    <button type="submit" class="px-6 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm"><?= $LANG['save_changes_btn'] ?? 'Save Changes' ?></button>
                 </div>
             </form>
         </div>
@@ -121,7 +121,7 @@ include '../includes/admin_sidebar.php';
                     </div>
                 </div>
                 <div class="flex justify-end">
-                    <button type="submit" class="px-6 py-2.5 text-sm font-semibold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl shadow-sm"><?= $LANG['update_password_btn'] ?? 'Update Password' ?></button>
+                    <button type="submit" class="px-6 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm"><?= $LANG['update_password_btn'] ?? 'Update Password' ?></button>
                 </div>
             </form>
         </div>

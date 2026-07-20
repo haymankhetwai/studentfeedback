@@ -64,7 +64,7 @@ if ($teacherId) {
             <div class="relative flex-1 max-w-xs"><span class="absolute inset-y-0 left-0 flex items-center pl-3 text-blue-400"><?= iconSvg('search','w-4 h-4') ?></span>
                 <input type="text" name="search" value="<?= e($search) ?>" placeholder="<?= $LANG['search'] ?? 'Search' ?>..." class="w-full pl-9 pr-4 py-2 text-sm border border-blue-200/50 rounded-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 outline-none bg-white/80">
             </div>
-            <button class="px-3 py-2 text-sm bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"><?= $LANG['search'] ?? 'Search' ?></button>
+            <button class="px-3 py-2 text-sm bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors"><?= $LANG['search'] ?? 'Search' ?></button>
             <?php if($search): ?><a href="my_sections.php" class="px-3 py-2 text-sm border border-blue-200/50 rounded-xl text-blue-600 hover:bg-blue-50/50 transition-colors"><?= $LANG['clear'] ?? 'Clear' ?></a><?php endif ?>
         </form>
         <span class="text-xs text-blue-400"><?= $total ?> section<?= $total!==1?'s':'' ?></span>

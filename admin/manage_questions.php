@@ -208,9 +208,9 @@ include '../includes/admin_sidebar.php';
 <div class="flex items-center gap-2 text-sm text-slate-500 mb-4">
     <a href="dashboard.php" class="hover:text-indigo-600"><?= iconSvg('home', 'w-4 h-4') ?></a>
     <span>/</span>
-    <a href="question_sets.php" class="hover:text-indigo-600">Question Sets</a>
+    <a href="question_sets.php" class="hover:text-indigo-600"><?= $LANG["question_sets"] ?? "Question Sets" ?></a>
     <span>/</span>
-    <span class="text-slate-800 font-medium"><?= $moduleLabel ?> Questions</span>
+    <span class="text-slate-800 font-medium"><?= $moduleLabel ?><?= $LANG["questions"] ?? "Questions" ?></span>
     <span>/</span>
     <span class="text-indigo-600 font-medium"><?= e($setData['title']) ?></span>
 </div>
@@ -222,24 +222,22 @@ include '../includes/admin_sidebar.php';
             <div class="flex items-center gap-3 mb-2">
                 <h2 class="text-xl font-bold text-slate-800"><?= e($setData['title']) ?></h2>
                 <?php if ($setData['status'] === 'active'): ?>
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Active</span>
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"><?= $LANG["active"] ?? "Active" ?></span>
                 <?php else: ?>
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">Inactive</span>
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600"><?= $LANG["inactive"] ?? "Inactive" ?></span>
                 <?php endif ?>
             </div>
             <div class="flex items-center gap-4 text-sm text-slate-500">
                 <span class="flex items-center gap-1"><?= iconSvg('academic', 'w-4 h-4 text-indigo-500') ?> <?= e($setData['year_name']) ?></span>
                 <span class="flex items-center gap-1"><?= moduleBadge($module) ?></span>
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-cyan-100 text-cyan-700"><?= $total ?> Questions</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-cyan-100 text-cyan-700"><?= $total ?><?= $LANG["questions"] ?? "Questions" ?></span>
             </div>
         </div>
         <div class="flex gap-2">
             <button onclick="openModal('previewModal')" class="inline-flex items-center gap-2 bg-slate-600 hover:bg-slate-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm transition-all hover:-translate-y-0.5">
-                <?= iconSvg('eye', 'w-4 h-4') ?> Preview
-            </button>
+                <?= iconSvg('eye', 'w-4 h-4') ?><?= $LANG["preview"] ?? "Preview" ?></button>
             <button onclick="openModal('addModal')" class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm shadow-indigo-600/20 transition-all hover:-translate-y-0.5">
-                <?= iconSvg('plus', 'w-4 h-4') ?> Add Question
-            </button>
+                <?= iconSvg('plus', 'w-4 h-4') ?><?= $LANG["add_question"] ?? "Add Question" ?></button>
         </div>
     </div>
 </div>
@@ -268,10 +266,10 @@ include '../includes/admin_sidebar.php';
             <thead class="bg-slate-200 border-b border-slate-200">
                 <tr>
                     <th class="text-left px-5 py-3 text-slate-500 w-12 text-sm font-semibold">#</th>
-                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">Question Text</th>
-                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">Type</th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG["question_text"] ?? "Question Text" ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG["type"] ?? "Type" ?></th>
                     <!-- <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold w-32">Order</th> -->
-                    <th class="text-right px-5 py-3 text-slate-500 text-sm font-semibold">Actions</th>
+                    <th class="text-right px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG["col_actions"] ?? "Actions" ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -284,16 +282,13 @@ include '../includes/admin_sidebar.php';
                         <td class="px-5 py-3">
                             <?php if ($row['question_type'] === 'rating'): ?>
                                 <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-                                    <?= iconSvg('star', 'w-3.5 h-3.5') ?> Rating
-                                </span>
+                                    <?= iconSvg('star', 'w-3.5 h-3.5') ?><?= $LANG["rating"] ?? "Rating" ?></span>
                             <?php elseif ($row['question_type'] === 'survey'): ?>
                                 <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-violet-100 text-violet-800">
-                                    <?= iconSvg('clipboard', 'w-3.5 h-3.5') ?> Survey (MCQ)
-                                </span>
+                                    <?= iconSvg('clipboard', 'w-3.5 h-3.5') ?><?= $LANG["survey_mcq"] ?? "Survey (MCQ)" ?></span>
                             <?php else: ?>
                                 <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800">
-                                    <?= iconSvg('clipboard', 'w-3.5 h-3.5') ?> Comment
-                                </span>
+                                    <?= iconSvg('clipboard', 'w-3.5 h-3.5') ?><?= $LANG["comment"] ?? "Comment" ?></span>
                             <?php endif ?>
                         </td>
                         <!-- <td class="px-5 py-3">
@@ -320,12 +315,10 @@ include '../includes/admin_sidebar.php';
                             <div class="flex items-center justify-end gap-2">
                                 <button onclick='openEdit(<?= json_encode($row, ENT_QUOTES) ?>)'
                                     class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg">
-                                    <?= iconSvg('edit', 'w-3.5 h-3.5') ?> Edit
-                                </button>
+                                    <?= iconSvg('edit', 'w-3.5 h-3.5') ?><?= $LANG["edit"] ?? "Edit" ?></button>
                                 <button onclick="openDelete(<?= $row['id'] ?>,'Q<?= $row['question_no'] ?>')"
                                     class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg">
-                                    <?= iconSvg('trash', 'w-3.5 h-3.5') ?> Delete
-                                </button>
+                                    <?= iconSvg('trash', 'w-3.5 h-3.5') ?><?= $LANG["delete"] ?? "Delete" ?></button>
                             </div>
                         </td>
                     </tr>
@@ -367,9 +360,9 @@ include '../includes/admin_sidebar.php';
                         <label class="block text-sm font-medium text-slate-700 mb-1">Type <span class="text-red-500">*</span></label>
                         <select name="question_type" id="add_qtype" required
                             class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none bg-white">
-                            <option value="rating">Rating</option>
-                            <option value="comment">Comment</option>
-                            <option value="survey">Survey (MCQ)</option>
+                            <option value="rating"><?= $LANG["rating"] ?? "Rating" ?></option>
+                            <option value="comment"><?= $LANG["comment"] ?? "Comment" ?></option>
+                            <option value="survey"><?= $LANG["survey_mcq"] ?? "Survey (MCQ)" ?></option>
                         </select>
                     </div>
                 </div>
@@ -387,7 +380,7 @@ include '../includes/admin_sidebar.php';
                 </div>
             </div>
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
-                <button type="button" onclick="closeModal('addModal')" class="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-100"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
+                <button type="button" onclick="closeModal('addModal')" class="px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
                 <button type="submit" class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG['add_question'] ?? 'Add Question' ?></button>
             </div>
         </form>
@@ -410,17 +403,17 @@ include '../includes/admin_sidebar.php';
                             class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Type</label>
+                        <label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG["type"] ?? "Type" ?></label>
                         <select name="question_type" id="edit_qtype"
                             class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none bg-white">
-                            <option value="rating">Rating</option>
-                            <option value="comment">Comment</option>
-                            <option value="survey">Survey (MCQ)</option>
+                            <option value="rating"><?= $LANG["rating"] ?? "Rating" ?></option>
+                            <option value="comment"><?= $LANG["comment"] ?? "Comment" ?></option>
+                            <option value="survey"><?= $LANG["survey_mcq"] ?? "Survey (MCQ)" ?></option>
                         </select>
                     </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Question Text</label>
+                    <label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG["question_text"] ?? "Question Text" ?></label>
                     <textarea name="question_text" id="edit_qtext" rows="3" required
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none resize-none"></textarea>
                 </div>
@@ -433,7 +426,7 @@ include '../includes/admin_sidebar.php';
                 </div>
             </div>
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
-                <button type="button" onclick="closeModal('editModal')" class="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-100"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
+                <button type="button" onclick="closeModal('editModal')" class="px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
                 <button type="submit" class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG['save'] ?? 'Save' ?></button>
             </div>
         </form>
@@ -453,7 +446,7 @@ include '../includes/admin_sidebar.php';
         </div>
         <form method="POST"><?= csrfField() ?><input type="hidden" name="action" value="delete"><input type="hidden" name="id" id="delete_id">
             <div class="flex gap-3 px-6 pb-6">
-                <button type="button" onclick="closeModal('deleteModal')" class="flex-1 px-4 py-2.5 text-sm border border-slate-200 rounded-xl"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
+                <button type="button" onclick="closeModal('deleteModal')" class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
                 <button type="submit" class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl"><?= $LANG['delete'] ?? 'Delete' ?></button>
             </div>
         </form>

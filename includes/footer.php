@@ -1,5 +1,5 @@
 <?php if ($showFooterContent ?? true): ?>
-    <footer class="bg-cyan-600 text-white text-center py-5">
+    <footer class="bg-indigo-600 text-white text-center py-5">
         © <?= date("Y") ?> UCSH - <?= $LANG['footer_system'] ?? 'Student Feedback Management System' ?>. <?= $LANG['footer_rights'] ?? 'All Rights Reserved' ?>.
     </footer>
 <?php endif; ?>
@@ -29,7 +29,7 @@
                     </div>
                     <h3 class="text-xl font-semibold text-gray-900 mb-6"><?= $LANG['admin_login'] ?? 'Admin Login' ?></h3>
                     <a href="/studentfeedbackucsh/auth/login.php?role=admin"
-                        class="w-full py-3 px-4 bg-cyan-600  hover:bg-cyan-700 text-white font-medium text-sm rounded-lg transition-all duration-200 text-center block">
+                        class="w-full py-3 px-4 bg-indigo-600  hover:bg-indigo-700 text-white font-medium text-sm rounded-lg transition-all duration-200 text-center block">
                         <?= $LANG['login_as_admin'] ?? 'Login as Administrator' ?>
                     </a>
                 </div>
@@ -41,7 +41,7 @@
                     </div>
                     <h3 class="text-xl font-semibold text-gray-900 mb-6"><?= $LANG['teachers_login'] ?? 'Teachers Login' ?></h3>
                     <a href="/studentfeedbackucsh/auth/login.php?role=teacher"
-                        class="w-full py-3 px-4 bg-cyan-600 hover:bg-cyan-700 text-white font-medium text-sm rounded-lg transition-all duration-200 text-center block">
+                        class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm rounded-lg transition-all duration-200 text-center block">
                         <?= $LANG['login_as_teacher'] ?? 'Login as Teacher' ?>
                     </a>
                 </div>
@@ -53,7 +53,7 @@
                     </div>
                     <h3 class="text-xl font-semibold text-gray-900 mb-6"><?= $LANG['students_login'] ?? 'Students Login' ?></h3>
                     <a href="/studentfeedbackucsh/auth/login.php?role=student"
-                        class="w-full py-3 px-4 bg-cyan-600  hover:bg-cyan-700 text-white font-medium text-sm rounded-lg transition-all duration-200 text-center block">
+                        class="w-full py-3 px-4 bg-indigo-600  hover:bg-indigo-700 text-white font-medium text-sm rounded-lg transition-all duration-200 text-center block">
                         <?= $LANG['login_as_student'] ?? 'Login as Student' ?>
                     </a>
                 </div>

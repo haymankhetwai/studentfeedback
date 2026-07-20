@@ -163,7 +163,7 @@ $initials = avatarInitials($user['name']);
                                                 class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-700"><?= $LANG['active'] ?? 'Active' ?>
                                                 · <?= getTimeRemaining($f['end_date']) ?></span>
                                             <a href="sa_feedback_form.php?form_id=<?= $f['id'] ?>"
-                                                class="inline-flex items-center gap-1 px-4 py-2 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-xl transition-all hover:-translate-y-0.5">
+                                                class="inline-flex items-center gap-1 px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all hover:-translate-y-0.5">
                                                 <?= iconSvg('clipboard', 'w-3.5 h-3.5') ?>             <?= $LANG['fill_form'] ?? 'Fill Form' ?>
                                             </a>
                                         <?php elseif ($expired): ?>

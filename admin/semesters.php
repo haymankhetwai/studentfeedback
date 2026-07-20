@@ -4,8 +4,8 @@ require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 requireRole('admin');
 
-$pageTitle = 'Semesters';
-$activeMenu = 'semesters';
+$pageTitle = $LANG['semesters_title'] ?? 'Semesters';
+$activeMenu= $LANG['semesters_title'] ?? 'Semesters';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     $action = $_POST['action'] ?? '';
@@ -126,13 +126,12 @@ include '../includes/admin_sidebar.php';
     <div>
         <div class="flex items-center gap-2 mb-1">
             <?= iconSvg('clipboard', 'w-5 h-5 text-indigo-600') ?>
-            <h2 class="text-xl font-bold text-slate-800">Semesters</h2>
+            <h2 class="text-xl font-bold text-slate-800"><?= $LANG["semesters_title"] ?? "Semesters" ?></h2>
         </div>
-        <p class="text-sm text-slate-500 mt-0.5">Manage semester master list used across the system.</p>
+        <p class="text-sm text-slate-500 mt-0.5"><?= $LANG["semesters_subtitle"] ?? "Manage semester master list used across the system." ?></p>
     </div>
     <button onclick="openModal('addModal')" class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm shadow-indigo-600/20 transition-all hover:-translate-y-0.5">
-        <?= iconSvg('plus', 'w-4 h-4') ?> Add Semester
-    </button>
+        <?= iconSvg('plus', 'w-4 h-4') ?><?= $LANG["add_semester"] ?? "Add Semester" ?></button>
 </div>
 <?php renderFlash() ?>
 
@@ -155,9 +154,9 @@ include '../includes/admin_sidebar.php';
                 <tr>
                     <th class="text-left px-5 py-3 text-slate-500 w-12 text-sm font-semibold">#</th>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['semester_name_col'] ?? 'Semester Name' ?></th>
-                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">Sections</th>
-                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">Forms</th>
-                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">Actions</th>
+                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG["sections"] ?? "Sections" ?></th>
+                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG["forms"] ?? "Forms" ?></th>
+                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG["col_actions"] ?? "Actions" ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -175,19 +174,17 @@ include '../includes/admin_sidebar.php';
                         <div class="flex items-center justify-center gap-2">
                             <button onclick="openEdit(<?= htmlspecialchars(json_encode($row), ENT_QUOTES) ?>)"
                                 class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg">
-                                <?= iconSvg('edit', 'w-3.5 h-3.5') ?> Edit
-                            </button>
+                                <?= iconSvg('edit', 'w-3.5 h-3.5') ?><?= $LANG["edit"] ?? "Edit" ?></button>
                             <button onclick="openDelete(<?= $row['id'] ?>, '<?= e($row['semester_name']) ?>')"
                                 class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg">
-                                <?= iconSvg('trash', 'w-3.5 h-3.5') ?> Delete
-                            </button>
+                                <?= iconSvg('trash', 'w-3.5 h-3.5') ?><?= $LANG["delete"] ?? "Delete" ?></button>
                         </div>
                     </td>
                 </tr>
             <?php endforeach; else: ?>
                 <tr><td colspan="5" class="text-center py-16 text-slate-400">
                     <?= iconSvg('clipboard', 'w-10 h-10 mx-auto mb-3 opacity-40') ?>
-                    <p class="text-sm">No semesters found.</p>
+                    <p class="text-sm"><?= $LANG["no_semesters_found"] ?? "No semesters found." ?></p>
                 </td></tr>
             <?php endif ?>
             </tbody>
@@ -200,21 +197,21 @@ include '../includes/admin_sidebar.php';
 <div id="addModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4 modal-backdrop" data-modal-backdrop>
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md modal-box">
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-            <h3 class="font-semibold text-slate-800">Add Semester</h3>
+            <h3 class="font-semibold text-slate-800"><?= $LANG["add_semester"] ?? "Add Semester" ?></h3>
             <button onclick="closeModal('addModal')" class="text-slate-400 hover:text-slate-600"><?= iconSvg('x', 'w-5 h-5') ?></button>
         </div>
         <form method="POST"><?= csrfField() ?><input type="hidden" name="action" value="add">
             <div class="px-6 py-5 space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Semester Name <span class="text-red-500">*</span></label>
+                    <label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG["semester_name_label"] ?? "Semester Name" ?> <span class="text-red-500">*</span></label>
                     <input type="text" name="semester_name" required placeholder="e.g. Semester I"
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none">
                     <p class="mt-1 text-xs text-slate-400">Use Roman numeral format (e.g. Semester I, Semester II, ...)</p>
                 </div>
             </div>
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
-                <button type="button" onclick="closeModal('addModal')" class="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-100"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
-                <button type="submit" class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl">Add Semester</button>
+                <button type="button" onclick="closeModal('addModal')" class="px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
+                <button type="submit" class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG["add_semester"] ?? "Add Semester" ?></button>
             </div>
         </form>
     </div>
@@ -224,19 +221,19 @@ include '../includes/admin_sidebar.php';
 <div id="editModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4 modal-backdrop" data-modal-backdrop>
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md modal-box">
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-            <h3 class="font-semibold text-slate-800">Edit Semester</h3>
+            <h3 class="font-semibold text-slate-800"><?= $LANG["edit_semester"] ?? "Edit Semester" ?></h3>
             <button onclick="closeModal('editModal')" class="text-slate-400 hover:text-slate-600"><?= iconSvg('x', 'w-5 h-5') ?></button>
         </div>
         <form method="POST"><?= csrfField() ?><input type="hidden" name="action" value="edit"><input type="hidden" name="id" id="edit_id">
             <div class="px-6 py-5 space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Semester Name</label>
+                    <label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG["semester_name_label"] ?? "Semester Name" ?></label>
                     <input type="text" name="semester_name" id="edit_semester_name" required
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none">
                 </div>
             </div>
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
-                <button type="button" onclick="closeModal('editModal')" class="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-100"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
+                <button type="button" onclick="closeModal('editModal')" class="px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
                 <button type="submit" class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG['save'] ?? 'Save' ?></button>
             </div>
         </form>
@@ -248,12 +245,12 @@ include '../includes/admin_sidebar.php';
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm modal-box">
         <div class="px-6 py-6 text-center">
             <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4"><?= iconSvg('trash', 'w-7 h-7 text-red-600') ?></div>
-            <h3 class="text-lg font-semibold text-slate-800">Delete Semester</h3>
+            <h3 class="text-lg font-semibold text-slate-800"><?= $LANG["delete_semester"] ?? "Delete Semester" ?></h3>
             <p class="text-sm text-slate-500 mt-2">Delete <strong id="delete_name" class="text-slate-700"></strong>?</p>
         </div>
         <form method="POST"><?= csrfField() ?><input type="hidden" name="action" value="delete"><input type="hidden" name="id" id="delete_id">
             <div class="flex gap-3 px-6 pb-6">
-                <button type="button" onclick="closeModal('deleteModal')" class="flex-1 px-4 py-2.5 text-sm border border-slate-200 rounded-xl"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
+                <button type="button" onclick="closeModal('deleteModal')" class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
                 <button type="submit" class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl"><?= $LANG['delete'] ?? 'Delete' ?></button>
             </div>
         </form>

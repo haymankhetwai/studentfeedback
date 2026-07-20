@@ -18,10 +18,10 @@ $nav = [
     ['label' => $LANG['nav_courses'] ?? 'Courses', 'href' => '/studentfeedbackucsh/admin/courses.php', 'key' => 'courses', 'icon' => 'book', 'indent' => true, 'group' => 'academic'],
     ['label' => $LANG['nav_sections'] ?? 'Sections', 'href' => '/studentfeedbackucsh/admin/sections.php', 'key' => 'sections', 'icon' => 'grid', 'indent' => true, 'group' => 'academic'],
     ['label' => $LANG['nav_assignments'] ?? 'Assignments', 'href' => '/studentfeedbackucsh/admin/section_assignments.php', 'key' => 'assignments', 'icon' => 'link', 'indent' => true, 'group' => 'academic'],
-    ['label' => 'Feedback Management', 'type' => 'group', 'key' => 'feedback_management', 'isOpen' => $isFeedbackActive],
-    ['label' => 'Question Sets', 'href' => '/studentfeedbackucsh/admin/question_sets.php', 'key' => 'question_sets', 'icon' => 'question', 'indent' => true, 'group' => 'feedback_management'],
-    ['label' => 'Forms', 'href' => '/studentfeedbackucsh/admin/feedback_forms_all.php', 'key' => 'forms', 'icon' => 'document', 'indent' => true, 'group' => 'feedback_management'],
-    ['label' => 'Results', 'href' => '/studentfeedbackucsh/admin/results_all.php', 'key' => 'results', 'icon' => 'chart', 'indent' => true, 'group' => 'feedback_management'],
+    ['label' => $LANG['nav_feedback_management'] ?? 'Feedback Management', 'type' => 'group', 'key' => 'feedback_management', 'isOpen' => $isFeedbackActive],
+    ['label' => $LANG['nav_question_sets'] ?? 'Question Sets', 'href' => '/studentfeedbackucsh/admin/question_sets.php', 'key' => 'question_sets', 'icon' => 'question', 'indent' => true, 'group' => 'feedback_management'],
+    ['label' => $LANG['nav_forms'] ?? 'Forms', 'href' => '/studentfeedbackucsh/admin/feedback_forms_all.php', 'key' => 'forms', 'icon' => 'document', 'indent' => true, 'group' => 'feedback_management'],
+    ['label' => $LANG['nav_results'] ?? 'Results', 'href' => '/studentfeedbackucsh/admin/results_all.php', 'key' => 'results', 'icon' => 'chart', 'indent' => true, 'group' => 'feedback_management'],
 ];
 ?>
 

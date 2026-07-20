@@ -35,7 +35,7 @@ $currentLang = $_SESSION['lang'] ?? 'en';
         <!-- Profile -->
         <a href="/studentfeedbackucsh/student/profile.php"
            class="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-cyan-50/60 transition-colors">
-            <div class="w-7 h-7 rounded-full bg-cyan-600 flex items-center justify-center text-xs font-bold text-white">
+            <div class="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold text-white">
                 <?= e($initials) ?>
             </div>
             <span class="hidden md:block text-sm font-medium text-slate-700"><?= e($user['name']) ?></span>

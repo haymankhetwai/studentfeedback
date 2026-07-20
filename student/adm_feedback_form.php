@@ -406,11 +406,11 @@ $initials = avatarInitials($user['name']);
                     <?php endif ?>
 
                     <div class="pt-8 border-t border-slate-200 flex items-center justify-end gap-3">
-                        <a href="index.php" class="px-5 py-2 text-xs border border-slate-300 rounded-xl text-slate-600 hover:bg-slate-50 font-semibold"><?= $LANG['cancel'] ?? 'Cancel' ?></a>
+                        <a href="index.php" class="px-5 py-2 text-xs font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></a>
                         
                         <?php if ($canSubmit): ?>
                         <button type="submit" id="submit-btn"
-                                class="w-full md:w-auto px-8 py-2.5 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl shadow-md transition-all">
+                                class="w-full md:w-auto px-8 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md transition-all">
                             <?= $LANG['submit_form'] ?? 'Submit Form' ?>
                         </button>
                         <?php elseif ($status === 'Upcoming'): ?>

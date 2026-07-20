@@ -4,7 +4,7 @@ require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 requireRole('admin');
 
-$pageTitle = 'All Feedback Forms';
+$pageTitle = $LANG['all_feedback_forms'] ?? 'All Feedback Forms';
 $activeMenu = 'forms';
 
 updateAllFeedbackStatuses($conn);
@@ -230,14 +230,12 @@ include '../includes/admin_sidebar.php';
 
 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
     <div>
-        <h2 class="text-xl font-bold text-slate-800">All Feedback Forms</h2>
-        <p class="text-sm text-slate-500 mt-0.5">Manage feedback forms for all modules — Academic, Student Affairs, and
-            Administration.</p>
+        <h2 class="text-xl font-bold text-slate-800"><?= $LANG["all_feedback_forms"] ?? "All Feedback Forms" ?></h2>
+        <p class="text-sm text-slate-500 mt-0.5"><?= $LANG["manage_feedback_forms_subtitle"] ?? "Manage feedback forms for all modules — Academic, Student Affairs, and Administration." ?></p>
     </div>
     <button onclick="openModal('addModal')"
-        class="inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm shadow-cyan-600/20 transition-all hover:-translate-y-0.5">
-        <?= iconSvg('plus', 'w-4 h-4') ?> Create Form
-    </button>
+        class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm shadow-indigo-600/20 transition-all hover:-translate-y-0.5">
+        <?= iconSvg('plus', 'w-4 h-4') ?><?= $LANG["create_form"] ?? "Create Form" ?></button>
 </div>
 <?php renderFlash() ?>
 
@@ -245,22 +243,20 @@ include '../includes/admin_sidebar.php';
 <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 mb-6">
     <form method="GET" class="flex items-end gap-3 flex-wrap">
         <div class="flex-1 min-w-[160px]">
-            <label class="block text-xs font-semibold text-slate-500 mb-1">Module</label>
+            <label class="block text-xs font-semibold text-slate-500 mb-1"><?= $LANG["module"] ?? "Module" ?></label>
             <select name="module"
                 class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white">
-                <option value="">All Modules</option>
-                <option value="academic" <?= $filterMod === 'academic' ? 'selected' : '' ?>>Academic</option>
-                <option value="student_affairs" <?= $filterMod === 'student_affairs' ? 'selected' : '' ?>>Student Affairs
-                </option>
-                <option value="administration" <?= $filterMod === 'administration' ? 'selected' : '' ?>>Administration
-                </option>
+                <option value=""><?= $LANG["all_modules"] ?? "All Modules" ?></option>
+                <option value="academic" <?= $filterMod === 'academic' ? 'selected' : '' ?>><?= $LANG["academic"] ?? "Academic" ?></option>
+                <option value="student_affairs" <?= $filterMod === 'student_affairs' ? 'selected' : '' ?>><?= $LANG["student_affairs"] ?? "Student Affairs" ?></option>
+                <option value="administration" <?= $filterMod === 'administration' ? 'selected' : '' ?>><?= $LANG["administration"] ?? "Administration" ?></option>
             </select>
         </div>
         <div class="flex-1 min-w-[160px]">
-            <label class="block text-xs font-semibold text-slate-500 mb-1">Academic Year</label>
+            <label class="block text-xs font-semibold text-slate-500 mb-1"><?= $LANG["academic_year"] ?? "Academic Year" ?></label>
             <select name="ay_id"
                 class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white">
-                <option value="">All Years</option>
+                <option value=""><?= $LANG["all_years"] ?? "All Years" ?></option>
                 <?php foreach ($academicYears as $ay): ?>
                     <option value="<?= $ay['id'] ?>" <?= $filterAY == $ay['id'] ? 'selected' : '' ?>><?= e($ay['year_name']) ?>
                     </option>
@@ -268,16 +264,16 @@ include '../includes/admin_sidebar.php';
             </select>
         </div>
         <div class="flex-1 min-w-[200px]">
-            <label class="block text-xs font-semibold text-slate-500 mb-1">Search</label>
-            <input type="text" name="search" value="<?= e($search) ?>" placeholder="Search forms..."
+            <label class="block text-xs font-semibold text-slate-500 mb-1"><?= $LANG["search"] ?? "Search" ?></label>
+            <input type="text" name="search" value="<?= e($search) ?>" placeholder="<?= $LANG["search_forms_placeholder"] ?? "Search forms..." ?>"
                 class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
         </div>
         <div class="flex gap-2">
             <button type="submit"
-                class="px-4 py-2 bg-cyan-600 text-white text-sm font-semibold rounded-xl hover:bg-cyan-700">Filter</button>
+                class="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700"><?= $LANG["search"] ?? "Search" ?></button>
             <?php if ($filterMod || $search || $filterAY): ?>
                 <a href="feedback_forms_all.php"
-                    class="px-4 py-2 bg-slate-100 text-slate-600 text-sm font-semibold rounded-xl hover:bg-slate-200">Reset</a>
+                    class="px-4 py-2 bg-slate-100 text-slate-600 text-sm font-semibold rounded-xl hover:bg-slate-200"><?= $LANG["reset"] ?? "Reset" ?></a>
             <?php endif ?>
         </div>
     </form>
@@ -289,14 +285,14 @@ include '../includes/admin_sidebar.php';
             <thead class="bg-slate-200 border-b border-slate-200">
                 <tr>
                     <th class="text-left px-5 py-3 text-slate-500 w-12 text-sm font-semibold">#</th>
-                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">Module</th>
-                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">Form Title</th>
-                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">Year / Semester</th>
-                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">Question Set</th>
-                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">Duration</th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG["module"] ?? "Module" ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG["form_title"] ?? "Form Title" ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG["year_semester"] ?? "Year / Semester" ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG["question_set"] ?? "Question Set" ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG["col_duration"] ?? "Duration" ?></th>
                     <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">Q</th>
                     <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">Sub</th>
-                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">Actions</th>
+                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG["col_actions"] ?? "Actions" ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -315,7 +311,7 @@ include '../includes/admin_sidebar.php';
                                     <span
                                         class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700"><?= e($row['question_set_title']) ?></span>
                                 <?php else: ?>
-                                    <span class="text-xs text-red-400 italic">No set</span>
+                                    <span class="text-xs text-red-400 italic"><?= $LANG["no_set"] ?? "No set" ?></span>
                                 <?php endif ?>
                             </td>
                             <td class="px-5 py-3 text-xs text-slate-500">
@@ -332,16 +328,13 @@ include '../includes/admin_sidebar.php';
                                 <div class="flex items-center justify-center gap-1.5">
                                     <a href="results_all.php?form_id=<?= $row['id'] ?>"
                                         class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-cyan-700 bg-cyan-50 hover:bg-cyan-100 rounded-lg">
-                                        <?= iconSvg('chart', 'w-3.5 h-3.5') ?> Results
-                                    </a>
+                                        <?= iconSvg('chart', 'w-3.5 h-3.5') ?><?= $LANG["results_link"] ?? "Results" ?></a>
                                     <button onclick="openEdit(<?= htmlspecialchars(json_encode($row), ENT_QUOTES) ?>)"
                                         class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg">
-                                        <?= iconSvg('edit', 'w-3.5 h-3.5') ?> Edit
-                                    </button>
+                                        <?= iconSvg('edit', 'w-3.5 h-3.5') ?><?= $LANG["edit"] ?? "Edit" ?></button>
                                     <button onclick="openDelete(<?= $row['id'] ?>,'<?= addslashes(e($row['title'])) ?>')"
                                         class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg">
-                                        <?= iconSvg('trash', 'w-3.5 h-3.5') ?> Delete
-                                    </button>
+                                        <?= iconSvg('trash', 'w-3.5 h-3.5') ?><?= $LANG["delete"] ?? "Delete" ?></button>
                                 </div>
                             </td>
                         </tr>
@@ -349,7 +342,7 @@ include '../includes/admin_sidebar.php';
                     <tr>
                         <td colspan="9" class="text-center py-16 text-slate-400">
                             <?= iconSvg('document', 'w-10 h-10 mx-auto mb-3 opacity-40') ?>
-                            <p class="text-sm">No feedback forms found.</p>
+                            <p class="text-sm"><?= $LANG["no_feedback_forms_found"] ?? "No feedback forms found." ?></p>
                         </td>
                     </tr>
                 <?php endif ?>
@@ -374,7 +367,7 @@ include '../includes/admin_sidebar.php';
     data-modal-backdrop>
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg modal-box">
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-            <h3 class="font-semibold text-slate-800">Create Feedback Form</h3>
+            <h3 class="font-semibold text-slate-800"><?= $LANG["create_feedback_form"] ?? "Create Feedback Form" ?></h3>
             <button onclick="closeModal('addModal')"
                 class="text-slate-400 hover:text-slate-600"><?= iconSvg('x', 'w-5 h-5') ?></button>
         </div>
@@ -389,10 +382,10 @@ include '../includes/admin_sidebar.php';
                     </label>
                     <select name="module" id="add_module" required onchange="onModuleChange(this.value)"
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
-                        <option value="">— Select Module —</option>
-                        <option value="academic">Academic</option>
-                        <option value="student_affairs">Student Affairs</option>
-                        <option value="administration">Administration</option>
+                        <option value=""><?= $LANG["select_module"] ?? "— Select Module —" ?></option>
+                        <option value="academic"><?= $LANG["academic"] ?? "Academic" ?></option>
+                        <option value="student_affairs"><?= $LANG["student_affairs"] ?? "Student Affairs" ?></option>
+                        <option value="administration"><?= $LANG["administration"] ?? "Administration" ?></option>
                     </select>
                 </div>
                 <div>
@@ -403,7 +396,7 @@ include '../includes/admin_sidebar.php';
                     </label>
                     <select name="academic_year_id" id="add_academic_year_id" required onchange="loadQuestionSets()"
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
-                        <option value="">— Select Academic Year —</option>
+                        <option value=""><?= $LANG["select_academic_year"] ?? "— Select Academic Year —" ?></option>
                         <?php foreach ($academicYears as $ay): ?>
                             <option value="<?= $ay['id'] ?>"><?= e($ay['year_name']) ?></option>
                         <?php endforeach ?>
@@ -417,7 +410,7 @@ include '../includes/admin_sidebar.php';
                     </label>
                     <select name="semester_id" id="add_semester_id" required
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
-                        <option value="">— Select Semester —</option>
+                        <option value=""><?= $LANG["select_semester"] ?? "— Select Semester —" ?></option>
                         <?php foreach ($semesters as $sm): ?>
                             <option value="<?= $sm['id'] ?>"><?= e(semesterToRoman($sm['semester_name'])) ?></option>
                         <?php endforeach ?>
@@ -431,7 +424,7 @@ include '../includes/admin_sidebar.php';
                     </label>
                     <select name="section_id" id="add_section_id"
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
-                        <option value="">— Select Section —</option>
+                        <option value=""><?= $LANG["select_section"] ?? "— Select Section —" ?></option>
                         <?php foreach ($sectionList as $s): ?>
                             <option value="<?= $s['id'] ?>">[<?= e($s['course_code']) ?>] <?= e($s['course_name']) ?> – Sec
                                 <?= e($s['section']) ?> (<?= e($s['academic_year']) ?>)
@@ -440,13 +433,13 @@ include '../includes/admin_sidebar.php';
                     </select>
                 </div>
                 <div id="qs_info">
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Question Set (Auto-detected)</label>
-                    <div id="qs_loading" class="hidden text-xs text-slate-400 py-2">Loading question sets...</div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG["question_set_auto_detected"] ?? "Question Set (Auto-detected)" ?></label>
+                    <div id="qs_loading" class="hidden text-xs text-slate-400 py-2"><?= $LANG["loading_question_sets"] ?? "Loading question sets..." ?></div>
                     <div id="qs_empty" class="hidden">
                         <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-700">
                             <?= iconSvg('question', 'w-4 h-4 inline mr-1') ?>
-                            <strong>No Question Set found</strong> for the selected Year + Module.
-                            <a href="question_sets.php" class="underline ml-1">Create one first</a>.
+                            <strong><?= $LANG["no_question_set_found"] ?? "No Question Set found" ?></strong> for the selected Year + Module.
+                            <a href="question_sets.php" class="underline ml-1"><?= $LANG["create_one_first"] ?? "Create one first" ?></a>.
                         </div>
                     </div>
                     <div id="qs_found" class="hidden">
@@ -462,7 +455,7 @@ include '../includes/admin_sidebar.php';
                             class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-cyan-100 text-cyan-700 text-[10px] font-bold">5</span>
                         Form Title <span class="text-red-500">*</span>
                     </label>
-                    <input type="text" name="title" required placeholder="e.g. Midterm Evaluation"
+                    <input type="text" name="title" required placeholder="<?= $LANG["form_title_placeholder"] ?? "e.g. Midterm Evaluation" ?>"
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
                 </div>
                 <div id="university_fields_wrapper" class="hidden space-y-4">
@@ -490,14 +483,14 @@ include '../includes/admin_sidebar.php';
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Start Date & Time <span
+                        <label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG["start_date_time"] ?? "Start Date & Time" ?> <span
                                 class="text-red-500">*</span></label>
                         <input type="datetime-local" name="start_date" id="add_start_date" required
                             min="<?= date('Y-m-d\TH:i') ?>"
                             class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">End Date & Time <span
+                        <label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG["end_date_time"] ?? "End Date & Time" ?> <span
                                 class="text-red-500">*</span></label>
                         <input type="datetime-local" name="end_date" id="add_end_date" required
                             min="<?= date('Y-m-d\TH:i') ?>"
@@ -507,9 +500,9 @@ include '../includes/admin_sidebar.php';
             </div>
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
                 <button type="button" onclick="closeModal('addModal')"
-                    class="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-100">Cancel</button>
+                    class="px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG["cancel"] ?? "Cancel" ?></button>
                 <button type="submit" id="addSubmitBtn" disabled
-                    class="px-5 py-2 text-sm font-semibold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed">Create
+                    class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed">Create
                     Form</button>
             </div>
         </form>
@@ -521,7 +514,7 @@ include '../includes/admin_sidebar.php';
     data-modal-backdrop>
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg modal-box">
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-            <h3 class="font-semibold text-slate-800">Edit Feedback Form</h3>
+            <h3 class="font-semibold text-slate-800"><?= $LANG["edit_feedback_form"] ?? "Edit Feedback Form" ?></h3>
             <button onclick="closeModal('editModal')"
                 class="text-slate-400 hover:text-slate-600"><?= iconSvg('x', 'w-5 h-5') ?></button>
         </div>
@@ -531,20 +524,20 @@ include '../includes/admin_sidebar.php';
             <input type="hidden" name="question_set_id" id="edit_question_set_id" value="0">
             <div class="px-6 py-5 space-y-4">
                 <div class="grid grid-cols-2 gap-4">
-                    <div><label class="block text-sm font-medium text-slate-700 mb-1">Academic Year</label>
+                    <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG["academic_year"] ?? "Academic Year" ?></label>
                         <input type="hidden" name="academic_year_id" id="hidden_edit_academic_year_id" value="">
                         <select id="edit_academic_year_id" disabled
                             class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none bg-slate-100 text-slate-500 cursor-not-allowed">
-                            <option value="">— Select Academic Year —</option>
+                            <option value=""><?= $LANG["select_academic_year"] ?? "— Select Academic Year —" ?></option>
                             <?php foreach ($academicYears as $ay): ?>
                                 <option value="<?= $ay['id'] ?>"><?= e($ay['year_name']) ?></option>
                             <?php endforeach ?>
                         </select>
                     </div>
-                    <div><label class="block text-sm font-medium text-slate-700 mb-1">Semester</label>
+                    <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG["semester"] ?? "Semester" ?></label>
                         <select name="semester_id" id="edit_semester_id"
                             class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none bg-white">
-                            <option value="">— Select Semester —</option>
+                            <option value=""><?= $LANG["select_semester"] ?? "— Select Semester —" ?></option>
                             <?php foreach ($semesters as $sm): ?>
                                 <option value="<?= $sm['id'] ?>"><?= e(semesterToRoman($sm['semester_name'])) ?></option>
                             <?php endforeach ?>
@@ -552,10 +545,10 @@ include '../includes/admin_sidebar.php';
                     </div>
                 </div>
                 <div id="edit_section_wrapper">
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Section</label>
+                    <label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG["section_name"] ?? "Section" ?></label>
                     <select name="section_id" id="edit_section"
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none bg-white">
-                        <option value="0">— No Section —</option>
+                        <option value="0"><?= $LANG["no_section"] ?? "— No Section —" ?></option>
                         <?php foreach ($sectionList as $s): ?>
                             <option value="<?= $s['id'] ?>">[<?= e($s['course_code']) ?>] <?= e($s['course_name']) ?> – Sec
                                 <?= e($s['section']) ?>
@@ -563,12 +556,12 @@ include '../includes/admin_sidebar.php';
                     </select>
                 </div>
                 <div id="edit_qs_info">
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Question Set</label>
-                    <div id="edit_qs_loading" class="hidden text-xs text-slate-400 py-2">Loading question sets...</div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG["question_set"] ?? "Question Set" ?></label>
+                    <div id="edit_qs_loading" class="hidden text-xs text-slate-400 py-2"><?= $LANG["loading_question_sets"] ?? "Loading question sets..." ?></div>
                     <div id="edit_qs_empty" class="hidden">
                         <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-700">
                             <?= iconSvg('question', 'w-4 h-4 inline mr-1') ?>
-                            <strong>No Question Set found</strong> for the selected Year + Module.
+                            <strong><?= $LANG["no_question_set_found"] ?? "No Question Set found" ?></strong> for the selected Year + Module.
                         </div>
                     </div>
                     <div id="edit_qs_found" class="hidden">
@@ -579,7 +572,7 @@ include '../includes/admin_sidebar.php';
                         </div>
                     </div>
                 </div>
-                <div><label class="block text-sm font-medium text-slate-700 mb-1">Title</label>
+                <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG["title"] ?? "Title" ?></label>
                     <input type="text" name="title" id="edit_title" required
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none">
                 </div>
@@ -592,11 +585,11 @@ include '../includes/admin_sidebar.php';
                             class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none"></div>
                 </div>
                 <div id="edit_university_fields" class="hidden space-y-4">
-                    <div><label class="block text-sm font-medium text-slate-700 mb-1">University Name</label>
+                    <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG["university_name"] ?? "University Name" ?></label>
                         <input type="text" name="university_name" id="edit_university_name"
                             class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none">
                     </div>
-                    <div><label class="block text-sm font-medium text-slate-700 mb-1">University Campus</label>
+                    <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG["university_campus"] ?? "University Campus" ?></label>
                         <input type="text" name="university_campus" id="edit_university_campus"
                             class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none">
                     </div>
@@ -604,9 +597,9 @@ include '../includes/admin_sidebar.php';
             </div>
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
                 <button type="button" onclick="closeModal('editModal')"
-                    class="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-100">Cancel</button>
+                    class="px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG["cancel"] ?? "Cancel" ?></button>
                 <button type="submit"
-                    class="px-5 py-2 text-sm font-semibold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl">Save</button>
+                    class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG["save"] ?? "Save" ?></button>
             </div>
         </form>
     </div>
@@ -620,7 +613,7 @@ include '../includes/admin_sidebar.php';
             <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
                 <?= iconSvg('trash', 'w-7 h-7 text-red-600') ?>
             </div>
-            <h3 class="text-lg font-semibold text-slate-800">Delete Form</h3>
+            <h3 class="text-lg font-semibold text-slate-800"><?= $LANG["delete_form"] ?? "Delete Form" ?></h3>
             <p class="text-sm text-slate-500 mt-2">Delete <strong id="delete_name" class="text-slate-700"></strong>? All
                 submissions will be lost.</p>
         </div>
@@ -628,15 +621,19 @@ include '../includes/admin_sidebar.php';
                 name="id" id="delete_id">
             <div class="flex gap-3 px-6 pb-6">
                 <button type="button" onclick="closeModal('deleteModal')"
-                    class="flex-1 px-4 py-2.5 text-sm border border-slate-200 rounded-xl">Cancel</button>
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG["cancel"] ?? "Cancel" ?></button>
                 <button type="submit"
-                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl">Delete</button>
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl"><?= $LANG["delete"] ?? "Delete" ?></button>
             </div>
         </form>
     </div>
 </div>
 
 <script>
+    var LANG = <?= json_encode([
+        'val_question_set_required' => $LANG['val_question_set_required'] ?? 'Please ensure a Question Set is available for the selected Year + Module.',
+        'loading_question_sets' => $LANG['loading_question_sets'] ?? 'Loading question sets...',
+    ]) ?>;
     function onModuleChange(val) {
         const sectionWrapper = document.getElementById('add_section_wrapper');
         const uniWrapper = document.getElementById('university_fields_wrapper');
@@ -744,7 +741,7 @@ include '../includes/admin_sidebar.php';
                 const qsId = document.getElementById('add_question_set_id').value;
                 if (!qsId || qsId === '0') {
                     e.preventDefault();
-                    alert('Please ensure a Question Set is available for the selected Year + Module.');
+                    alert(LANG.val_question_set_required);
                 }
             });
         }

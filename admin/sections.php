@@ -28,13 +28,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             $yq->execute();
             $yr = $yq->get_result()->fetch_assoc();
             $yq->close();
-            if ($yr) $yearName = $yr['year_name'];
+            if ($yr)
+                $yearName = $yr['year_name'];
             $sq = $conn->prepare("SELECT semester_name FROM semesters WHERE id=?");
             $sq->bind_param('i', $semesterId);
             $sq->execute();
             $sr = $sq->get_result()->fetch_assoc();
             $sq->close();
-            if ($sr) $semName = $sr['semester_name'];
+            if ($sr)
+                $semName = $sr['semester_name'];
             $stmt = $conn->prepare("INSERT INTO sections (course_id,teacher_id,academic_year_id,semester_id,section,academic_year) VALUES (?,?,?,?,?,?)");
             $stmt->bind_param('iiiiss', $course, $teacher, $academicYearId, $semesterId, $section, $yearName);
             $stmt->execute() ? setFlash('success', $LANG['flash_section_added'] ?? 'Section added.') : setFlash('error', $LANG['flash_section_add_failed'] ?? 'Failed to add section.');
@@ -58,13 +60,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             $yq->execute();
             $yr = $yq->get_result()->fetch_assoc();
             $yq->close();
-            if ($yr) $yearName = $yr['year_name'];
+            if ($yr)
+                $yearName = $yr['year_name'];
             $sq = $conn->prepare("SELECT semester_name FROM semesters WHERE id=?");
             $sq->bind_param('i', $semesterId);
             $sq->execute();
             $sr = $sq->get_result()->fetch_assoc();
             $sq->close();
-            if ($sr) $semName = $sr['semester_name'];
+            if ($sr)
+                $semName = $sr['semester_name'];
             $stmt = $conn->prepare("UPDATE sections SET course_id=?,teacher_id=?,academic_year_id=?,semester_id=?,section=?,academic_year=? WHERE id=?");
             $stmt->bind_param('iiiissi', $course, $teacher, $academicYearId, $semesterId, $sec, $yearName, $id);
             $stmt->execute() ? setFlash('success', $LANG['flash_section_updated'] ?? 'Section updated.') : setFlash('error', $LANG['flash_update_failed'] ?? 'Update failed.');
@@ -88,7 +92,7 @@ $search = clean($_GET['search'] ?? '');
 $filterYear = (int) ($_GET['academic_year_id'] ?? 0);
 $filterSem = (int) ($_GET['semester_id'] ?? 0);
 $filterSec = clean($_GET['section'] ?? '');
-$perPage = max(10, min(100, (int)($_GET['per_page'] ?? 10)));
+$perPage = max(10, min(100, (int) ($_GET['per_page'] ?? 10)));
 $page = max(1, (int) ($_GET['page'] ?? 1));
 
 $baseJoin = "FROM sections s JOIN courses c2 ON s.course_id=c2.id JOIN teachers t ON s.teacher_id=t.id JOIN users u ON t.user_id=u.id LEFT JOIN academic_years ay ON s.academic_year_id=ay.id LEFT JOIN semesters sm ON s.semester_id=sm.id";
@@ -163,7 +167,7 @@ include '../includes/admin_sidebar.php';
         </p>
     </div>
     <button onclick="openModal('addModal')"
-        class="inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm shadow-cyan-600/20 transition-all hover:-translate-y-0.5">
+        class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm shadow-indigo-600/20 transition-all hover:-translate-y-0.5">
         <?= iconSvg('plus', 'w-4 h-4') ?> <?= $LANG['add_section'] ?? 'Add Section' ?>
     </button>
 </div>
@@ -180,29 +184,32 @@ include '../includes/admin_sidebar.php';
             </div>
             <select name="academic_year_id"
                 class="px-3 py-2 text-sm border border-slate-200 rounded-xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
-                <option value=""><?= $LANG['all_years'] ?? 'All Academic Years' ?></option>
+                <option value=""><?= $LANG["all_academic_years"] ?? "All Academic Years" ?></option>
                 <?php foreach ($academicYears as $ay): ?>
-                    <option value="<?= $ay['id'] ?>" <?= $filterYear == $ay['id'] ? ' selected' : '' ?>><?= e($ay['year_name']) ?></option>
+                    <option value="<?= $ay['id'] ?>" <?= $filterYear == $ay['id'] ? ' selected' : '' ?>>
+                        <?= e($ay['year_name']) ?></option>
                 <?php endforeach ?>
             </select>
             <select name="semester_id"
                 class="px-3 py-2 text-sm border border-slate-200 rounded-xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
                 <option value=""><?= $LANG['all_semesters'] ?? 'All Semesters' ?></option>
                 <?php foreach ($semesterList as $sm): ?>
-                    <option value="<?= $sm['id'] ?>" <?= $filterSem == $sm['id'] ? ' selected' : '' ?>><?= e(semesterToRoman($sm['semester_name'])) ?></option>
+                    <option value="<?= $sm['id'] ?>" <?= $filterSem == $sm['id'] ? ' selected' : '' ?>>
+                        <?= e(semesterToRoman($sm['semester_name'])) ?></option>
                 <?php endforeach ?>
             </select>
             <select name="section"
                 class="px-3 py-2 text-sm border border-slate-200 rounded-xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
                 <option value=""><?= $LANG['all_sections'] ?? 'All Sections' ?></option>
                 <?php foreach (['A', 'B', 'C'] as $secLetter): ?>
-                    <option value="<?= $secLetter ?>" <?= strtoupper($filterSec) === $secLetter ? ' selected' : '' ?>><?= $LANG['section_label'] ?? 'Section' ?>
+                    <option value="<?= $secLetter ?>" <?= strtoupper($filterSec) === $secLetter ? ' selected' : '' ?>>
+                        <?= $LANG['section_label'] ?? 'Section' ?>
                         <?= $secLetter ?>
                     </option>
                 <?php endforeach ?>
             </select>
             <button type="submit"
-                class="px-3 py-2 text-sm bg-cyan-600 text-white rounded-xl hover:bg-cyan-700"><?= $LANG['search'] ?? 'Search' ?></button>
+                class="px-3 py-2 text-sm bg-indigo-600 text-white rounded-xl hover:bg-indigo-700"><?= $LANG['search'] ?? 'Search' ?></button>
             <?php if ($hasFilter): ?><a href="sections.php"
                     class="px-3 py-2 text-sm border border-slate-200 rounded-xl text-white hover:bg-red-700 bg-red-500"><?= $LANG['clear'] ?? 'Clear' ?></a><?php endif ?>
         </form>
@@ -214,12 +221,17 @@ include '../includes/admin_sidebar.php';
             <thead class="bg-slate-200 border-b border-slate-200">
                 <tr>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">#</th>
-                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['select_course'] ?? 'Course' ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['section_name'] ?? 'Section' ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['select_teacher'] ?? 'Teacher' ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['year_semester'] ?? 'Year / Semester' ?>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
+                        <?= $LANG['select_course'] ?? 'Course' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
+                        <?= $LANG['section_name'] ?? 'Section' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
+                        <?= $LANG['select_teacher'] ?? 'Teacher' ?></th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
+                        <?= $LANG['year_semester'] ?? 'Year / Semester' ?>
                     </th>
-                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold"><?= $LANG['col_actions'] ?? 'Actions' ?></th>
+                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">
+                        <?= $LANG['col_actions'] ?? 'Actions' ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -342,9 +354,9 @@ include '../includes/admin_sidebar.php';
             </div>
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
                 <button type="button" onclick="closeModal('addModal')"
-                    class="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-100"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
+                    class="px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
                 <button type="submit"
-                    class="px-5 py-2 text-sm font-semibold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl"><?= $LANG['add_section'] ?? 'Add Section' ?></button>
+                    class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG['add_section'] ?? 'Add Section' ?></button>
             </div>
         </form>
     </div>
@@ -362,7 +374,8 @@ include '../includes/admin_sidebar.php';
         <form method="POST"><?= csrfField() ?><input type="hidden" name="action" value="edit"><input type="hidden"
                 name="id" id="edit_id">
             <div class="px-6 py-5 grid grid-cols-2 gap-4">
-                <div class="col-span-2"><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['select_course'] ?? 'Course' ?></label>
+                <div class="col-span-2"><label
+                        class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['select_course'] ?? 'Course' ?></label>
                     <select name="course_id" id="edit_course" required
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
                         <?php foreach ($courseList as $c): ?>
@@ -370,7 +383,8 @@ include '../includes/admin_sidebar.php';
                             </option><?php endforeach ?>
                     </select>
                 </div>
-                <div class="col-span-2"><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['select_teacher'] ?? 'Teacher' ?></label>
+                <div class="col-span-2"><label
+                        class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['select_teacher'] ?? 'Teacher' ?></label>
                     <select name="teacher_id" id="edit_teacher" required
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
                         <?php foreach ($teacherList as $t): ?>
@@ -397,7 +411,8 @@ include '../includes/admin_sidebar.php';
                 </div>
 
 
-                <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['academic_year'] ?? 'Academic Year' ?></label>
+                <div><label
+                        class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['academic_year'] ?? 'Academic Year' ?></label>
                     <select name="academic_year_id" id="edit_academic_year_id" required
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
                         <option value=""><?= $LANG['select_year'] ?? 'Select Academic Year' ?></option>
@@ -406,7 +421,8 @@ include '../includes/admin_sidebar.php';
                         <?php endforeach ?>
                     </select>
                 </div>
-                <div class="col-span-2"><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['semester'] ?? 'Semester' ?></label>
+                <div class="col-span-2"><label
+                        class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['semester'] ?? 'Semester' ?></label>
                     <select name="semester_id" id="edit_semester_id" required
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
                         <option value=""><?= $LANG['select_semester'] ?? 'Select Semester' ?></option>
@@ -418,9 +434,9 @@ include '../includes/admin_sidebar.php';
             </div>
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
                 <button type="button" onclick="closeModal('editModal')"
-                    class="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-100"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
+                    class="px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
                 <button type="submit"
-                    class="px-5 py-2 text-sm font-semibold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl"><?= $LANG['save'] ?? 'Save' ?></button>
+                    class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG['save'] ?? 'Save' ?></button>
             </div>
         </form>
     </div>
@@ -434,7 +450,8 @@ include '../includes/admin_sidebar.php';
             <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
                 <?= iconSvg('trash', 'w-7 h-7 text-red-600') ?>
             </div>
-            <h3 class="text-lg font-semibold text-slate-800"><?= $LANG['delete_section_modal'] ?? 'Delete Section' ?></h3>
+            <h3 class="text-lg font-semibold text-slate-800"><?= $LANG['delete_section_modal'] ?? 'Delete Section' ?>
+            </h3>
             <p class="text-sm text-slate-500 mt-2"><?= $LANG['delete'] ?? 'Delete' ?> <strong id="delete_name"
                     class="text-slate-700"></strong>?</p>
         </div>
@@ -442,7 +459,7 @@ include '../includes/admin_sidebar.php';
                 name="id" id="delete_id">
             <div class="flex gap-3 px-6 pb-6">
                 <button type="button" onclick="closeModal('deleteModal')"
-                    class="flex-1 px-4 py-2.5 text-sm border border-slate-200 rounded-xl"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
                 <button type="submit"
                     class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl"><?= $LANG['delete'] ?? 'Delete' ?></button>
             </div>

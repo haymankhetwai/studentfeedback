@@ -30,7 +30,7 @@
 <body class="<?= e($bodyClass ?? 'bg-gray-100 relative') ?> <?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'lang-mm' : '' ?>">
 
 <?php if (!empty($showNav)): ?>
-    <nav class="sticky top-0 z-40 bg-cyan-600 text-white shadow-lg">
+    <nav class="sticky top-0 z-40 bg-indigo-600 text-white shadow-lg">
         <div class="container mx-auto px-6 py-4 flex justify-between items-center">
 
             <div>

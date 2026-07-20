@@ -198,7 +198,7 @@ $initials = avatarInitials($user['name']);
                 <!-- Summary -->
                 <div class="grid grid-cols-3 gap-4 mb-6">
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-cyan-600 flex items-center justify-center flex-shrink-0">
+                        <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center flex-shrink-0">
                             <?= iconSvg('academic', 'w-5 h-5 text-white') ?>
                         </div>
                         <div>
@@ -208,7 +208,7 @@ $initials = avatarInitials($user['name']);
                         </div>
                     </div>
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-purple-600 flex items-center justify-center flex-shrink-0">
+                        <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center flex-shrink-0">
                             <?= iconSvg('shield', 'w-5 h-5 text-white') ?>
                         </div>
                         <div>
