@@ -10,25 +10,40 @@ $activeMenu = 'departments';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     $action = $_POST['action'] ?? '';
     if ($action === 'add') {
-        $name = strtoupper(clean($_POST['department_name'] ?? ''));
-        //$desc = clean($_POST['description'] ?? '');
+        $name = strtoupper(trim(clean($_POST['department_name'] ?? '')));
         if ($name) {
-            $stmt = $conn->prepare("INSERT INTO departments (department_name) VALUES (?)");
-            $stmt->bind_param('s', $name);
-            $stmt->execute() ? setFlash('success', 'Department added.') : setFlash('error', 'Name may already exist.');
-            $stmt->close();
+            $chk = $conn->prepare("SELECT 1 FROM departments WHERE LOWER(TRIM(department_name))=LOWER(?)");
+            $chk->bind_param('s', $name);
+            $chk->execute();
+            if ($chk->get_result()->num_rows > 0) {
+                setFlash('error', 'This department already exists.');
+            } else {
+                $stmt = $conn->prepare("INSERT INTO departments (department_name) VALUES (?)");
+                $stmt->bind_param('s', $name);
+                $stmt->execute() ? setFlash('success', 'Department added.') : setFlash('error', 'Failed to add department.');
+                $stmt->close();
+            }
+            $chk->close();
         } else {
             setFlash('error', 'Department name is required.');
         }
     }
     if ($action === 'edit') {
         $id = (int) ($_POST['id'] ?? 0);
-        $name = strtoupper(clean($_POST['department_name'] ?? ''));
+        $name = strtoupper(trim(clean($_POST['department_name'] ?? '')));
         if ($id && $name) {
-            $stmt = $conn->prepare("UPDATE departments SET department_name=? WHERE id=?");
-            $stmt->bind_param('si', $name, $id);
-            $stmt->execute() ? setFlash('success', 'Department updated.') : setFlash('error', 'Update failed.');
-            $stmt->close();
+            $chk = $conn->prepare("SELECT 1 FROM departments WHERE LOWER(TRIM(department_name))=LOWER(?) AND id!=?");
+            $chk->bind_param('si', $name, $id);
+            $chk->execute();
+            if ($chk->get_result()->num_rows > 0) {
+                setFlash('error', 'This department already exists.');
+            } else {
+                $stmt = $conn->prepare("UPDATE departments SET department_name=? WHERE id=?");
+                $stmt->bind_param('si', $name, $id);
+                $stmt->execute() ? setFlash('success', 'Department updated.') : setFlash('error', 'Update failed.');
+                $stmt->close();
+            }
+            $chk->close();
         }
     }
     if ($action === 'delete') {
@@ -123,7 +138,7 @@ include '../includes/admin_sidebar.php';
                                 <div class="flex items-center justify-end gap-2">
                                     <button
                                         onclick="openEdit(<?= $row['id'] ?>,'<?= addslashes(e($row['department_name'])) ?>')"
-                                        class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-cyan-700 bg-cyan-50 hover:bg-cyan-100 rounded-lg">
+                                        class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 rounded-lg">
                                         <?= iconSvg('edit', 'w-3.5 h-3.5') ?> <?= $LANG['edit'] ?? 'Edit' ?>
                                     </button>
                                     <button
@@ -165,11 +180,11 @@ include '../includes/admin_sidebar.php';
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
                 </div>
             </div>
-            <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl"><button
+            <div class="flex gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl"><button
                     type="button" onclick="closeModal('addModal')"
-                    class="px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button><button
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold btn-cancel rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button><button
                     type="submit"
-                    class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG['add'] ?? 'Add' ?></button>
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG['add'] ?? 'Add' ?></button>
             </div>
         </form>
     </div>
@@ -191,11 +206,11 @@ include '../includes/admin_sidebar.php';
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
                 </div>
             </div>
-            <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl"><button
+            <div class="flex gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl"><button
                     type="button" onclick="closeModal('editModal')"
-                    class="px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button><button
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold btn-cancel rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button><button
                     type="submit"
-                    class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG['save'] ?? 'Save' ?></button>
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG['save'] ?? 'Save' ?></button>
             </div>
         </form>
     </div>
@@ -214,7 +229,7 @@ include '../includes/admin_sidebar.php';
         <form method="POST"><?= csrfField() ?><input type="hidden" name="action" value="delete"><input type="hidden"
                 name="id" id="delete_id">
             <div class="flex gap-3 px-6 pb-6"><button type="button" onclick="closeModal('deleteModal')"
-                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button><button
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold btn-cancel rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button><button
                     type="submit"
                     class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl"><?= $LANG['delete'] ?? 'Delete' ?></button>
             </div>
@@ -222,7 +237,18 @@ include '../includes/admin_sidebar.php';
     </div>
 </div>
 <script>
-    function openEdit(id, name) { document.getElementById('edit_id').value = id; document.getElementById('edit_name').value = name; openModal('editModal'); }
+    const existingDepts = <?= json_encode(array_map(function($r){ return strtolower(trim($r['department_name'])); }, $rows)) ?>;
+    function checkDeptDuplicate(input, excludeName) {
+        const val = input.value.trim().toLowerCase();
+        if (!val) { input.setCustomValidity(''); return; }
+        const isDup = existingDepts.some(d => d === val && d !== (excludeName || '').toLowerCase());
+        input.setCustomValidity(isDup ? 'This department already exists.' : '');
+    }
+    document.querySelector('#addModal input[name="department_name"]')?.addEventListener('input', function() { checkDeptDuplicate(this, ''); });
+    function openEdit(id, name) { document.getElementById('edit_id').value = id; document.getElementById('edit_name').value = name; openModal('editModal');
+        const editInput = document.querySelector('#editModal input[name="department_name"]');
+        editInput.oninput = function() { checkDeptDuplicate(this, name); };
+    }
     function openDelete(id, name) { document.getElementById('delete_id').value = id; document.getElementById('delete_name').textContent = name; openModal('deleteModal'); }
 </script>
 <?php include '../includes/admin_footer.php'; ?>

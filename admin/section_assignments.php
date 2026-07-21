@@ -7,7 +7,7 @@ requireRole('admin');
 $pageTitle = $LANG['assignments_title'] ?? 'Section Assignments';
 $activeMenu = 'assignments';
 
-$sectionList = $conn->query("SELECT s.id, c.course_name, c.course_code, s.section, s.academic_year, COALESCE(sm.semester_name, '') AS semester_name FROM sections s JOIN courses c ON s.course_id=c.id LEFT JOIN semesters sm ON s.semester_id=sm.id ORDER BY c.course_name, s.section")->fetch_all(MYSQLI_ASSOC);
+$sectionList = $conn->query("SELECT s.id, c.course_name, c.course_code, s.section, COALESCE(ay.year_name, '') AS academic_year, COALESCE(sm.semester_name, '') AS semester_name FROM sections s JOIN courses c ON s.course_id=c.id LEFT JOIN academic_years ay ON s.academic_year_id=ay.id LEFT JOIN semesters sm ON s.semester_id=sm.id ORDER BY c.course_name, s.section")->fetch_all(MYSQLI_ASSOC);
 $studentList = $conn->query("SELECT st.id, u.name, st.roll_no FROM students st JOIN users u ON st.user_id=u.id ORDER BY st.roll_no")->fetch_all(MYSQLI_ASSOC);
 $semesterList = $conn->query("SELECT id, semester_name FROM semesters ORDER BY id ASC")->fetch_all(MYSQLI_ASSOC);
 
@@ -130,8 +130,8 @@ if (isset($_GET['ajax_filter']) && $_GET['ajax_filter'] == '1') {
     $af_sem = (int) ($_GET['semester_id'] ?? 0);
     $af_sec = clean($_GET['section_id'] ?? '');
 
-    $q = "SELECT s.id, c.course_name, c.course_code, s.section, s.academic_year, COALESCE(sm.semester_name, '') AS semester_name 
-          FROM sections s JOIN courses c ON s.course_id=c.id LEFT JOIN semesters sm ON s.semester_id=sm.id";
+    $q = "SELECT s.id, c.course_name, c.course_code, s.section, COALESCE(ay.year_name, '') AS academic_year, COALESCE(sm.semester_name, '') AS semester_name 
+          FROM sections s JOIN courses c ON s.course_id=c.id LEFT JOIN academic_years ay ON s.academic_year_id=ay.id LEFT JOIN semesters sm ON s.semester_id=sm.id";
     $w = [];
     $bp = [];
     $bt = "";
@@ -176,10 +176,11 @@ $selectFrom = "FROM section_assignments sa
               JOIN users u ON st.user_id=u.id 
               JOIN sections s ON sa.section_id=s.id 
               JOIN courses c ON s.course_id=c.id
+              LEFT JOIN academic_years ay ON s.academic_year_id=ay.id
               LEFT JOIN semesters sm ON s.semester_id=sm.id";
 
 $selectColumns = "SELECT sa.id AS assignment_id, sa.student_id, u.name, st.roll_no,
-                  c.course_name, c.course_code, s.section, s.academic_year, COALESCE(sm.semester_name, '') AS semester_name,
+                  c.course_name, c.course_code, s.section, COALESCE(ay.year_name, '') AS academic_year, COALESCE(sm.semester_name, '') AS semester_name,
                   s.id AS section_id, sa.created_at";
 
 $whereClauses = [];
@@ -308,7 +309,7 @@ include '../includes/admin_sidebar.php';
                     class="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
             </div>
 
-            <select name="filter_semester"
+            <select name="filter_semester" onchange="this.form.submit()"
                 class="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
                 <option value=""><?= $LANG['all_semesters'] ?? 'All Semesters' ?></option>
                 <?php foreach ($semesterList as $sm): ?>
@@ -318,24 +319,30 @@ include '../includes/admin_sidebar.php';
                 <?php endforeach; ?>
             </select>
 
-            <select name="filter_section"
+            <select name="filter_section" onchange="this.form.submit()"
                 class="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
                 <option value=""><?= $LANG['all_sections'] ?? 'All Sections' ?></option>
-                <option value="A" <?= $filter_section === 'A' ? 'selected' : '' ?>><?= $LANG["section_label"] ?? "Section" ?> A</option>
-                <option value="B" <?= $filter_section === 'B' ? 'selected' : '' ?>><?= $LANG["section_label"] ?? "Section" ?> B</option>
-                <option value="C" <?= $filter_section === 'C' ? 'selected' : '' ?>><?= $LANG["section_label"] ?? "Section" ?> C</option>
+                <option value="A" <?= $filter_section === 'A' ? 'selected' : '' ?>>
+                    <?= $LANG["section_label"] ?? "Section" ?> A
+                </option>
+                <option value="B" <?= $filter_section === 'B' ? 'selected' : '' ?>>
+                    <?= $LANG["section_label"] ?? "Section" ?> B
+                </option>
+                <option value="C" <?= $filter_section === 'C' ? 'selected' : '' ?>>
+                    <?= $LANG["section_label"] ?? "Section" ?> C
+                </option>
                 <!-- <option value="D" <?= $filter_section === 'D' ? 'selected' : '' ?>><?= $LANG["section_label"] ?? "Section" ?> D</option> -->
             </select>
 
             <button type="submit"
-                class="px-4 py-2 text-sm bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-semibold shadow-sm transition-colors whitespace-nowrap"><?= $LANG['filter'] ?? 'Filter' ?></button>
+                class="px-4 py-2 text-sm bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-semibold shadow-sm transition-colors whitespace-nowrap"><?= $LANG['search'] ?? 'Search' ?></button>
             <?php if ($search || $filter_semester || $filter_section): ?>
                 <a href="section_assignments.php"
                     class="px-3 py-2 text-sm border border-slate-200 rounded-xl text-white hover:bg-red-700 bg-red-500 transition-colors whitespace-nowrap"><?= $LANG['clear'] ?? 'Clear' ?></a>
             <?php endif ?>
         </form>
-        <span class="text-xs text-slate-400 shrink-0"><?= $total ?>
-            <?= $LANG['records'] ?? 'student' ?>listed</span>
+        <span class="text-xs text-slate-400 shrink-0"><?= $LANG['total'] ?? 'Total' ?> <?= $total ?>
+            <?= $total !== 1 ? ($LANG['records'] ?? 'records') : ($LANG['record'] ?? 'record') ?></span>
     </div>
 
     <div class="overflow-x-auto">
@@ -391,7 +398,8 @@ include '../includes/admin_sidebar.php';
                             <td class="px-5 py-3">
                                 <?php if ($first): ?>
                                     <span
-                                        class="inline-flex items-center px-2 py-0.5 font-bold rounded-md bg-cyan-50 text-cyan-700 border border-cyan-200/50 text-xs"><?= $LANG["section_label"] ?? "Section" ?> <?= e($first['section']) ?></span>
+                                        class="inline-flex items-center px-2 py-0.5 font-bold rounded-md bg-cyan-50 text-cyan-700 border border-cyan-200/50 text-xs"><?= $LANG["section_label"] ?? "Section" ?>
+                                        <?= e($first['section']) ?></span>
                                 <?php endif; ?>
                             </td>
                             <td class="px-5 py-3 text-xs text-slate-500">
@@ -420,13 +428,13 @@ include '../includes/admin_sidebar.php';
                                     <div class="flex items-center justify-end gap-1.5">
                                         <button type="button"
                                             onclick="openEdit(<?= (int) $course['assignment_id'] ?>, <?= (int) $course['section_id'] ?>, '<?= addslashes(e($row['name'])) ?>')"
-                                            class="px-2.5 py-1.5 text-[11px] font-semibold text-cyan-600 bg-white hover:bg-cyan-50 border border-slate-200 rounded-lg transition-colors shadow-2xs">
-                                            <?= e($LANG['edit'] ?? 'Edit') ?>
+                                            class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 rounded-lg">
+                                            <?= iconSvg('edit', 'w-3.5 h-3.5') ?>            <?= $LANG["edit"] ?? "Edit" ?></button>
                                         </button>
                                         <button type="button"
                                             onclick="openDelete(<?= (int) $course['assignment_id'] ?>, '<?= addslashes(e($row['name'] . ' - ' . $course['course_name'])) ?>')"
-                                            class="px-2.5 py-1.5 text-[11px] font-semibold text-red-600 bg-white hover:bg-red-50 border border-slate-200 rounded-lg transition-colors shadow-2xs">
-                                            <?= e($LANG['delete'] ?? 'Remove') ?>
+                                           class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg">
+                                        <?= iconSvg('trash', 'w-3.5 h-3.5') ?><?= $LANG["delete"] ?? "Delete" ?></button>
                                         </button>
                                     </div>
                                 </td>
@@ -496,22 +504,20 @@ include '../includes/admin_sidebar.php';
                     <label
                         class="block text-sm font-semibold text-slate-700 mb-1"><?= $LANG['select_courses_sections'] ?? 'Select Courses / Sections (၎င်း Range အတွက် တစ်ခါတည်းအပ်မည့် ဘာသာရပ်များ)' ?></label>
                     <div class="flex items-center gap-2 mb-3">
-                        <select id="addFilterSemester"
+                        <select id="addFilterSemester" onchange="filterAddSections()"
                             class="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
                             <option value=""><?= $LANG['all_semesters'] ?? 'All Semesters' ?></option>
                             <?php foreach ($semesterList as $sm): ?>
                                 <option value="<?= $sm['id'] ?>"><?= e(semesterToRoman($sm['semester_name'])) ?></option>
                             <?php endforeach; ?>
                         </select>
-                        <select id="addFilterSection"
+                        <select id="addFilterSection" onchange="filterAddSections()"
                             class="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
                             <option value=""><?= $LANG['all_sections'] ?? 'All Sections' ?></option>
                             <option value="A"><?= $LANG["section_label"] ?? "Section" ?> A</option>
                             <option value="B"><?= $LANG["section_label"] ?? "Section" ?> B</option>
                             <option value="C"><?= $LANG["section_label"] ?? "Section" ?> C</option>
                         </select>
-                        <button type="button" onclick="filterAddSections()"
-                            class="px-4 py-2 text-sm bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-semibold shadow-sm transition-colors whitespace-nowrap"><?= $LANG['filter'] ?? 'Filter' ?></button>
                     </div>
                     <div class="flex items-center justify-between mb-2">
                         <label class="flex items-center gap-2 text-xs text-slate-500 cursor-pointer select-none">
@@ -541,11 +547,11 @@ include '../includes/admin_sidebar.php';
                     </div>
                 </div>
             </div>
-            <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50">
+            <div class="flex gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50">
                 <button type="button" onclick="closeModal('addModal')"
-                    class="px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold btn-cancel rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
                 <button type="submit"
-                    class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm"><?= $LANG['assign_range_process'] ?? 'Assign Range Process' ?></button>
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm"><?= $LANG['assign_range_process'] ?? 'Assign Range Process' ?></button>
             </div>
         </form>
     </div>
@@ -599,11 +605,11 @@ include '../includes/admin_sidebar.php';
                     </div>
                 </div>
             </div>
-            <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
+            <div class="flex gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
                 <button type="button" onclick="closeModal('editModal')"
-                    class="px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold btn-cancel rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
                 <button type="submit"
-                    class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm"><?= $LANG['save_changes'] ?? 'Save Changes' ?></button>
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm"><?= $LANG['save_changes'] ?? 'Save Changes' ?></button>
             </div>
         </form>
     </div>
@@ -628,7 +634,7 @@ include '../includes/admin_sidebar.php';
                 name="id" id="delete_id">
             <div class="flex gap-3 px-6 pb-6">
                 <button type="button" onclick="closeModal('deleteModal')"
-                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold btn-cancel rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
                 <button type="submit"
                     class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl"><?= $LANG['delete'] ?? 'Remove' ?></button>
             </div>
@@ -647,7 +653,7 @@ include '../includes/admin_sidebar.php';
                 <?= $LANG['remove_all_assignments_modal'] ?? 'Remove All Assignments' ?>
             </h3>
             <p class="text-sm text-slate-500 mt-2">
-                <?= $LANG['remove_all_confirm'] ?? 'Are you sure you want to completely clear all course enrollments for' ?>
+                <?= $LANG['remove_all_confirm'] ?? 'Confirm' ?>
                 <strong id="bulk_delete_name" class="text-slate-700"></strong>?
             </p>
         </div>
@@ -657,7 +663,7 @@ include '../includes/admin_sidebar.php';
             <input type="hidden" name="student_id" id="bulk_student_id">
             <div class="flex gap-3 px-6 pb-6">
                 <button type="button" onclick="closeModal('bulkDeleteModal')"
-                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold btn-cancel rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
                 <button type="submit"
                     class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl"><?= $LANG['remove_all_confirm'] ?? 'Remove All' ?></button>
             </div>

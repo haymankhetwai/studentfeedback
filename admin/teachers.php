@@ -11,7 +11,7 @@ $activeMenu = 'teachers';
 $availableUsers = $conn->query("SELECT u.id, u.name, u.email FROM users u WHERE u.role='teacher' AND u.id NOT IN (SELECT user_id FROM teachers) ORDER BY u.name")->fetch_all(MYSQLI_ASSOC);
 $deptList = $conn->query("SELECT id, department_name FROM departments ORDER BY department_name")->fetch_all(MYSQLI_ASSOC);
 
-// ─── POST Handlers ────────────────────────────────────────────
+// --- POST Handlers --------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     $action = $_POST['action'] ?? '';
 
@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     exit;
 }
 
-// ─── Fetch ────────────────────────────────────────────────────
+// --- Fetch ----------------------------------------------------
 $search = clean($_GET['search'] ?? '');
 $perPage = max(10, min(100, (int) ($_GET['per_page'] ?? 10)));
 $page = max(1, (int) ($_GET['page'] ?? 1));
@@ -89,7 +89,8 @@ include '../includes/admin_sidebar.php';
     <div>
         <h2 class="text-xl font-bold text-slate-800"><?= $LANG['teachers_title'] ?? 'Teachers' ?></h2>
         <p class="text-sm text-slate-500 mt-0.5">
-            <?= $LANG['teachers_subtitle'] ?? 'Manage teacher profiles and assignments' ?></p>
+            <?= $LANG['teachers_subtitle'] ?? 'Manage teacher profiles and assignments' ?>
+        </p>
     </div>
     <button onclick="openModal('addModal')"
         class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm shadow-indigo-600/20 transition-all hover:-translate-y-0.5">
@@ -123,13 +124,17 @@ include '../includes/admin_sidebar.php';
                 <tr>
                     <th class="text-left px-5 py-3 text-slate-500 w-12 text-sm font-semibold">#</th>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
-                        <?= $LANG['col_name'] ?? 'Name' ?></th>
+                        <?= $LANG['col_name'] ?? 'Name' ?>
+                    </th>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
-                        <?= $LANG['col_email'] ?? 'Email' ?></th>
+                        <?= $LANG['col_email'] ?? 'Email' ?>
+                    </th>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
-                        <?= $LANG['col_department'] ?? 'Department' ?></th>
+                        <?= $LANG['col_department'] ?? 'Department' ?>
+                    </th>
                     <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">
-                        <?= $LANG['col_actions'] ?? 'Actions' ?></th>
+                        <?= $LANG['col_actions'] ?? 'Actions' ?>
+                    </th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -141,7 +146,8 @@ include '../includes/admin_sidebar.php';
                                 <div class="flex items-center gap-2">
                                     <div
                                         class="w-8 h-8 rounded-full bg-cyan-100 flex items-center justify-center text-xs font-bold text-cyan-700">
-                                        <?= e(avatarInitials($row['name'])) ?></div>
+                                        <?= e(avatarInitials($row['name'])) ?>
+                                    </div>
                                     <span class="text-sm font-medium text-slate-800"><?= e($row['name']) ?></span>
                                 </div>
                             </td>
@@ -152,7 +158,7 @@ include '../includes/admin_sidebar.php';
                             <td class="px-5 py-3 text-right">
                                 <div class="flex items-center justify-end gap-2">
                                     <button onclick="openEdit(<?= $row['id'] ?>,<?= $row['department_id'] ?>)"
-                                        class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-cyan-700 bg-cyan-50 hover:bg-cyan-100 rounded-lg">
+                                        class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 rounded-lg">
                                         <?= iconSvg('edit', 'w-3.5 h-3.5') ?>         <?= $LANG['edit'] ?? 'Edit' ?>
                                     </button>
                                     <button onclick="openDelete(<?= $row['id'] ?>,'<?= addslashes(e($row['name'])) ?>')"
@@ -200,7 +206,7 @@ include '../includes/admin_sidebar.php';
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
                         <option value=""><?= $LANG['choose_user_teacher'] ?? 'Choose user (role=teacher)' ?></option>
                         <?php foreach ($availableUsers as $u): ?>
-                            <option value="<?= $u['id'] ?>"><?= e($u['name']) ?> — <?= e($u['email']) ?></option>
+                            <option value="<?= $u['id'] ?>"><?= e($u['name']) ?> � <?= e($u['email']) ?></option>
                         <?php endforeach ?>
                     </select>
                     <p class="text-xs text-slate-400 mt-1">
@@ -219,11 +225,11 @@ include '../includes/admin_sidebar.php';
                     </select>
                 </div>
             </div>
-            <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
+            <div class="flex gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
                 <button type="button" onclick="closeModal('addModal')"
-                    class="px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold btn-cancel rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
                 <button type="submit"
-                    class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG['add_teacher_btn'] ?? 'Add Teacher' ?></button>
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG['add_teacher_btn'] ?? 'Add Teacher' ?></button>
             </div>
         </form>
     </div>
@@ -253,11 +259,11 @@ include '../includes/admin_sidebar.php';
                     </select>
                 </div>
             </div>
-            <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
+            <div class="flex gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
                 <button type="button" onclick="closeModal('editModal')"
-                    class="px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold btn-cancel rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
                 <button type="submit"
-                    class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG['save'] ?? 'Save Changes' ?></button>
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG['save'] ?? 'Save Changes' ?></button>
             </div>
         </form>
     </div>
@@ -269,18 +275,20 @@ include '../includes/admin_sidebar.php';
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm modal-box">
         <div class="px-6 py-6 text-center">
             <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
-                <?= iconSvg('trash', 'w-7 h-7 text-red-600') ?></div>
+                <?= iconSvg('trash', 'w-7 h-7 text-red-600') ?>
+            </div>
             <h3 class="text-lg font-semibold text-slate-800"><?= $LANG['remove_teacher_modal'] ?? 'Remove Teacher' ?>
             </h3>
             <p class="text-sm text-slate-500 mt-2"><?= $LANG['remove_teacher_confirm'] ?? 'Remove teacher' ?> <strong
-                    id="delete_name" class="text-slate-700"></strong> <?= $LANG["from_system"] ?? "from the system?" ?></p>
+                    id="delete_name" class="text-slate-700"></strong> <?= $LANG["from_system"] ?? "from the system?" ?>
+            </p>
         </div>
         <form method="POST">
             <?= csrfField() ?><input type="hidden" name="action" value="delete"><input type="hidden" name="id"
                 id="delete_id">
             <div class="flex gap-3 px-6 pb-6">
                 <button type="button" onclick="closeModal('deleteModal')"
-                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold btn-cancel rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
                 <button type="submit"
                     class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl"><?= $LANG['delete'] ?? 'Remove' ?></button>
             </div>

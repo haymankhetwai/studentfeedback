@@ -29,7 +29,7 @@ if (!$formId) { header('Location: my_sections.php'); exit; }
 
 // ─── Step 1: Check enrollment only
 $chk = $conn->prepare(
-    "SELECT ff.*, c.course_name, c.course_code, s.section, s.academic_year, sm.semester_name AS semester,
+    "SELECT ff.*, c.course_name, c.course_code, s.section, COALESCE(ay.year_name, '') AS academic_year, sm.semester_name AS semester,
             u.name AS teacher_name
      FROM feedback_forms ff
      JOIN sections s           ON ff.section_id = s.id
@@ -37,6 +37,7 @@ $chk = $conn->prepare(
      JOIN teachers t           ON s.teacher_id  = t.id
      JOIN users u              ON t.user_id     = u.id
      JOIN section_assignments sa ON sa.section_id = s.id
+     LEFT JOIN academic_years ay ON s.academic_year_id = ay.id
      LEFT JOIN semesters sm    ON s.semester_id  = sm.id
      WHERE ff.id = ? AND sa.student_id = ?
      LIMIT 1"
@@ -404,7 +405,7 @@ $initials = avatarInitials($user['name']);
                         </div>
                         
                         <div class="flex items-center gap-4 w-full md:w-auto justify-end">
-                            <a href="my_sections.php" class="px-5 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></a>
+                            <a href="my_sections.php" class="px-5 py-2.5 text-sm font-semibold btn-cancel rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></a>
                             
                             <?php if ($canSubmit): ?>
                             <button type="submit" id="submit-btn"

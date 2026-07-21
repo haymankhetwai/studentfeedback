@@ -113,7 +113,7 @@ if (isset($_GET['ajax_forms']) && $_GET['ajax_forms'] === '1') {
         $ajaxFormTypes .= 'i';
     }
     $ajaxFormWhere = $ajaxFormConds ? 'WHERE ' . implode(' AND ', $ajaxFormConds) : '';
-    $ajaxFormSql = "SELECT ff.id, ff.title, ff.module, ff.academic_year, ff.section_id, ff.academic_year_id, ff.semester_id,
+    $ajaxFormSql = "SELECT ff.id, ff.title, ff.module, ff.section_id, ff.academic_year_id, ff.semester_id,
         ay.year_name AS academic_year_name, sm.semester_name,
         c.course_code, c.course_name, sec.section AS section_name
         FROM feedback_forms ff
@@ -142,7 +142,7 @@ if (isset($_GET['ajax_forms']) && $_GET['ajax_forms'] === '1') {
         if ($f['module'] === 'academic' && !empty($f['course_code'])) {
             $formLabel = ($f['course_code'] ?? '') . ' - ' . ($f['course_name'] ?? '') . ' - Section ' . ($f['section_name'] ?? '');
         } else {
-            $formLabel = ($f['academic_year_name'] ?? $f['academic_year'] ?? '') . ' - ' . ($f['title'] ?? '');
+            $formLabel = ($f['academic_year_name'] ?? '') . ' - ' . ($f['title'] ?? '');
         }
         $formattedForms[] = [
             'id' => (int) $f['id'],
@@ -182,7 +182,7 @@ if ($filterSem) {
     $formTypes .= 'i';
 }
 $formWhere = $formConds ? 'WHERE ' . implode(' AND ', $formConds) : '';
-$formSql = "SELECT ff.id, ff.title, ff.module, ff.academic_year, ff.section_id, ff.academic_year_id, ff.semester_id, ff.university_name, ff.university_campus,
+$formSql = "SELECT ff.id, ff.title, ff.module, ff.section_id, ff.academic_year_id, ff.semester_id, ff.university_name, ff.university_campus,
     ay.year_name AS academic_year_name, sm.semester_name,
     c.course_code, c.course_name, sec.section AS section_name, u.name AS teacher_name
     FROM feedback_forms ff
@@ -290,8 +290,8 @@ if ($loadForm && $formId) {
         $formMeta = [];
         if ($module === 'academic') {
             $formMeta = [
-                'academic_year' => $form['academic_year_name'] ?? $form['academic_year'] ?? '',
-                'semester' => $form['semester_name'] ?? $form['semester'] ?? '',
+                'academic_year' => $form['academic_year_name'] ?? '',
+                'semester' => $form['semester_name'] ?? '',
                 'course_code' => $form['course_code'] ?? '',
                 'course_name' => $form['course_name'] ?? '',
                 'section' => $form['section'] ?? '',
@@ -301,8 +301,8 @@ if ($loadForm && $formId) {
             $formMeta = [
                 'university_name' => $form['university_name'] ?? '',
                 'university_campus' => $form['university_campus'] ?? '',
-                'academic_year' => $form['academic_year_name'] ?? $form['academic_year'] ?? '',
-                'semester' => $form['semester_name'] ?? $form['semester'] ?? '',
+                'academic_year' => $form['academic_year_name'] ?? '',
+                'semester' => $form['semester_name'] ?? '',
                 'module' => $module,
             ];
         }
@@ -803,7 +803,7 @@ include '../includes/admin_sidebar.php';
                         if ($f['module'] === 'academic' && !empty($f['course_code'])) {
                             $formLabel = e($f['course_code']) . ' - ' . e($f['course_name']) . ' - Section ' . e($f['section_name']);
                         } else {
-                            $formLabel = e($f['academic_year_name'] ?? $f['academic_year'] ?? '') . ' - ' . e($f['title']);
+                            $formLabel = e($f['academic_year_name'] ?? '') . ' - ' . e($f['title']);
                         }
                         ?>
                         <option value="<?= $f['id'] ?>" <?= $formId == $f['id'] ? 'selected' : '' ?>>
@@ -818,7 +818,7 @@ include '../includes/admin_sidebar.php';
                 <button type="submit"
                     class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-all h-[42px]"><?= $LANG["search"] ?? "Search" ?></button>
                 <a href="results_all.php"
-                    class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-semibold rounded-xl transition-all h-[42px] inline-flex items-center"><?= $LANG["reset"] ?? "Reset" ?></a>
+                    class="px-5 py-2.5 btn-reset text-sm font-semibold rounded-xl transition-all h-[42px] inline-flex items-center"><?= $LANG["reset"] ?? "Reset" ?></a>
             </div>
         </div>
     </form>

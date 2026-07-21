@@ -580,7 +580,7 @@ include '../includes/admin_sidebar.php';
 
 <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
     <div class="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center gap-3">
-        <form method="GET" class="flex flex-wrap items-center gap-2 flex-1">
+        <form method="GET" id="userSearchForm" class="flex flex-wrap items-center gap-2 flex-1">
             <div class="relative">
                 <span
                     class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><?= iconSvg('search', 'w-4 h-4') ?></span>
@@ -588,7 +588,7 @@ include '../includes/admin_sidebar.php';
                     placeholder="<?= $LANG['search_users'] ?? 'Search users...' ?>"
                     class="pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl w-48 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
             </div>
-            <select name="role"
+            <select name="role" onchange="this.form.submit()"
                 class="border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-600 focus:border-cyan-500 outline-none bg-white">
                 <option value=""><?= $LANG['all_roles'] ?? 'All Roles' ?></option>
                 <option value="admin" <?= $roleF === 'admin' ? 'selected' : '' ?>><?= $LANG['admin_role'] ?? 'Admin' ?>
@@ -603,9 +603,9 @@ include '../includes/admin_sidebar.php';
             <button type="submit"
                 class="px-3 py-2 text-sm bg-indigo-600 text-white rounded-xl hover:bg-indigo-700"><?= $LANG["search"] ?? "Search" ?></button>
             <?php if ($search || $roleF): ?><a href="users.php"
-                    class="px-3 py-2 text-sm text-white border border-slate-200 rounded-xl  hover:bg-red-700 bg-red-500"><?= $LANG['clear'] ?? 'Clear' ?></a><?php endif ?>
+                    class="px-3 py-2 text-sm text-white border border-slate-200 rounded-xl hover:bg-red-700 bg-red-500"><?= $LANG['clear'] ?? 'Clear' ?></a><?php endif ?>
         </form>
-        <span class="text-xs text-slate-400"><?= $total ?>
+        <span class="text-xs text-slate-400"><?= $LANG['total'] ?? 'Total' ?> <?= $total ?>
             <?= $total !== 1 ? ($LANG['records'] ?? 'records') : ($LANG['record'] ?? 'record') ?></span>
     </div>
 
@@ -780,11 +780,11 @@ include '../includes/admin_sidebar.php';
                     <?php endif ?>
                 </div>
             </div>
-            <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
+            <div class="flex gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
                 <button type="button" onclick="closeModal('addModal')"
-                    class="px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold btn-cancel rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
                 <button type="submit"
-                    class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG['create_user'] ?? 'Create User' ?></button>
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG['create_user'] ?? 'Create User' ?></button>
             </div>
         </form>
     </div>
@@ -875,11 +875,11 @@ include '../includes/admin_sidebar.php';
                     <?php endif ?>
                 </div>
             </div>
-            <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
+            <div class="flex gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
                 <button type="button" onclick="closeModal('editModal')"
-                    class="px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold btn-cancel rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
                 <button type="submit"
-                    class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG['save_changes_btn'] ?? 'Save Changes' ?></button>
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG['save_changes_btn'] ?? 'Save Changes' ?></button>
             </div>
         </form>
     </div>
@@ -904,7 +904,7 @@ include '../includes/admin_sidebar.php';
                 id="delete_id">
             <div class="flex gap-3 px-6 pb-6">
                 <button type="button" onclick="closeModal('deleteModal')"
-                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold btn-cancel rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
                 <button type="submit"
                     class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl"><?= $LANG['delete'] ?? 'Delete' ?></button>
             </div>
@@ -946,11 +946,11 @@ include '../includes/admin_sidebar.php';
                     </a>
                 </div> -->
             </div>
-            <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
+            <div class="flex gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
                 <button type="button" onclick="closeModal('importModal')"
-                    class="px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold btn-cancel rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
                 <button type="submit" id="importBtn"
-                    class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl inline-flex items-center gap-2">
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl inline-flex items-center justify-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                         stroke="currentColor" class="w-4 h-4">
                         <path stroke-linecap="round" stroke-linejoin="round"

@@ -283,7 +283,7 @@ $initials = avatarInitials($user['name']);
                 <div class="text-center pb-4 mb-6 border-b border-slate-100">
                    
                     <h2 class="text-lg md:text-xl font-bold text-slate-950 mb-1"><?= e($form['university_name'] ?? $LANG['university_name'] ?? 'University of Computer Studies (Hinthada)') ?></h2>
-                    <p class="text-md font-black text-slate-900 mb-1"><?= $LANG['academic_year_label'] ?? 'Academic Year' ?>: <?= e($form['academic_year'] ?? $form['academic_year_name'] ?? '') ?></p>
+                    <p class="text-md font-black text-slate-900 mb-1"><?= $LANG['academic_year_label'] ?? 'Academic Year' ?>: <?= e($form['academic_year_name'] ?? '') ?></p>
                     <p class="text-md font-black text-slate-900 mt-1 tracking-wider"><?= e($form['university_campus'] ?? $LANG['university_campus'] ?? 'University Campus') ?></p>
                     <h3 class="text-md font-black text-slate-900 mt-1"><?= e($form['title']) ?></h3>
                     <p class="text-xs text-slate-500 mt-1"><?= $LANG['feedback_period'] ?? 'Feedback Period' ?>: <?= formatDateTime($form['start_date']) ?> — <?= formatDateTime($form['end_date']) ?></p>
@@ -295,7 +295,7 @@ $initials = avatarInitials($user['name']);
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                         <div>
                             <p class="text-[11px] font-semibold text-slate-400 uppercase">Academic Year</p>
-                            <p class="text-sm font-bold text-slate-800"><?= e($form['academic_year'] ?? $form['academic_year_name'] ?? '—') ?></p>
+                            <p class="text-sm font-bold text-slate-800"><?= e($form['academic_year_name'] ?? '—') ?></p>
                         </div>
                         <div>
                             <p class="text-[11px] font-semibold text-slate-400 uppercase">Semester</p>
@@ -414,7 +414,7 @@ $initials = avatarInitials($user['name']);
                     <?php endif ?>
 
                     <div class="pt-8 border-t border-slate-200 flex items-center justify-end gap-3">
-                        <a href="index.php" class="px-5 py-2 text-xs font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></a>
+                        <a href="index.php" class="px-5 py-2 text-xs font-semibold btn-cancel rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></a>
                         
                         <?php if ($canSubmit): ?>
                         <button type="submit" id="submit-btn"

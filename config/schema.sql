@@ -67,18 +67,14 @@ CREATE TABLE IF NOT EXISTS academic_years (
 
 CREATE TABLE IF NOT EXISTS semesters (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    semester_no INT NOT NULL,
     semester_name VARCHAR(50) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_semester_no (semester_no)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS sections (
     id INT AUTO_INCREMENT PRIMARY KEY,
     course_id INT NOT NULL,
     teacher_id INT NOT NULL,
-    academic_year VARCHAR(20) NOT NULL,
-    semester VARCHAR(50) DEFAULT NULL,
     academic_year_id INT DEFAULT NULL,
     semester_id INT DEFAULT NULL,
     section VARCHAR(20) NOT NULL,
@@ -123,7 +119,6 @@ CREATE TABLE IF NOT EXISTS feedback_forms (
     id INT AUTO_INCREMENT PRIMARY KEY,
     module ENUM('academic','student_affairs','administration') NOT NULL DEFAULT 'academic',
     section_id INT DEFAULT NULL,
-    academic_year VARCHAR(20) DEFAULT NULL,
     academic_year_id INT DEFAULT NULL,
     semester_id INT DEFAULT NULL,
     question_set_id INT DEFAULT NULL,

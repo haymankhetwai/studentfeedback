@@ -121,7 +121,7 @@ if ($studentId) {
 // ─── Academic Pending Forms (active, not submitted — for card listing) ─────────
 $pendingForms = [];
 if ($studentId) {
-    $rs = $conn->query("SELECT ff.id AS form_id, ff.title, ff.end_date, c.course_name, s.section, u.name AS teacher_name, COALESCE(ay.year_name, s.academic_year) AS display_year, sm.semester_name AS display_semester FROM feedback_forms ff JOIN sections s ON ff.section_id=s.id JOIN courses c ON s.course_id=c.id JOIN teachers t ON s.teacher_id=t.id JOIN users u ON t.user_id=u.id JOIN section_assignments sa ON sa.section_id=s.id LEFT JOIN academic_years ay ON s.academic_year_id=ay.id LEFT JOIN semesters sm ON s.semester_id=sm.id WHERE sa.student_id=$studentId AND ff.module='academic' AND ff.id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=$studentId) ORDER BY ff.end_date ASC LIMIT 4");
+    $rs = $conn->query("SELECT ff.id AS form_id, ff.title, ff.end_date, c.course_name, s.section, u.name AS teacher_name, COALESCE(ay.year_name, '') AS display_year, sm.semester_name AS display_semester FROM feedback_forms ff JOIN sections s ON ff.section_id=s.id JOIN courses c ON s.course_id=c.id JOIN teachers t ON s.teacher_id=t.id JOIN users u ON t.user_id=u.id JOIN section_assignments sa ON sa.section_id=s.id LEFT JOIN academic_years ay ON s.academic_year_id=ay.id LEFT JOIN semesters sm ON s.semester_id=sm.id WHERE sa.student_id=$studentId AND ff.module='academic' AND ff.id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=$studentId) ORDER BY ff.end_date ASC LIMIT 4");
     $pendingForms = $rs->fetch_all(MYSQLI_ASSOC);
 }
 

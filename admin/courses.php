@@ -116,7 +116,7 @@ include '../includes/admin_sidebar.php';
                         <?= $LANG['course_code'] ?? 'Code' ?></th>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
                         <?= $LANG['course_name'] ?? 'Course' ?></th>
-                    <th class="text-right px-5 py-3 text-slate-500 text-sm font-semibold">
+                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">
                         <?= $LANG['col_actions'] ?? 'Actions' ?></th>
                 </tr>
             </thead>
@@ -130,10 +130,10 @@ include '../includes/admin_sidebar.php';
                             </td>
                             <td class="px-5 py-3 text-sm font-medium text-slate-800"><?= e($row['course_name']) ?></td>
                             <td class="px-5 py-3 text-right">
-                                <div class="flex items-center justify-end gap-2">
+                                <div class="flex items-center justify-center gap-2">
                                     <button
                                         onclick="openEdit(<?= $row['id'] ?>,'<?= addslashes(e($row['course_code'])) ?>','<?= addslashes(e($row['course_name'])) ?>')"
-                                        class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-cyan-700 bg-cyan-50 hover:bg-cyan-100 rounded-lg">
+                                        class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 rounded-lg">
                                         <?= iconSvg('edit', 'w-3.5 h-3.5') ?>         <?= $LANG['edit'] ?? 'Edit' ?>
                                     </button>
                                     <button onclick="openDelete(<?= $row['id'] ?>,'<?= addslashes(e($row['course_name'])) ?>')"
@@ -185,11 +185,11 @@ include '../includes/admin_sidebar.php';
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
                 </div>
             </div>
-            <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
+            <div class="flex gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
                 <button type="button" onclick="closeModal('addModal')"
-                    class="px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold btn-cancel rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
                 <button type="submit"
-                    class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG['add_course_btn'] ?? 'Add Course' ?></button>
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG['add_course_btn'] ?? 'Add Course' ?></button>
             </div>
         </form>
     </div>
@@ -218,11 +218,11 @@ include '../includes/admin_sidebar.php';
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
                 </div>
             </div>
-            <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
+            <div class="flex gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
                 <button type="button" onclick="closeModal('editModal')"
-                    class="px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold btn-cancel rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
                 <button type="submit"
-                    class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG['save'] ?? 'Save' ?></button>
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG['save'] ?? 'Save' ?></button>
             </div>
         </form>
     </div>
@@ -244,7 +244,7 @@ include '../includes/admin_sidebar.php';
                 name="id" id="delete_id">
             <div class="flex gap-3 px-6 pb-6">
                 <button type="button" onclick="closeModal('deleteModal')"
-                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold btn-cancel rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
                 <button type="submit"
                     class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl"><?= $LANG['delete'] ?? 'Delete' ?></button>
             </div>

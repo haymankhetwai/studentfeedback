@@ -107,7 +107,7 @@ $semesterFilter = clean($_GET['semester'] ?? '');
 // My sections list
 $mySections = [];
 if ($teacherId) {
-    $rs = $conn->query("SELECT s.id, c.course_name, c.course_code, s.section, COALESCE(ay.year_name, s.academic_year) AS display_year, sm.semester_name AS display_semester, sm.semester_name AS semester_value FROM sections s JOIN courses c ON s.course_id=c.id LEFT JOIN academic_years ay ON s.academic_year_id=ay.id LEFT JOIN semesters sm ON s.semester_id=sm.id WHERE s.teacher_id=$teacherId ORDER BY s.id DESC");
+    $rs = $conn->query("SELECT s.id, c.course_name, c.course_code, s.section, COALESCE(ay.year_name, '') AS display_year, sm.semester_name AS display_semester, sm.semester_name AS semester_value FROM sections s JOIN courses c ON s.course_id=c.id LEFT JOIN academic_years ay ON s.academic_year_id=ay.id LEFT JOIN semesters sm ON s.semester_id=sm.id WHERE s.teacher_id=$teacherId ORDER BY s.id DESC");
     $mySections = $rs->fetch_all(MYSQLI_ASSOC);
 }
 
@@ -178,7 +178,7 @@ $surveyResults = [];
 $submissionCount = 0;
 
 if ($formId && $teacherId) {
-    $rf = $conn->prepare("SELECT ff.*, c.course_name, c.course_code, s.section, COALESCE(ay.year_name, s.academic_year) AS display_year, sm.semester_name AS display_semester, u.name AS teacher_name FROM feedback_forms ff JOIN sections s ON ff.section_id=s.id JOIN courses c ON s.course_id=c.id JOIN teachers t ON s.teacher_id=t.id JOIN users u ON t.user_id=u.id LEFT JOIN academic_years ay ON s.academic_year_id=ay.id LEFT JOIN semesters sm ON s.semester_id=sm.id WHERE ff.id=? AND s.teacher_id=?");
+    $rf = $conn->prepare("SELECT ff.*, c.course_name, c.course_code, s.section, COALESCE(ay.year_name, '') AS display_year, sm.semester_name AS display_semester, u.name AS teacher_name FROM feedback_forms ff JOIN sections s ON ff.section_id=s.id JOIN courses c ON s.course_id=c.id JOIN teachers t ON s.teacher_id=t.id JOIN users u ON t.user_id=u.id LEFT JOIN academic_years ay ON s.academic_year_id=ay.id LEFT JOIN semesters sm ON s.semester_id=sm.id WHERE ff.id=? AND s.teacher_id=?");
     $rf->bind_param('ii', $formId, $teacherId);
     $rf->execute();
     $form = $rf->get_result()->fetch_assoc();
@@ -189,7 +189,7 @@ if ($formId && $teacherId) {
     $formMeta = [];
     if ($form && $module === 'academic') {
         $formMeta = [
-            'academic_year' => $form['display_year'] ?? $form['academic_year'] ?? '',
+            'academic_year' => $form['display_year'] ?? '',
             'semester' => $form['display_semester'] ?? '',
             'course_code' => $form['course_code'] ?? '',
             'course_name' => $form['course_name'] ?? '',

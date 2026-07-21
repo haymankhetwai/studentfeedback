@@ -10,9 +10,16 @@ $activeMenu= $LANG['semesters_title'] ?? 'Semesters';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     $action = $_POST['action'] ?? '';
     if ($action === 'add') {
-        $semesterName = clean($_POST['semester_name'] ?? '');
-        if ($semesterName) {
-            $chk = $conn->prepare("SELECT 1 FROM semesters WHERE semester_name=?");
+        $semesterName = trim(clean($_POST['semester_name'] ?? ''));
+        if (!$semesterName) {
+            setFlash('error', 'Please enter a semester name.');
+        } elseif (!preg_match('/^Semester\s+(I{1,3}|IV|V|VI{0,3}|IX|X{0,3})$/i', $semesterName)) {
+            setFlash('error', 'Invalid format. Use Roman numeral format, e.g. Semester I, Semester II, Semester III.');
+        } else {
+            // Normalize: "Semester" + space + uppercase Roman numeral
+            preg_match('/^Semester\s+(.+)$/i', $semesterName, $m);
+            $semesterName = 'Semester ' . strtoupper(trim($m[1]));
+            $chk = $conn->prepare("SELECT 1 FROM semesters WHERE LOWER(TRIM(semester_name))=LOWER(?)");
             $chk->bind_param('s', $semesterName);
             $chk->execute();
             if ($chk->get_result()->num_rows > 0) {
@@ -24,26 +31,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                 $stmt->close();
             }
             $chk->close();
-        } else {
-            setFlash('error', 'Please enter a semester name.');
         }
     }
     if ($action === 'edit') {
         $id = (int)($_POST['id'] ?? 0);
-        $semesterName = clean($_POST['semester_name'] ?? '');
+        $semesterName = trim(clean($_POST['semester_name'] ?? ''));
         if ($id && $semesterName) {
-            $chk = $conn->prepare("SELECT 1 FROM semesters WHERE semester_name=? AND id!=?");
-            $chk->bind_param('si', $semesterName, $id);
-            $chk->execute();
-            if ($chk->get_result()->num_rows > 0) {
-                setFlash('error', 'This semester name already exists.');
+            if (!preg_match('/^Semester\s+(I{1,3}|IV|V|VI{0,3}|IX|X{0,3})$/i', $semesterName)) {
+                setFlash('error', 'Invalid format. Use Roman numeral format, e.g. Semester I, Semester II, Semester III.');
             } else {
-                $stmt = $conn->prepare("UPDATE semesters SET semester_name=? WHERE id=?");
-                $stmt->bind_param('si', $semesterName, $id);
-                $stmt->execute() ? setFlash('success', 'Semester updated.') : setFlash('error', 'Update failed.');
-                $stmt->close();
+                preg_match('/^Semester\s+(.+)$/i', $semesterName, $m);
+                $semesterName = 'Semester ' . strtoupper(trim($m[1]));
+                $chk = $conn->prepare("SELECT 1 FROM semesters WHERE LOWER(TRIM(semester_name))=LOWER(?) AND id!=?");
+                $chk->bind_param('si', $semesterName, $id);
+                $chk->execute();
+                if ($chk->get_result()->num_rows > 0) {
+                    setFlash('error', 'This semester name already exists.');
+                } else {
+                    $stmt = $conn->prepare("UPDATE semesters SET semester_name=? WHERE id=?");
+                    $stmt->bind_param('si', $semesterName, $id);
+                    $stmt->execute() ? setFlash('success', 'Semester updated.') : setFlash('error', 'Update failed.');
+                    $stmt->close();
+                }
+                $chk->close();
             }
-            $chk->close();
         }
     }
     if ($action === 'delete') {
@@ -173,7 +184,7 @@ include '../includes/admin_sidebar.php';
                     <td class="px-5 py-3 text-center">
                         <div class="flex items-center justify-center gap-2">
                             <button onclick="openEdit(<?= htmlspecialchars(json_encode($row), ENT_QUOTES) ?>)"
-                                class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg">
+                                class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 rounded-lg">
                                 <?= iconSvg('edit', 'w-3.5 h-3.5') ?><?= $LANG["edit"] ?? "Edit" ?></button>
                             <button onclick="openDelete(<?= $row['id'] ?>, '<?= e($row['semester_name']) ?>')"
                                 class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg">
@@ -204,14 +215,16 @@ include '../includes/admin_sidebar.php';
             <div class="px-6 py-5 space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG["semester_name_label"] ?? "Semester Name" ?> <span class="text-red-500">*</span></label>
-                    <input type="text" name="semester_name" required placeholder="e.g. Semester I"
+                    <input type="text" name="semester_name" id="add_semester_name" required placeholder="e.g. Semester I"
+                        pattern="^Semester\s+(I{1,3}|IV|V|VI{0,3}|IX|X{0,3})$"
+                        title="Use Roman numeral format: Semester I, Semester II, Semester III, etc."
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none">
                     <p class="mt-1 text-xs text-slate-400">Use Roman numeral format (e.g. Semester I, Semester II, ...)</p>
                 </div>
             </div>
-            <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
-                <button type="button" onclick="closeModal('addModal')" class="px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
-                <button type="submit" class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG["add_semester"] ?? "Add Semester" ?></button>
+            <div class="flex gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
+                <button type="button" onclick="closeModal('addModal')" class="flex-1 px-4 py-2.5 text-sm font-semibold btn-cancel rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
+                <button type="submit" class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG["add_semester"] ?? "Add Semester" ?></button>
             </div>
         </form>
     </div>
@@ -229,12 +242,15 @@ include '../includes/admin_sidebar.php';
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG["semester_name_label"] ?? "Semester Name" ?></label>
                     <input type="text" name="semester_name" id="edit_semester_name" required
+                        pattern="^Semester\s+(I{1,3}|IV|V|VI{0,3}|IX|X{0,3})$"
+                        title="Use Roman numeral format: Semester I, Semester II, Semester III, etc."
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none">
+                    <p class="mt-1 text-xs text-slate-400">Use Roman numeral format (e.g. Semester I, Semester II, ...)</p>
                 </div>
             </div>
-            <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
-                <button type="button" onclick="closeModal('editModal')" class="px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
-                <button type="submit" class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG['save'] ?? 'Save' ?></button>
+            <div class="flex gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
+                <button type="button" onclick="closeModal('editModal')" class="flex-1 px-4 py-2.5 text-sm font-semibold btn-cancel rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
+                <button type="submit" class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG['save'] ?? 'Save' ?></button>
             </div>
         </form>
     </div>
@@ -250,7 +266,7 @@ include '../includes/admin_sidebar.php';
         </div>
         <form method="POST"><?= csrfField() ?><input type="hidden" name="action" value="delete"><input type="hidden" name="id" id="delete_id">
             <div class="flex gap-3 px-6 pb-6">
-                <button type="button" onclick="closeModal('deleteModal')" class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-700 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
+                <button type="button" onclick="closeModal('deleteModal')" class="flex-1 px-4 py-2.5 text-sm font-semibold btn-cancel rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
                 <button type="submit" class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl"><?= $LANG['delete'] ?? 'Delete' ?></button>
             </div>
         </form>
@@ -258,6 +274,18 @@ include '../includes/admin_sidebar.php';
 </div>
 
 <script>
+const semesterRegex = /^Semester\s+(I{1,3}|IV|V|VI{0,3}|IX|X{0,3})$/i;
+function validateSemesterInput(input) {
+    const val = input.value.trim();
+    if (!val) return;
+    if (!semesterRegex.test(val)) {
+        input.setCustomValidity('Use Roman numeral format: Semester I, Semester II, Semester III, etc.');
+    } else {
+        input.setCustomValidity('');
+    }
+}
+document.getElementById('add_semester_name')?.addEventListener('input', function() { validateSemesterInput(this); });
+document.getElementById('edit_semester_name')?.addEventListener('input', function() { validateSemesterInput(this); });
 function openEdit(row) {
     document.getElementById('edit_id').value = row.id;
     document.getElementById('edit_semester_name').value = row.semester_name;
