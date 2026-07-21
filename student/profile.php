@@ -170,6 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         if ($stmt->execute()) {
             $_SESSION['name'] = $name;
             $_SESSION['email'] = $email;
+            $_SESSION['profile_image'] = $profileImage;
             setFlash('success', $LANG['flash_profile_updated'] ?? 'Profile updated successfully.');
         } else {
             setFlash('error', $LANG['flash_profile_failed'] ?? 'Failed to update profile.');

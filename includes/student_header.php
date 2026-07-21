@@ -2,9 +2,11 @@
 /**
  * Student Page Top Header Bar
  * Include this AFTER the <div class="flex-1 flex flex-col"> wrapper
- * Requires: $pageTitle, $initials to be set, session started
+ * Requires: $pageTitle, session started
  */
 $currentLang = $_SESSION['lang'] ?? 'en';
+$user      = getCurrentUser();
+$initials  = avatarInitials($user['name']);
 ?>
 <header class="bg-white border-b border-slate-200 px-4 lg:px-6 py-3.5 flex items-center gap-4 sticky top-0 z-20 shadow-sm">
     <!-- Hamburger (mobile) -->
@@ -35,9 +37,14 @@ $currentLang = $_SESSION['lang'] ?? 'en';
         <!-- Profile -->
         <a href="/studentfeedbackucsh/student/profile.php"
            class="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-cyan-50/60 transition-colors">
-            <div class="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold text-white">
-                <?= e($initials) ?>
-            </div>
+            <?php if (!empty($user['profile_image'])): ?>
+                <img src="/studentfeedbackucsh/<?= e($user['profile_image']) ?>" alt="Profile"
+                    class="w-7 h-7 rounded-full object-cover">
+            <?php else: ?>
+                <div class="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold text-white">
+                    <?= e($initials) ?>
+                </div>
+            <?php endif; ?>
             <span class="hidden md:block text-sm font-medium text-slate-700"><?= e($user['name']) ?></span>
         </a>
     </div>

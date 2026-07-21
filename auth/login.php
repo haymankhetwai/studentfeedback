@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
 
     if ($email && $password) {
-        $stmt = $conn->prepare("SELECT id, name, email, username, password, role FROM users WHERE email = ? LIMIT 1");
+        $stmt = $conn->prepare("SELECT id, name, email, username, password, role, profile_image FROM users WHERE email = ? LIMIT 1");
         $stmt->bind_param('s', $email);
         $stmt->execute();
         $user = $stmt->get_result()->fetch_assoc();
