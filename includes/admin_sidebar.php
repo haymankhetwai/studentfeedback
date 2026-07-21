@@ -39,9 +39,13 @@ $nav = [
     <div class="flex items-center gap-3 px-5 py-5 border-b border-white/15">
         <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shadow-lg flex-shrink-0">
             <?= iconSvg('academic', 'w-5 h-5 text-blue-700') ?>
+            <!-- <img src="assets/uploads/profiles/image.png" alt="ucsh_logo" class="object-contain drop-shadow-2xl"> -->
         </div>
+        <!-- <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+            <img src="assets/uploads/profiles/image.png" alt="ucsh_logo" class="object-contain rounded-lg">
+        </div> -->
         <div>
-            <p class="text-sm font-bold leading-tight"><?= $LANG['admin_portal'] ?? 'SFMS Admin' ?></p>
+            <p class="text-lg font-bold leading-tight"><?= $LANG['admin_portal'] ?? 'SFMS Admin' ?></p>
             <p class="text-[12px] text-white/70 leading-tight"><?= $LANG['admin_portal_sub'] ?? 'Feedback Management' ?>
             </p>
         </div>
@@ -82,8 +86,8 @@ $nav = [
                 $isActive = ($activeMenu === $item['key']);
                 $indent = ($item['indent'] ?? false) ? 'pl-4' : 'pl-3';
                 $activeCs = $isActive
-                    ? 'bg-white/20 text-white font-semibold'
-                    : 'text-white/80 hover:bg-white/10 hover:text-white';
+                    ? 'bg-white/40 text-white font-semibold'
+                    : 'text-white/80 hover:bg-white/40 hover:text-white';
                 ?>
                     <a href="<?= $item['href'] ?>"
                         class="flex items-center gap-3 <?= $indent ?> pr-3 py-2.5 rounded-xl text-[16px] transition-all duration-150 <?= $activeCs ?>">

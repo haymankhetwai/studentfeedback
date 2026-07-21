@@ -31,7 +31,7 @@ if ($studentId) {
        c.course_name,
        c.course_code,
        s.section,
-       COALESCE(ay.year_name, s.academic_year) AS display_year,
+       COALESCE(ay.year_name, '') AS display_year,
        sm.semester_name AS display_semester,
        ff.start_date,
        ff.end_date

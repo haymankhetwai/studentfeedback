@@ -32,7 +32,7 @@ $submissionCount = $teacherId ? (int) $conn->query("SELECT COUNT(*) AS c FROM fe
 // My sections
 $sections = [];
 if ($teacherId) {
-    $rs = $conn->query("SELECT s.*, c.course_name, c.course_code, COALESCE(ay.year_name, s.academic_year) AS display_year, sm.semester_name AS display_semester, (SELECT COUNT(*) FROM section_assignments sa WHERE sa.section_id=s.id) AS student_count, (SELECT COUNT(*) FROM feedback_forms ff WHERE ff.section_id=s.id AND ff.start_date<=NOW() AND ff.end_date>=NOW()) AS active_forms FROM sections s JOIN courses c ON s.course_id=c.id LEFT JOIN academic_years ay ON s.academic_year_id=ay.id LEFT JOIN semesters sm ON s.semester_id=sm.id WHERE s.teacher_id=$teacherId ORDER BY s.id DESC LIMIT 5");
+    $rs = $conn->query("SELECT s.*, c.course_name, c.course_code, COALESCE(ay.year_name, '') AS display_year, sm.semester_name AS display_semester, (SELECT COUNT(*) FROM section_assignments sa WHERE sa.section_id=s.id) AS student_count, (SELECT COUNT(*) FROM feedback_forms ff WHERE ff.section_id=s.id AND ff.start_date<=NOW() AND ff.end_date>=NOW()) AS active_forms FROM sections s JOIN courses c ON s.course_id=c.id LEFT JOIN academic_years ay ON s.academic_year_id=ay.id LEFT JOIN semesters sm ON s.semester_id=sm.id WHERE s.teacher_id=$teacherId ORDER BY s.id DESC LIMIT 5");
     $sections = $rs->fetch_all(MYSQLI_ASSOC);
 }
 

@@ -1,6 +1,6 @@
 <?php
 // ============================================================
-// Admin — Academic Trend Analysis Page
+// Admin � Academic Trend Analysis Page
 // ============================================================
 // Admins can analyze any teacher's feedback trends across
 // multiple Academic Years. Filters: Teacher, Course.
@@ -17,7 +17,7 @@ requireRole('admin');
 $pageTitle  = $LANG['academic_trend_analysis'] ?? 'Academic Trend Analysis';
 $activeMenu = 'trend_academic';
 
-// ─── Filters ────────────────────────────────────────────────
+// --- Filters ------------------------------------------------
 $teacherId = (int) ($_GET['teacher_id'] ?? 0);
 $courseId   = (int) ($_GET['course_id'] ?? 0);
 
@@ -25,7 +25,7 @@ $courseId   = (int) ($_GET['course_id'] ?? 0);
 $teachers = getTrendTeachers($conn);
 $courses  = getTrendCourses($conn, $teacherId ?: null);
 
-// ─── Trend Data (only if both teacher and course selected) ──
+// --- Trend Data (only if both teacher and course selected) --
 $trendData     = [];
 $questionTrend = [];
 $surveyTrend   = [];
@@ -70,7 +70,7 @@ if ($teacherId) {
     }
 }
 
-// ─── Page Rendering ─────────────────────────────────────────
+// --- Page Rendering -----------------------------------------
 include '../includes/admin_header.php';
 include '../includes/admin_sidebar.php';
 ?>
@@ -78,11 +78,11 @@ include '../includes/admin_sidebar.php';
 <!-- Chart.js CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 
-<!-- ─── Page Header ──────────────────────────────────────────── -->
+<!-- --- Page Header -------------------------------------------- -->
 <div class="mb-6">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h2 class="text-2xl font-bold text-slate-800">📊 <?= e($pageTitle) ?></h2>
+            <h2 class="text-2xl font-bold text-slate-800">?? <?= e($pageTitle) ?></h2>
             <p class="text-sm text-slate-500 mt-1">
                 <?= $LANG['academic_trend_desc'] ?? 'Compare teacher feedback performance across Academic Years' ?>
             </p>
@@ -90,7 +90,7 @@ include '../includes/admin_sidebar.php';
     </div>
 </div>
 
-<!-- ─── Filters ──────────────────────────────────────────────── -->
+<!-- --- Filters ------------------------------------------------ -->
 <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-5 mb-6">
     <div class="flex flex-wrap items-end gap-4">
         <!-- Teacher Filter -->
@@ -101,7 +101,7 @@ include '../includes/admin_sidebar.php';
             <select id="trendTeacherFilter"
                 onchange="var c=document.getElementById('trendCourseFilter'); window.location.href='trend_academic.php' + (this.value ? '?teacher_id=' + this.value : '') + (c && c.value ? (this.value ? '&' : '?') + 'course_id=' + c.value : '')"
                 class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
-                <option value=""><?= $LANG['select_teacher'] ?? '— Select Teacher —' ?></option>
+                <option value=""><?= $LANG['select_teacher'] ?? '� Select Teacher �' ?></option>
                 <?php foreach ($teachers as $t): ?>
                     <option value="<?= (int) $t['id'] ?>" <?= $teacherId === (int) $t['id'] ? 'selected' : '' ?>>
                         <?= e($t['name']) ?>
@@ -120,7 +120,7 @@ include '../includes/admin_sidebar.php';
                 <option value=""><?= $LANG['all_courses'] ?? 'All Courses' ?></option>
                 <?php foreach ($courses as $c): ?>
                     <option value="<?= (int) $c['id'] ?>" <?= $courseId === (int) $c['id'] ? 'selected' : '' ?>>
-                        <?= e($c['course_code']) ?> — <?= e($c['course_name']) ?>
+                        <?= e($c['course_code']) ?> � <?= e($c['course_name']) ?>
                     </option>
                 <?php endforeach; ?>
             </select>
@@ -136,9 +136,9 @@ include '../includes/admin_sidebar.php';
 </div>
 
 <?php if (!$teacherId || !$courseId): ?>
-    <!-- ─── Select Both Filters Prompt ──────────────────────── -->
+    <!-- --- Select Both Filters Prompt ------------------------ -->
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-12 text-center">
-        <div class="text-5xl mb-4">📊</div>
+        <div class="text-5xl mb-4">??</div>
         <h3 class="text-lg font-semibold text-slate-700 mb-2">
             <?= $LANG['select_both_prompt'] ?? 'Please select both a Teacher and a Course to view the Trend Analysis.' ?>
         </h3>
@@ -148,9 +148,9 @@ include '../includes/admin_sidebar.php';
     </div>
 
 <?php elseif (!$hasData): ?>
-    <!-- ─── No Data ──────────────────────────────────────────── -->
+    <!-- --- No Data -------------------------------------------- -->
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-12 text-center">
-        <div class="text-5xl mb-4">📭</div>
+        <div class="text-5xl mb-4">??</div>
         <h3 class="text-lg font-semibold text-slate-700 mb-2">
             <?= $LANG['no_trend_data'] ?? 'No Feedback Data Available' ?>
         </h3>
@@ -160,10 +160,10 @@ include '../includes/admin_sidebar.php';
     </div>
 
 <?php elseif (!$hasMultipleAY): ?>
-    <!-- ─── Single AY — No Comparison ────────────────────────── -->
+    <!-- --- Single AY � No Comparison -------------------------- -->
     <div class="bg-amber-50 border border-amber-200 rounded-2xl p-6 mb-6">
         <div class="flex items-start gap-3">
-            <span class="text-2xl">⚠️</span>
+            <span class="text-2xl">??</span>
             <div>
                 <h3 class="text-base font-semibold text-amber-800">
                     <?= $LANG['no_historical_data'] ?? 'No historical data available for comparison.' ?>
@@ -179,13 +179,13 @@ include '../includes/admin_sidebar.php';
 
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-6">
         <h3 class="text-base font-semibold text-slate-800 mb-1">
-            <?= e($selectedTeacherName) ?> — <?= e($trendData[0]['year_name']) ?>
+            <?= e($selectedTeacherName) ?> � <?= e($trendData[0]['year_name']) ?>
         </h3>
         <p class="text-sm text-slate-500 mb-4"><?= $LANG['feedback_summary'] ?? 'Feedback Summary' ?></p>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div class="bg-blue-50 rounded-xl p-4 text-center">
                 <p class="text-2xl font-bold text-blue-700"><?= $trendData[0]['avg_rating'] ?></p>
-                <p class="text-xs text-blue-600 mt-1"><?= $LANG['average_rating'] ?? 'Average Rating' ?> (1–5)</p>
+                <p class="text-xs text-blue-600 mt-1"><?= $LANG['average_rating'] ?? 'Average Rating' ?> (1�5)</p>
             </div>
             <div class="bg-emerald-50 rounded-xl p-4 text-center">
                 <p class="text-2xl font-bold text-emerald-700"><?= (int) $trendData[0]['good_count'] ?></p>
@@ -199,7 +199,7 @@ include '../includes/admin_sidebar.php';
     </div>
 
 <?php else: ?>
-    <!-- ─── Full Trend Analysis ──────────────────────────────── -->
+    <!-- --- Full Trend Analysis -------------------------------- -->
 
     <!-- Teacher info banner -->
     <div class="bg-indigo-50/50 border border-indigo-100 rounded-xl px-5 py-3 mb-6 flex items-center gap-3">
@@ -219,7 +219,7 @@ include '../includes/admin_sidebar.php';
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-5">
             <div class="flex items-center gap-3 mb-2">
-                <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-xl">📊</div>
+                <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-xl">??</div>
                 <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     <?= $LANG['latest_avg_rating'] ?? 'Latest Avg Rating' ?>
                 </p>
@@ -229,7 +229,7 @@ include '../includes/admin_sidebar.php';
         </div>
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-5">
             <div class="flex items-center gap-3 mb-2">
-                <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-xl">🏆</div>
+                <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-xl">??</div>
                 <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     <?= $LANG['highest_rating'] ?? 'Highest Rating' ?>
                 </p>
@@ -239,7 +239,7 @@ include '../includes/admin_sidebar.php';
         </div>
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-5">
             <div class="flex items-center gap-3 mb-2">
-                <div class="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center text-xl">📉</div>
+                <div class="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center text-xl">??</div>
                 <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     <?= $LANG['lowest_rating'] ?? 'Lowest Rating' ?>
                 </p>
@@ -320,7 +320,7 @@ include '../includes/admin_sidebar.php';
                             <td class="py-3 px-4 text-center text-slate-600"><?= (int) $row['total_ratings'] ?></td>
                             <td class="py-3 px-4 text-center">
                                 <?php if ($ayImprovements[$i] === null): ?>
-                                    <span class="text-slate-400">—</span>
+                                    <span class="text-slate-400">�</span>
                                 <?php else:
                                     $imp = $ayImprovements[$i];
                                     $impColor = $imp > 2 ? 'text-emerald-600' : ($imp < -2 ? 'text-red-600' : 'text-amber-600');
@@ -332,7 +332,7 @@ include '../includes/admin_sidebar.php';
                             </td>
                             <td class="py-3 px-4 text-center">
                                 <?php if ($ayImprovements[$i] === null): ?>
-                                    <span class="text-slate-400">—</span>
+                                    <span class="text-slate-400">�</span>
                                 <?php else:
                                     $info = trendStatusInfo($ayImprovements[$i]);
                                 ?>
@@ -348,13 +348,13 @@ include '../includes/admin_sidebar.php';
         </div>
     </div>
 
-    <!-- ─── Chart.js Initialization ──────────────────────────────── -->
+    <!-- --- Chart.js Initialization -------------------------------- -->
     <script>
         const trendLabels = <?= json_encode(array_column($trendData, 'year_name')) ?>;
         const trendAvgRatings = <?= json_encode(array_map('floatval', array_column($trendData, 'avg_rating'))) ?>;
         const trendColors = <?= json_encode(trendChartColors()) ?>;
 
-        // Overall Rating Trend — Line Chart
+        // Overall Rating Trend � Line Chart
         new Chart(document.getElementById('trendOverallLineChart'), {
             type: 'line',
             data: {
@@ -398,7 +398,7 @@ include '../includes/admin_sidebar.php';
             }
         });
 
-        // Rating Comparison — Vertical Bar Chart
+        // Rating Comparison � Vertical Bar Chart
         const barColors = trendLabels.map((_, i) => {
             const shades = ['#a5b4fc', '#818cf8', '#6366f1', '#4f46e5', '#4338ca', '#3730a3'];
             return shades[i % shades.length];
