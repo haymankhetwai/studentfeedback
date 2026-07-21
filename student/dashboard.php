@@ -31,14 +31,14 @@ $today = date('Y-m-d');
 $sectionCount = $studentId ? (int) $conn->query("SELECT COUNT(*) AS c FROM section_assignments WHERE student_id=$studentId")->fetch_assoc()['c'] : 0;
 
 $acadAvailableCount = 0;
-$acadPendingCount   = 0;
+$acadPendingCount = 0;
 $acadCompletedCount = 0;
-$saAvailableCount   = 0;
-$saPendingCount     = 0;
-$saCompletedCount   = 0;
-$admAvailableCount  = 0;
-$admPendingCount    = 0;
-$admCompletedCount  = 0;
+$saAvailableCount = 0;
+$saPendingCount = 0;
+$saCompletedCount = 0;
+$admAvailableCount = 0;
+$admPendingCount = 0;
+$admCompletedCount = 0;
 $totalCompletedCount = 0;
 
 if ($studentId) {
@@ -56,7 +56,7 @@ if ($studentId) {
     $acadFormsStmt->close();
     foreach ($acadRows as $r) {
         $acadAvailableCount++;
-        if ((int)$r['submitted'] > 0) {
+        if ((int) $r['submitted'] > 0) {
             $acadCompletedCount++;
         } else {
             $acadPendingCount++;
@@ -85,7 +85,7 @@ if ($studentId) {
         $saStmt->close();
         foreach ($saRows as $r) {
             $saAvailableCount++;
-            if ((int)$r['submitted'] > 0) {
+            if ((int) $r['submitted'] > 0) {
                 $saCompletedCount++;
             } else {
                 $saPendingCount++;
@@ -107,7 +107,7 @@ if ($studentId) {
         $admStmt->close();
         foreach ($admRows as $r) {
             $admAvailableCount++;
-            if ((int)$r['submitted'] > 0) {
+            if ((int) $r['submitted'] > 0) {
                 $admCompletedCount++;
             } else {
                 $admPendingCount++;
@@ -172,10 +172,14 @@ $initials = avatarInitials($user['name']);
         <aside id="sidebar"
             class="fixed inset-y-0 left-0 w-64 bg-gradient-to-b from-cyan-600 to-cyan-700 text-white flex flex-col z-40 transform -translate-x-full transition-transform duration-300 lg:relative lg:translate-x-0 lg:flex-shrink-0">
             <div class="flex items-center gap-3 px-5 py-5 border-b border-cyan-500">
-                <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center font-bold text-white">S
+                <!-- <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center font-bold text-white">S
+                </div> -->
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    <img src="/studentfeedbackucsh/assets/uploads/profiles/image.png" alt="UCSH Logo"
+                        class="w-full h-full object-contain rounded-xl">
                 </div>
                 <div>
-                    <p class="text-sm font-bold"><?= $LANG['student_portal'] ?? 'SFMS Student' ?></p>
+                    <p class="text-lg font-bold"><?= $LANG['student_portal'] ?? 'SFMS Student' ?></p>
                     <p class="text-[10px] text-cyan-100"><?= $LANG['student_portal_sub'] ?? 'Student Portal' ?></p>
                 </div>
                 <button onclick="closeSidebar()" class="ml-auto lg:hidden text-cyan-200">
@@ -236,19 +240,22 @@ $initials = avatarInitials($user['name']);
                     </div>
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3">
                         <div>
-                            <p class="text-xl font-bold text-amber-600"><?= $acadPendingCount ?> <span class="text-xs font-normal text-slate-400">/ <?= $acadAvailableCount ?></span></p>
+                            <p class="text-xl font-bold text-amber-600"><?= $acadPendingCount ?> <span
+                                    class="text-xs font-normal text-slate-400">/ <?= $acadAvailableCount ?></span></p>
                             <p class="text-xs text-slate-500"><?= $LANG['academic_pending'] ?? 'Academic Pending' ?></p>
                         </div>
                     </div>
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3">
                         <div>
-                            <p class="text-xl font-bold text-purple-700"><?= $saPendingCount ?> <span class="text-xs font-normal text-slate-400">/ <?= $saAvailableCount ?></span></p>
+                            <p class="text-xl font-bold text-purple-700"><?= $saPendingCount ?> <span
+                                    class="text-xs font-normal text-slate-400">/ <?= $saAvailableCount ?></span></p>
                             <p class="text-xs text-slate-500"><?= $LANG['sa_pending'] ?? 'SA Pending' ?></p>
                         </div>
                     </div>
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3">
                         <div>
-                            <p class="text-xl font-bold text-orange-700"><?= $admPendingCount ?> <span class="text-xs font-normal text-slate-400">/ <?= $admAvailableCount ?></span></p>
+                            <p class="text-xl font-bold text-orange-700"><?= $admPendingCount ?> <span
+                                    class="text-xs font-normal text-slate-400">/ <?= $admAvailableCount ?></span></p>
                             <p class="text-xs text-slate-500"><?= $LANG['adm_pending'] ?? 'Adm Pending' ?></p>
                         </div>
                     </div>
@@ -268,7 +275,9 @@ $initials = avatarInitials($user['name']);
                                 <h3 class="text-sm font-semibold text-cyan-800">
                                     <?= $LANG['academic_feedback_section'] ?? 'Academic Feedback' ?>
                                 </h3>
-                                <span class="text-[11px] text-cyan-600 font-medium">(<?= $acadPendingCount ?> <?= $LANG['pending'] ?? 'pending' ?>, <?= $acadCompletedCount ?> <?= $LANG['completed'] ?? 'completed' ?>)</span>
+                                <span class="text-[11px] text-cyan-600 font-medium">(<?= $acadPendingCount ?>
+                                    <?= $LANG['pending'] ?? 'pending' ?>, <?= $acadCompletedCount ?>
+                                    <?= $LANG['completed'] ?? 'completed' ?>)</span>
                             </div>
                             <a href="/studentfeedbackucsh/student/my_sections.php"
                                 class="text-xs text-cyan-600 hover:underline"><?= $LANG['view_all'] ?? 'View' ?> →</a>
@@ -280,7 +289,8 @@ $initials = avatarInitials($user['name']);
                                         <div class="min-w-0">
                                             <p class="text-xs font-medium text-slate-800 truncate"><?= e($f['title']) ?></p>
                                             <p class="text-[11px] text-slate-400 truncate"><?= e($f['course_name']) ?> — Sec
-                                                <?= e($f['section']) ?> · <?= e($f['display_year']) ?> · <?= e(semesterToRoman($f['display_semester'])) ?>
+                                                <?= e($f['section']) ?> · <?= e($f['display_year']) ?> ·
+                                                <?= e(semesterToRoman($f['display_semester'])) ?>
                                             </p>
                                         </div>
                                         <a href="/studentfeedbackucsh/student/feedback_form.php?form_id=<?= $f['form_id'] ?>"
@@ -301,7 +311,9 @@ $initials = avatarInitials($user['name']);
                                 <h3 class="text-sm font-semibold text-purple-800">
                                     <?= $LANG['student_affairs_section'] ?? 'Student Affairs' ?>
                                 </h3>
-                                <span class="text-[11px] text-purple-600 font-medium">(<?= $saPendingCount ?> <?= $LANG['pending'] ?? 'pending' ?>, <?= $saCompletedCount ?> <?= $LANG['completed'] ?? 'completed' ?>)</span>
+                                <span class="text-[11px] text-purple-600 font-medium">(<?= $saPendingCount ?>
+                                    <?= $LANG['pending'] ?? 'pending' ?>, <?= $saCompletedCount ?>
+                                    <?= $LANG['completed'] ?? 'completed' ?>)</span>
                             </div>
                             <a href="/studentfeedbackucsh/student/sa_feedback.php"
                                 class="text-xs text-purple-600 hover:underline"><?= $LANG['view_all'] ?? 'View' ?> →</a>
@@ -332,7 +344,9 @@ $initials = avatarInitials($user['name']);
                                 <h3 class="text-sm font-semibold text-orange-800">
                                     <?= $LANG['administration_section'] ?? 'Administration' ?>
                                 </h3>
-                                <span class="text-[11px] text-orange-600 font-medium">(<?= $admPendingCount ?> <?= $LANG['pending'] ?? 'pending' ?>, <?= $admCompletedCount ?> <?= $LANG['completed'] ?? 'completed' ?>)</span>
+                                <span class="text-[11px] text-orange-600 font-medium">(<?= $admPendingCount ?>
+                                    <?= $LANG['pending'] ?? 'pending' ?>, <?= $admCompletedCount ?>
+                                    <?= $LANG['completed'] ?? 'completed' ?>)</span>
                             </div>
                             <a href="/studentfeedbackucsh/student/adm_feedback.php"
                                 class="text-xs text-orange-600 hover:underline"><?= $LANG['view_all'] ?? 'View' ?> →</a>

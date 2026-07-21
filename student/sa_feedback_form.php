@@ -207,6 +207,7 @@ $initials = avatarInitials($user['name']);
     <script src="https://cdn.tailwindcss.com"></script>
     <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Pyidaungsu','Inter','sans-serif']}}}}</script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/studentfeedbackucsh/assets/css/custom.css">
     <style>
         @import url('https://cdn.jsdelivr.net/css-myanmar-fonts/v1/pyidaungsu.css');
         body { font-family: 'Pyidaungsu', 'Inter', sans-serif; }
@@ -220,9 +221,15 @@ $initials = avatarInitials($user['name']);
 <div class="flex h-screen overflow-hidden">
     <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 bg-gradient-to-b from-cyan-600 to-cyan-700 text-white flex flex-col z-40 transform -translate-x-full transition-transform duration-300 lg:relative lg:translate-x-0 lg:flex-shrink-0">
         <div class="flex items-center gap-3 px-5 py-5 border-b border-cyan-500">
-            <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center font-bold text-white">S</div>
+            <!-- <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center font-bold text-white">S</div> -->
+            <div
+            class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
+            <img src="/studentfeedbackucsh/assets/uploads/profiles/image.png" alt="UCSH Logo"
+                class="w-full h-full object-contain rounded-xl">
+        </div>
+            
             <div>
-                    <p class="text-sm font-bold"><?= $LANG['student_portal'] ?? 'SFMS Student' ?></p>
+                    <p class="text-lg font-bold"><?= $LANG['student_portal'] ?? 'SFMS Student' ?></p>
                     <p class="text-[10px] text-cyan-100"><?= $LANG['student_portal_sub'] ?? 'Student Portal' ?></p>
                 </div>
             <button onclick="closeSidebar()" class="ml-auto lg:hidden text-cyan-200 hover:text-white">
@@ -395,7 +402,7 @@ $initials = avatarInitials($user['name']);
                     <?php endif ?>
 
                     <div class="pt-8 border-t border-slate-200 flex items-center justify-end gap-3">
-                        <a href="index.php" class="px-5 py-2 text-xs font-semibold btn-cancel rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></a>
+                        <a href="index.php" class="px-5 py-2 text-xs font-semibold bg-slate-500 text-white hover:bg-slate-600 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></a>
                         
                         <?php if ($canSubmit): ?>
                         <button type="submit" id="submit-btn"
