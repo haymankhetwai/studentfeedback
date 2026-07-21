@@ -626,34 +626,40 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                                 <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                                     <div>
                                         <p class="text-[11px] font-semibold text-slate-400 uppercase">
-                                            <?= $LANG["academic_year"] ?? "Academic Year" ?></p>
+                                            <?= $LANG["academic_year"] ?? "Academic Year" ?>
+                                        </p>
                                         <p class="text-sm font-bold text-slate-800"><?= e($formMeta['academic_year'] ?? '—') ?></p>
                                     </div>
                                     <div>
                                         <p class="text-[11px] font-semibold text-slate-400 uppercase">
-                                            <?= $LANG["semester_filter"] ?? "Semester" ?></p>
+                                            <?= $LANG["semester_filter"] ?? "Semester" ?>
+                                        </p>
                                         <p class="text-sm font-bold text-slate-800">
                                             <?= e(semesterToRoman($formMeta['semester'] ?? '')) ?>
                                         </p>
                                     </div>
                                     <div>
                                         <p class="text-[11px] font-semibold text-slate-400 uppercase">
-                                            <?= $LANG["course_code"] ?? "Course Code" ?></p>
+                                            <?= $LANG["course_code"] ?? "Course Code" ?>
+                                        </p>
                                         <p class="text-sm font-bold text-slate-800"><?= e($formMeta['course_code'] ?? '—') ?></p>
                                     </div>
                                     <div>
                                         <p class="text-[11px] font-semibold text-slate-400 uppercase">
-                                            <?= $LANG["course_name"] ?? "Course Name" ?></p>
+                                            <?= $LANG["course_name"] ?? "Course Name" ?>
+                                        </p>
                                         <p class="text-sm font-bold text-slate-800"><?= e($formMeta['course_name'] ?? '—') ?></p>
                                     </div>
                                     <div>
                                         <p class="text-[11px] font-semibold text-slate-400 uppercase">
-                                            <?= $LANG["section_name"] ?? "Section" ?></p>
+                                            <?= $LANG["section_name"] ?? "Section" ?>
+                                        </p>
                                         <p class="text-sm font-bold text-slate-800"><?= e($formMeta['section'] ?? '—') ?></p>
                                     </div>
                                     <div>
                                         <p class="text-[11px] font-semibold text-slate-400 uppercase">
-                                            <?= $LANG["teacher_name"] ?? "Teacher Name" ?></p>
+                                            <?= $LANG["teacher_name"] ?? "Teacher Name" ?>
+                                        </p>
                                         <p class="text-sm font-bold text-slate-800"><?= e($formMeta['teacher_name'] ?? '—') ?></p>
                                     </div>
                                 </div>
@@ -1195,14 +1201,22 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
     </script>
     <script>
         var currentFormId = <?= (int) $formId ?>;
+        var LANG = <?= json_encode([
+            'loading' => $LANG['loading'] ?? 'Loading...',
+            'completed' => $LANG['completed'] ?? 'Completed',
+            'pending' => $LANG['pending'] ?? 'Pending',
+            'total_responses' => $LANG['total_responses'] ?? 'Total Responses',
+            'no_data' => $LANG['no_data_yet'] ?? 'No data yet',
+            'all_assigned_students' => $LANG['all_assigned_students'] ?? 'All Assigned Students',
+        ]) ?>;
 
         function openStudentModal(type) {
             var modal = document.getElementById('studentModal');
             var title = document.getElementById('modalTitle');
             var body = document.getElementById('modalBody');
-            if (type === 'all') title.textContent = 'All Assigned Students';
-            if (type === 'completed') title.textContent = 'Completed';
-            if (type === 'pending') title.textContent = 'Pending';
+            if (type === 'all') title.textContent = LANG.all_assigned_students;
+            if (type === 'completed') title.textContent = LANG.completed;
+            if (type === 'pending') title.textContent = LANG.pending;
             body.innerHTML = '<p class="text-center text-slate-400 py-8 text-sm">Loading...</p>';
             modal.classList.remove('hidden');
             fetch('feedback_results.php?ajax_students=1&form_id=' + currentFormId + '&type=' + type)

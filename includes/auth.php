@@ -60,13 +60,51 @@ function redirectToDashboard(): void {
 }
 
 function getCurrentUser(): array {
-    return [
-        'id'            => $_SESSION['user_id']      ?? 0,
+    static $cached = null;
+    if ($cached !== null) {
+        return $cached;
+    }
+
+    $userId = $_SESSION['user_id'] ?? 0;
+
+    // Fetch fresh data from the database on every page load
+    if ($userId) {
+        global $conn;
+        if ($conn) {
+            $stmt = $conn->prepare("SELECT id, name, email, role, profile_image FROM users WHERE id=?");
+            if ($stmt) {
+                $stmt->bind_param('i', $userId);
+                $stmt->execute();
+                $row = $stmt->get_result()->fetch_assoc();
+                $stmt->close();
+                if ($row) {
+                    // Sync session so code reading $_SESSION directly stays consistent
+                    $_SESSION['name']          = $row['name'];
+                    $_SESSION['email']         = $row['email'];
+                    $_SESSION['role']          = $row['role'];
+                    $_SESSION['profile_image'] = $row['profile_image'];
+                    $cached = [
+                        'id'            => (int)$row['id'],
+                        'name'          => $row['name'],
+                        'email'         => $row['email'],
+                        'role'          => $row['role'],
+                        'profile_image' => $row['profile_image'],
+                    ];
+                    return $cached;
+                }
+            }
+        }
+    }
+
+    // Fallback to session data if DB is unavailable or user not found
+    $cached = [
+        'id'            => $userId,
         'name'          => $_SESSION['name']          ?? '',
         'email'         => $_SESSION['email']         ?? '',
         'role'          => $_SESSION['role']          ?? '',
         'profile_image' => $_SESSION['profile_image'] ?? null,
     ];
+    return $cached;
 }
 
 // ─── CSRF ────────────────────────────────────────────────────────────────────

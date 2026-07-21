@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once '../config/db.php';
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
@@ -105,12 +105,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                 $nowDateTime = date('Y-m-d H:i');
                 $startDateTime = date('Y-m-d H:i', strtotime($start));
                 $endDateTime = date('Y-m-d H:i', strtotime($end));
-                if ($startDateTime < $nowDateTime) {
+
+                // Fetch the existing start date to detect whether the admin changed it
+                $origStmt = $conn->prepare("SELECT start_date FROM feedback_forms WHERE id=?");
+                $origStmt->bind_param('i', $id);
+                $origStmt->execute();
+                $origRow = $origStmt->get_result()->fetch_assoc();
+                $origStmt->close();
+                $existingStart = date('Y-m-d H:i', strtotime($origRow['start_date']));
+                $startDateChanged = ($startDateTime !== $existingStart);
+
+                // Only reject a past start date if the admin actually changed it
+                if ($startDateChanged && $startDateTime < $nowDateTime) {
                     setFlash('error', 'Start date cannot be before now.');
                     header('Location: feedback_forms_all.php');
                     exit;
                 }
-                if ($endDateTime < $startDateTime) {
+                if ($endDateTime <= $startDateTime) {
                     setFlash('error', 'End date must be after start date.');
                     header('Location: feedback_forms_all.php');
                     exit;
@@ -250,11 +261,14 @@ include '../includes/admin_sidebar.php';
                 class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white">
                 <option value=""><?= $LANG["all_modules"] ?? "All Modules" ?></option>
                 <option value="academic" <?= $filterMod === 'academic' ? 'selected' : '' ?>>
-                    <?= $LANG["academic"] ?? "Academic" ?></option>
+                    <?= $LANG["academic"] ?? "Academic" ?>
+                </option>
                 <option value="student_affairs" <?= $filterMod === 'student_affairs' ? 'selected' : '' ?>>
-                    <?= $LANG["student_affairs"] ?? "Student Affairs" ?></option>
+                    <?= $LANG["student_affairs"] ?? "Student Affairs" ?>
+                </option>
                 <option value="administration" <?= $filterMod === 'administration' ? 'selected' : '' ?>>
-                    <?= $LANG["administration"] ?? "Administration" ?></option>
+                    <?= $LANG["administration"] ?? "Administration" ?>
+                </option>
             </select>
         </div>
         <div class="flex-1 min-w-[160px]">
@@ -292,26 +306,85 @@ include '../includes/admin_sidebar.php';
             <?= $total !== 1 ? ($LANG['records'] ?? 'records') : ($LANG['record'] ?? 'record') ?></span>
     </div>
     <div class="overflow-x-auto">
-        <table>
-            <thead class="bg-slate-200 border-b border-slate-200">
+        <table class="w-full min-w-[1800px] ">
+            <!-- <thead class="bg-slate-200 border-b border-slate-200">
                 <tr>
                     <th class="text-left px-5 py-3 text-slate-500 w-12 text-sm font-semibold">#</th>
-                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold w-[200px]">
                         <?= $LANG["module"] ?? "Module" ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold w-[280px]">
                         <?= $LANG["form_title"] ?? "Form Title" ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold w-[220px]">
                         <?= $LANG["year_semester"] ?? "Year / Semester" ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold w-[220px]">
                         <?= $LANG["question_set"] ?? "Question Set" ?></th>
-                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold min-w-[200px]">
                         <?= $LANG["col_duration"] ?? "Duration" ?></th>
-                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">Q</th>
-                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">Sub</th>
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold w-[160px]">
+                        <?= $LANG["status"] ?? "Status" ?></th>
+                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold w-[60px]">Q</th>
+                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold w-[60px]">Sub</th>
                     <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">
                         <?= $LANG["col_actions"] ?? "Actions" ?></th>
                 </tr>
+            </thead> -->
+            <thead class="bg-slate-200 border-b border-slate-200">
+                <tr>
+                    <!-- # -->
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold w-[60px]">
+                        #
+                    </th>
+
+                    <!-- Module -->
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold w-[180px]">
+                        <?= $LANG["module"] ?? "Module" ?>
+                    </th>
+
+                    <!-- Form Title -->
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold w-[280px]">
+                        <?= $LANG["form_title"] ?? "Form Title" ?>
+                    </th>
+
+                    <!-- Year / Semester -->
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold w-[180px]">
+                        <?= $LANG["year_semester"] ?? "Year / Semester" ?>
+                    </th>
+
+                    <!-- Question Set -->
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold w-[280px]">
+                        <?= $LANG["question_set"] ?? "Question Set" ?>
+                    </th>
+
+                    <!-- Duration -->
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold w-[260px]">
+                        <?= $LANG["col_duration"] ?? "Duration" ?>
+                    </th>
+
+                    <!-- Status -->
+                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold w-[160px]">
+                        <?= $LANG["status"] ?? "Status" ?>
+                    </th>
+
+                    <!-- Questions -->
+                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold w-[100px]">
+                        Q
+                    </th>
+
+                    <!-- Submissions -->
+                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold w-[100px]">
+                        Sub
+                    </th>
+
+                    <!-- Actions -->
+                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold w-[180px]">
+                        <?= $LANG["col_actions"] ?? "Actions" ?>
+                    </th>
+                </tr>
             </thead>
+
+
+
+
             <tbody class="divide-y divide-slate-100">
                 <?php if ($rows):
                     foreach ($rows as $i => $row): ?>
@@ -331,9 +404,33 @@ include '../includes/admin_sidebar.php';
                                     <span class="text-xs text-red-400 italic"><?= $LANG["no_set"] ?? "No set" ?></span>
                                 <?php endif ?>
                             </td>
-                            <td class="px-5 py-3 text-xs text-slate-500">
-                                <?= formatDateTime($row['start_date']) ?><br><?= formatDateTime($row['end_date']) ?><br>
-                                <span class="text-[10px] font-semibold"><?= badgeStatus($row['status']) ?></span>
+                            <td class="px-5 py-3 text-xs text-slate-500 min-w-[200px]">
+                                <p class="text-slate-700 font-medium"><?= formatDateTime($row['start_date']) ?></p>
+                                <p class="text-slate-700 font-medium"><?= formatDateTime($row['end_date']) ?></p>
+                            </td>
+                            <td class="px-5 py-3">
+                                <?php
+                                $now = date('Y-m-d H:i:s');
+                                $start = $row['start_date'];
+                                $end = $row['end_date'];
+                                if ($now < $start) {
+                                    $dynStatus = 'upcoming';
+                                } elseif ($now > $end) {
+                                    $dynStatus = 'expired';
+                                } else {
+                                    $dynStatus = 'active';
+                                }
+                                ?>
+                                <?php if ($dynStatus === 'active'): ?>
+                                    <span
+                                        class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"><?= $LANG["active"] ?? "Active" ?></span>
+                                <?php elseif ($dynStatus === 'upcoming'): ?>
+                                    <span
+                                        class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"><?= $LANG["upcoming"] ?? "Upcoming" ?></span>
+                                <?php else: ?>
+                                    <span
+                                        class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600"><?= $LANG["expired"] ?? "Expired" ?></span>
+                                <?php endif ?>
                             </td>
                             <td class="px-5 py-3 text-center"><span
                                     class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-cyan-100 text-cyan-700"><?= $row['question_count'] ?></span>
@@ -345,19 +442,19 @@ include '../includes/admin_sidebar.php';
                                 <div class="flex items-center justify-center gap-1.5">
                                     <a href="results_all.php?form_id=<?= $row['id'] ?>"
                                         class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-cyan-700 bg-cyan-100 hover:bg-cyan-200 rounded-lg">
-                                        <?= iconSvg('chart', 'w-3.5 h-3.5') ?>        <?= $LANG["results_link"] ?? "Results" ?></a>
+                                        <?= iconSvg('chart', 'w-3.5 h-3.5') ?>         <?= $LANG["results_link"] ?? "Results" ?></a>
                                     <button onclick="openEdit(<?= htmlspecialchars(json_encode($row), ENT_QUOTES) ?>)"
                                         class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 rounded-lg">
-                                        <?= iconSvg('edit', 'w-3.5 h-3.5') ?>        <?= $LANG["edit"] ?? "Edit" ?></button>
+                                        <?= iconSvg('edit', 'w-3.5 h-3.5') ?>         <?= $LANG["edit"] ?? "Edit" ?></button>
                                     <button onclick="openDelete(<?= $row['id'] ?>,'<?= addslashes(e($row['title'])) ?>')"
                                         class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg">
-                                        <?= iconSvg('trash', 'w-3.5 h-3.5') ?>        <?= $LANG["delete"] ?? "Delete" ?></button>
+                                        <?= iconSvg('trash', 'w-3.5 h-3.5') ?>         <?= $LANG["delete"] ?? "Delete" ?></button>
                                 </div>
                             </td>
                         </tr>
                     <?php endforeach; else: ?>
                     <tr>
-                        <td colspan="9" class="text-center py-16 text-slate-400">
+                        <td colspan="10" class="text-center py-16 text-slate-400">
                             <?= iconSvg('document', 'w-10 h-10 mx-auto mb-3 opacity-40') ?>
                             <p class="text-sm"><?= $LANG["no_feedback_forms_found"] ?? "No feedback forms found." ?></p>
                         </td>
@@ -453,7 +550,8 @@ include '../includes/admin_sidebar.php';
                     <label
                         class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG["question_set_auto_detected"] ?? "Question Set (Auto-detected)" ?></label>
                     <div id="qs_loading" class="hidden text-xs text-slate-400 py-2">
-                        <?= $LANG["loading_question_sets"] ?? "Loading question sets..." ?></div>
+                        <?= $LANG["loading_question_sets"] ?? "Loading question sets..." ?>
+                    </div>
                     <div id="qs_empty" class="hidden">
                         <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-700">
                             <?= iconSvg('question', 'w-4 h-4 inline mr-1') ?>
@@ -586,7 +684,8 @@ include '../includes/admin_sidebar.php';
                     <label
                         class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG["question_set"] ?? "Question Set" ?></label>
                     <div id="edit_qs_loading" class="hidden text-xs text-slate-400 py-2">
-                        <?= $LANG["loading_question_sets"] ?? "Loading question sets..." ?></div>
+                        <?= $LANG["loading_question_sets"] ?? "Loading question sets..." ?>
+                    </div>
                     <div id="edit_qs_empty" class="hidden">
                         <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-700">
                             <?= iconSvg('question', 'w-4 h-4 inline mr-1') ?>

@@ -102,10 +102,15 @@ $iconColors = [
                 <!-- Profile -->
                 <a href="/studentfeedbackucsh/teacher/profile.php"
                     class="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-blue-50/60">
-                    <div
-                        class="w-7 h-7 rounded-full bg-blue-700 flex items-center justify-center text-xs font-bold text-white">
-                        <?= e($initials) ?>
-                    </div>
+                    <?php if (!empty($user['profile_image'])): ?>
+                        <img src="/studentfeedbackucsh/<?= e($user['profile_image']) ?>" alt="Profile"
+                            class="w-7 h-7 rounded-full object-cover">
+                    <?php else: ?>
+                        <div
+                            class="w-7 h-7 rounded-full bg-blue-700 flex items-center justify-center text-xs font-bold text-white">
+                            <?= e($initials) ?>
+                        </div>
+                    <?php endif; ?>
                     <span class="hidden md:block text-sm font-medium text-slate-700"><?= e($user['name']) ?></span>
                 </a>
             </div>

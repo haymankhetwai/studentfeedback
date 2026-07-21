@@ -25,24 +25,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         $newPw     = $_POST['new_password'] ?? '';
         $confirmPw = $_POST['confirm_password'] ?? '';
 
-        if (!$name || !$email || !$curPw) {
-            setFlash('error', $LANG['flash_password_fields_required'] ?? 'Name, Email, and Current Password are required.');
+        if (!$name || !$email) {
+            setFlash('error', $LANG['flash_fields_required'] ?? 'Name and Email are required.');
             header('Location: profile.php'); exit;
         }
 
-        // Verify current password
-        $stmt = $conn->prepare("SELECT password FROM users WHERE id=?");
-        $stmt->bind_param('i', $user['id']); $stmt->execute();
-        $row = $stmt->get_result()->fetch_assoc(); $stmt->close();
-
-        if (!$row || !password_verify($curPw, $row['password'])) {
-            setFlash('error', $LANG['flash_wrong_password'] ?? 'Current password is incorrect.');
-            header('Location: profile.php'); exit;
-        }
-
-        // Handle password change if provided
+        // Handle password change — only if user entered a new password
         $hash = null;
         if ($newPw !== '' || $confirmPw !== '') {
+            // Current password is required to change password
+            if ($curPw === '') {
+                setFlash('error', $LANG['flash_current_password_required'] ?? 'Current Password is required to change your password.');
+                header('Location: profile.php'); exit;
+            }
+
+            // Verify current password
+            $stmt = $conn->prepare("SELECT password FROM users WHERE id=?");
+            $stmt->bind_param('i', $user['id']); $stmt->execute();
+            $row = $stmt->get_result()->fetch_assoc(); $stmt->close();
+
+            if (!$row || !password_verify($curPw, $row['password'])) {
+                setFlash('error', $LANG['flash_wrong_password'] ?? 'Current password is incorrect.');
+                header('Location: profile.php'); exit;
+            }
+
             if ($newPw !== $confirmPw) {
                 setFlash('error', $LANG['flash_passwords_no_match'] ?? 'New passwords do not match.');
                 header('Location: profile.php'); exit;
@@ -89,6 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         if ($stmt->execute()) {
             $_SESSION['name'] = $name;
             $_SESSION['email'] = $email;
+            $_SESSION['profile_image'] = $profileImage;
             setFlash('success', $LANG['flash_profile_updated'] ?? 'Profile updated successfully.');
         } else {
             setFlash('error', $LANG['flash_email_in_use'] ?? 'Email already in use.');
@@ -168,15 +175,24 @@ include '../includes/admin_sidebar.php';
                 </div>
 
                 <!-- Password Fields -->
-                <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['current_password'] ?? 'Current Password' ?> <span class="text-red-500">*</span></label>
-                    <input type="password" name="current_password" required placeholder="••••••••" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
-                    <p class="mt-1 text-xs text-slate-400"><?= $LANG['verify_to_save'] ?? 'Enter your current password to save changes.' ?></p>
+                <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['current_password'] ?? 'Current Password' ?></label>
+                    <div class="relative">
+                        <input type="password" name="current_password" id="currentPassword" placeholder="••••••••" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 pr-10 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
+                        <button type="button" onclick="togglePassword('currentPassword', this)" class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600"><?= iconSvg('eye', 'w-4 h-4') ?></button>
+                    </div>
+                    <p class="mt-1 text-xs text-slate-400"><?= $LANG['verify_to_save'] ?? 'Required only if changing your password.' ?></p>
                 </div>
                 <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['new_password_label'] ?? 'New Password' ?> <span class="text-xs text-slate-400">(<?= $LANG['new_password_hint'] ?? 'leave blank to keep current' ?>)</span></label>
-                    <input type="password" name="new_password" minlength="6" placeholder="••••••••" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
+                    <div class="relative">
+                        <input type="password" name="new_password" id="newPassword" minlength="6" placeholder="••••••••" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 pr-10 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
+                        <button type="button" onclick="togglePassword('newPassword', this)" class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600"><?= iconSvg('eye', 'w-4 h-4') ?></button>
+                    </div>
                 </div>
                 <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['confirm_password_label'] ?? 'Confirm New Password' ?></label>
-                    <input type="password" name="confirm_password" minlength="6" placeholder="••••••••" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
+                    <div class="relative">
+                        <input type="password" name="confirm_password" id="confirmPassword" minlength="6" placeholder="••••••••" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 pr-10 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
+                        <button type="button" onclick="togglePassword('confirmPassword', this)" class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600"><?= iconSvg('eye', 'w-4 h-4') ?></button>
+                    </div>
                 </div>
 
                 <div class="flex justify-end gap-3">
@@ -204,6 +220,16 @@ include '../includes/admin_sidebar.php';
             reader.readAsDataURL(file);
         }
     });
+
+    // Password show/hide toggle
+    function togglePassword(id, btn) {
+        var inp = document.getElementById(id);
+        var show = inp.type === 'password';
+        inp.type = show ? 'text' : 'password';
+        btn.innerHTML = show
+            ? '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"/></svg>'
+            : '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178zM15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>';
+    }
 </script>
 
 <?php include '../includes/admin_footer.php'; ?>
