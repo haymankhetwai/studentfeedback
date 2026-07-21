@@ -241,24 +241,26 @@ body.lang-mm td {
 /* ─── Button Color Standards ────────────────────────────────── */
 /* Cancel button: Slate Gray background, white text, darker hover */
 .btn-cancel {
-    background-color: #64748b;
-    color: #ffffff;
-    border: 1px solid #64748b;
+    background-color: #052654 !important;
+    color: #ffffff !important;
+    border-color: #64748b !important;
 }
 
 .btn-cancel:hover {
-    background-color: #475569;
-    border-color: #475569;
+    background-color: #475569 !important;
+    border-color: #475569 !important;
+    color: #ffffff !important;
 }
 
 /* Reset button: Red background, white text (matches Delete) */
 .btn-reset {
-    background-color: #dc2626;
-    color: #ffffff;
-    border: 1px solid #dc2626;
+    background-color: #dc2626 !important;
+    color: #ffffff !important;
+    border-color: #dc2626 !important;
 }
 
 .btn-reset:hover {
-    background-color: #b91c1c;
-    border-color: #b91c1c;
+    background-color: #b91c1c !important;
+    border-color: #b91c1c !important;
+    color: #ffffff !important;
 }

@@ -15,11 +15,11 @@ $initials = avatarInitials($user['name']);
 // Icon color map — edit these to change sidebar icon colors
 $iconColors = [
     'dashboard' => 'text-blue-700',
-    'sections'  => 'text-emerald-500',
-    'results'   => 'text-amber-500',
+    'sections' => 'text-emerald-500',
+    'results' => 'text-amber-500',
     'analytics' => 'text-purple-500',
-    'trend'     => 'text-cyan-700',
-    'profile'   => 'text-pink-500',
+    'trend' => 'text-cyan-700',
+    'profile' => 'text-pink-500',
 ];
 ?>
 <div id="overlay" class="fixed inset-0 bg-black/40 z-30 hidden lg:hidden" onclick="closeSidebar()"></div>
@@ -30,11 +30,15 @@ $iconColors = [
         class="fixed inset-y-0 left-0 w-64 text-white flex flex-col z-40 transform -translate-x-full transition-transform duration-300 lg:relative lg:translate-x-0 lg:flex-shrink-0"
         style="background: linear-gradient(180deg, rgba(59,130,246,0.95), rgba(96,165,250,0.75));">
         <div class="flex items-center gap-3 px-5 py-5 border-b border-white/15">
-            <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shadow-lg">
+            <!-- <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shadow-lg">
                 <?= iconSvg('user', 'w-5 h-5 text-white') ?>
+            </div> -->
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
+                <img src="/studentfeedbackucsh/assets/uploads/profiles/image.png" alt="UCSH Logo"
+                    class="w-full h-full object-contain rounded-xl">
             </div>
             <div>
-                <p class="text-sm font-bold tracking-wide"><?= $LANG['teacher_portal'] ?? 'SFMS Teacher' ?></p>
+                <p class="text-lg font-bold tracking-wide"><?= $LANG['teacher_portal'] ?? 'SFMS Teacher' ?></p>
                 <p class="text-[10px] text-white/70"><?= $LANG['teacher_portal_sub'] ?? 'Faculty Portal' ?></p>
             </div>
             <button onclick="closeSidebar()" class="ml-auto lg:hidden text-white/60 hover:text-white">

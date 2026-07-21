@@ -227,7 +227,7 @@ $sectionBreakdown = runQuery($conn, $sectionBreakdownSql, $types, $params)->fetc
                 <button type="submit"
                     class="px-5 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors"><?= $LANG['filter'] ?? 'Filter' ?></button>
                 <a href="analytics.php"
-                    class="px-4 py-2 btn-reset text-sm font-semibold rounded-xl transition-colors"><?= $LANG['reset'] ?? 'Reset' ?></a>
+                    class="px-4 py-2 bg-red-600 text-white hover:bg-red-700 text-sm font-semibold rounded-xl transition-colors"><?= $LANG['reset'] ?? 'Reset' ?></a>
             </div>
         </form>
     </div>

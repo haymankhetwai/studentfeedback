@@ -1,4 +1,4 @@
-<?php
+ï»¿<?php
 require_once '../config/db.php';
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
@@ -639,7 +639,7 @@ include '../includes/admin_sidebar.php';
         </form>
 
 
-        <span class="text-xs text-slate-400">
+        <!-- <span class="text-xs text-slate-400">
 
             <?= $total ?>
 
@@ -647,7 +647,9 @@ include '../includes/admin_sidebar.php';
                 ? ($LANG['records'] ?? 'records')
                 : ($LANG['record'] ?? 'record') ?>
 
-        </span>
+        </span> -->
+        <span class="text-xs text-slate-400"><?= $LANG['total'] ?? 'Total' ?> <?= $total ?>
+            <?= $total !== 1 ? ($LANG['records'] ?? 'records') : ($LANG['record'] ?? 'record') ?></span>
 
     </div>
 
@@ -896,7 +898,7 @@ include '../includes/admin_sidebar.php';
 
                                 <?= e($u['name']) ?>
 
-                                —
+                                ï¿½
 
                                 <?= e($u['email']) ?>
 
@@ -950,7 +952,7 @@ include '../includes/admin_sidebar.php';
 
 
                 <button type="button" onclick="closeModal('addModal')"
-                    class="flex-1 px-4 py-2.5 text-sm font-semibold btn-cancel rounded-xl transition-colors">
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold bg-slate-500 text-white hover:bg-slate-600 rounded-xl transition-colors">
 
                     <?= $LANG['cancel'] ?? 'Cancel' ?>
 
@@ -1052,7 +1054,7 @@ include '../includes/admin_sidebar.php';
 
 
                 <button type="button" onclick="closeModal('editModal')"
-                    class="flex-1 px-4 py-2.5 text-sm font-semibold btn-cancel rounded-xl transition-colors">
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold bg-slate-500 text-white hover:bg-slate-600 rounded-xl transition-colors">
 
                     <?= $LANG['cancel'] ?? 'Cancel' ?>
 
@@ -1130,7 +1132,7 @@ include '../includes/admin_sidebar.php';
 
 
                 <button type="button" onclick="closeModal('deleteModal')"
-                    class="flex-1 px-4 py-2.5 text-sm font-semibold btn-cancel rounded-xl transition-colors">
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold bg-slate-500 text-white hover:bg-slate-600 rounded-xl transition-colors">
 
                     <?= $LANG['cancel'] ?? 'Cancel' ?>
 

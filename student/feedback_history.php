@@ -141,11 +141,15 @@ $initials = avatarInitials($user['name']);
         <aside id="sidebar"
             class="fixed inset-y-0 left-0 w-64 bg-gradient-to-b from-cyan-600 to-cyan-700 text-white flex flex-col z-40 transform -translate-x-full transition-transform duration-300 lg:relative lg:translate-x-0 lg:flex-shrink-0">
             <div class="flex items-center gap-3 px-5 py-5 border-b border-cyan-500">
-                <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                <!-- <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
                     <?= iconSvg('academic', 'w-5 h-5 text-white') ?>
+                </div> -->
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    <img src="/studentfeedbackucsh/assets/uploads/profiles/image.png" alt="UCSH Logo"
+                        class="w-full h-full object-contain rounded-xl">
                 </div>
                 <div>
-                    <p class="text-sm font-bold">
+                    <p class="text-lg font-bold">
                         <?= $LANG['student_portal'] ?? 'SFMS Student' ?>
                     </p>
                     <p class="text-[10px] text-cyan-100">
@@ -268,7 +272,8 @@ $initials = avatarInitials($user['name']);
                                             <td class="px-5 py-3 text-sm font-medium text-slate-800"><?= e($r['form_title']) ?>
                                             </td>
                                             <td class="px-5 py-3 text-xs text-slate-500"><?= $r['detail'] ?></td>
-                                            <td class="px-5 py-3 text-xs text-slate-400"><?= formatDateTime($r['submitted_at']) ?>
+                                            <td class="px-5 py-3 text-xs text-slate-400">
+                                                <?= formatDateTime($r['submitted_at']) ?>
                                             </td>
                                         </tr>
                                     <?php endforeach ?>

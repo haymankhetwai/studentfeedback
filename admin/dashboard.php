@@ -2421,7 +2421,7 @@ include '../includes/admin_sidebar.php';
 
         <?= e($user['name']) ?>
 
-        ??
+        👋
 
     </h2>
 
@@ -2710,7 +2710,7 @@ include '../includes/admin_sidebar.php';
 
 
             <a href="dashboard.php#academic-feedback"
-                class="px-5 py-2.5 btn-reset text-sm font-semibold rounded-xl transition-all h-[42px] inline-flex items-center">
+                class="px-5 py-2.5 bg-red-600 text-white hover:bg-red-700 text-sm font-semibold rounded-xl transition-all h-[42px] inline-flex items-center">
 
                 <?= $LANG["reset"]
                     ?? "Reset" ?>
@@ -3373,7 +3373,7 @@ include '../includes/admin_sidebar.php';
 
 
                     <a href="dashboard.php#sa-feedback"
-                        class="px-3 py-1.5 btn-reset text-sm font-semibold rounded-lg">
+                        class="px-3 py-1.5 bg-red-600 text-white hover:bg-red-700 text-sm font-semibold rounded-lg">
 
                         <?= $LANG['reset']
                             ?? 'Reset' ?>
@@ -3745,7 +3745,7 @@ include '../includes/admin_sidebar.php';
 
 
                     <a href="dashboard.php#admin-feedback"
-                        class="px-3 py-1.5 btn-reset text-sm font-semibold rounded-lg">
+                        class="px-3 py-1.5 bg-red-600 text-white hover:bg-red-700 text-sm font-semibold rounded-lg">
 
                         <?= $LANG['reset']
                             ?? 'Reset' ?>

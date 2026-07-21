@@ -11,53 +11,93 @@ $user       = getCurrentUser();
 $success = '';
 $error   = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
-    $action = $_POST['action'] ?? '';
-    if ($action === 'update_info') {
-        $name  = clean($_POST['name'] ?? '');
-        $email = clean($_POST['email'] ?? '');
-        if ($name && $email) {
-            $stmt = $conn->prepare("UPDATE users SET name=?, email=? WHERE id=?");
-            $stmt->bind_param('ssi', $name, $email, $user['id']);
-            if ($stmt->execute()) {
-                $_SESSION['name'] = $name; $_SESSION['email'] = $email;
-                setFlash('success', $LANG['flash_profile_updated'] ?? 'Profile updated successfully.');
-            } else {
-                setFlash('error', $LANG['flash_email_in_use'] ?? 'Email already in use.');
-            }
-            $stmt->close();
-        }
-        header('Location: profile.php'); exit;
-    }
-    if ($action === 'change_password') {
-        $current = $_POST['current_password'] ?? '';
-        $new     = $_POST['new_password'] ?? '';
-        $confirm = $_POST['confirm_password'] ?? '';
-        if ($current && $new && $confirm) {
-            if ($new !== $confirm) {
-                setFlash('error', $LANG['flash_passwords_no_match'] ?? 'New passwords do not match.');
-            } else {
-                $stmt = $conn->prepare("SELECT password FROM users WHERE id=?");
-                $stmt->bind_param('i', $user['id']); $stmt->execute();
-                $row = $stmt->get_result()->fetch_assoc(); $stmt->close();
-                if ($row && password_verify($current, $row['password'])) {
-                    $hash = password_hash($new, PASSWORD_DEFAULT);
-                    $stmt2 = $conn->prepare("UPDATE users SET password=? WHERE id=?");
-                    $stmt2->bind_param('si', $hash, $user['id']); $stmt2->execute(); $stmt2->close();
-                    setFlash('success', $LANG['flash_password_changed'] ?? 'Password changed successfully.');
-                } else {
-                    setFlash('error', $LANG['flash_wrong_password'] ?? 'Current password is incorrect.');
-                }
-            }
-        } else { setFlash('error', $LANG['flash_password_fields_required'] ?? 'All password fields are required.'); }
-        header('Location: profile.php'); exit;
-    }
-}
-
 // Re-fetch fresh user data
 $stmt = $conn->prepare("SELECT * FROM users WHERE id=?");
 $stmt->bind_param('i', $user['id']); $stmt->execute();
 $userData = $stmt->get_result()->fetch_assoc(); $stmt->close();
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
+    $action = $_POST['action'] ?? '';
+    if ($action === 'update_info') {
+        $name      = clean($_POST['name'] ?? '');
+        $email     = clean($_POST['email'] ?? '');
+        $curPw     = $_POST['current_password'] ?? '';
+        $newPw     = $_POST['new_password'] ?? '';
+        $confirmPw = $_POST['confirm_password'] ?? '';
+
+        if (!$name || !$email || !$curPw) {
+            setFlash('error', $LANG['flash_password_fields_required'] ?? 'Name, Email, and Current Password are required.');
+            header('Location: profile.php'); exit;
+        }
+
+        // Verify current password
+        $stmt = $conn->prepare("SELECT password FROM users WHERE id=?");
+        $stmt->bind_param('i', $user['id']); $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc(); $stmt->close();
+
+        if (!$row || !password_verify($curPw, $row['password'])) {
+            setFlash('error', $LANG['flash_wrong_password'] ?? 'Current password is incorrect.');
+            header('Location: profile.php'); exit;
+        }
+
+        // Handle password change if provided
+        $hash = null;
+        if ($newPw !== '' || $confirmPw !== '') {
+            if ($newPw !== $confirmPw) {
+                setFlash('error', $LANG['flash_passwords_no_match'] ?? 'New passwords do not match.');
+                header('Location: profile.php'); exit;
+            }
+            if (strlen($newPw) < 6) {
+                setFlash('error', $LANG['flash_password_too_short'] ?? 'New password must be at least 6 characters.');
+                header('Location: profile.php'); exit;
+            }
+            $hash = password_hash($newPw, PASSWORD_DEFAULT);
+        }
+
+        // Handle profile image upload
+        $profileImage = $userData['profile_image'] ?? null;
+        if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] === UPLOAD_ERR_OK) {
+            $file = $_FILES['profile_image'];
+            $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+            $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+            if (in_array($ext, $allowed) && $file['size'] <= 5 * 1024 * 1024) {
+                $uploadDir = __DIR__ . '/../assets/uploads/profiles';
+                if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+                $filename = 'profile_' . $user['id'] . '_' . time() . '.' . $ext;
+                $filepath = $uploadDir . '/' . $filename;
+                if (move_uploaded_file($file['tmp_name'], $filepath)) {
+                    if ($profileImage && file_exists(__DIR__ . '/../' . $profileImage)) {
+                        unlink(__DIR__ . '/../' . $profileImage);
+                    }
+                    $profileImage = 'assets/uploads/profiles/' . $filename;
+                }
+            } else {
+                setFlash('error', $LANG['flash_image_invalid'] ?? 'Image must be JPG, PNG, GIF, or WebP and under 5MB.');
+                header('Location: profile.php'); exit;
+            }
+        }
+
+        // Save to DB
+        if ($hash) {
+            $stmt = $conn->prepare("UPDATE users SET name=?, email=?, profile_image=?, password=? WHERE id=?");
+            $stmt->bind_param('ssssi', $name, $email, $profileImage, $hash, $user['id']);
+        } else {
+            $stmt = $conn->prepare("UPDATE users SET name=?, email=?, profile_image=? WHERE id=?");
+            $stmt->bind_param('sssi', $name, $email, $profileImage, $user['id']);
+        }
+
+        if ($stmt->execute()) {
+            $_SESSION['name'] = $name;
+            $_SESSION['email'] = $email;
+            setFlash('success', $LANG['flash_profile_updated'] ?? 'Profile updated successfully.');
+        } else {
+            setFlash('error', $LANG['flash_email_in_use'] ?? 'Email already in use.');
+        }
+        $stmt->close();
+
+        header('Location: profile.php'); exit;
+    }
+}
 
 include '../includes/admin_header.php';
 include '../includes/admin_sidebar.php';
@@ -73,8 +113,15 @@ include '../includes/admin_sidebar.php';
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <!-- Profile Card -->
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col items-center text-center">
-        <div class="w-20 h-20 rounded-full bg-gradient-to-br from-cyan-500 to-cyan-700 flex items-center justify-center text-2xl font-bold text-white shadow-lg mb-4">
-            <?= e(avatarInitials($userData['name'])) ?>
+        <div class="mb-4 relative">
+            <?php if (!empty($userData['profile_image'])): ?>
+                <img src="/studentfeedbackucsh/<?= e($userData['profile_image']) ?>" alt="Profile"
+                    class="w-20 h-20 rounded-full object-cover shadow-lg border-2 border-white">
+            <?php else: ?>
+                <div class="w-20 h-20 rounded-full bg-gradient-to-br from-cyan-500 to-cyan-700 flex items-center justify-center text-2xl font-bold text-white shadow-lg">
+                    <?= e(avatarInitials($userData['name'])) ?>
+                </div>
+            <?php endif; ?>
         </div>
         <h3 class="text-lg font-semibold text-slate-800"><?= e($userData['name']) ?></h3>
         <p class="text-sm text-slate-500 mt-1"><?= e($userData['email']) ?></p>
@@ -90,42 +137,73 @@ include '../includes/admin_sidebar.php';
         <!-- Update Info -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-100"><h3 class="font-semibold text-slate-800"><?= $LANG['update_information'] ?? 'Update Information' ?></h3></div>
-            <form method="POST" class="px-6 py-5 space-y-4">
+            <form id="profileForm" method="POST" enctype="multipart/form-data" class="px-6 py-5 space-y-4" novalidate>
                 <?= csrfField() ?><input type="hidden" name="action" value="update_info">
+
+                <!-- Profile Image -->
+                <div class="flex items-center gap-5">
+                    <div class="shrink-0">
+                        <img id="imagePreview"
+                            src="<?= !empty($userData['profile_image']) ? '/studentfeedbackucsh/' . e($userData['profile_image']) : '' ?>"
+                            alt="Preview"
+                            class="w-16 h-16 rounded-full object-cover border-2 border-slate-200 <?= empty($userData['profile_image']) ? 'hidden' : '' ?>">
+                        <div id="initialsPreview"
+                            class="w-16 h-16 rounded-full bg-gradient-to-br from-cyan-500 to-cyan-700 flex items-center justify-center text-lg font-bold text-white <?= !empty($userData['profile_image']) ? 'hidden' : '' ?>">
+                            <?= e(avatarInitials($userData['name'])) ?>
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['profile_image'] ?? 'Profile Image' ?></label>
+                        <input type="file" name="profile_image" id="profileImageInput" accept="image/*"
+                            class="w-full text-sm text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-cyan-50 file:text-cyan-700 hover:file:bg-cyan-100 file:cursor-pointer">
+                        <p class="text-xs text-slate-400 mt-1"><?= $LANG['profile_image_hint'] ?? 'JPG, PNG, GIF, or WebP. Max 5MB.' ?></p>
+                    </div>
+                </div>
+
                 <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['full_name_label'] ?? 'Full Name' ?></label>
                     <input type="text" name="name" required value="<?= e($userData['name']) ?>" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
                 </div>
                 <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['email_address_label'] ?? 'Email Address' ?></label>
                     <input type="email" name="email" required value="<?= e($userData['email']) ?>" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
                 </div>
-                <div class="flex justify-end">
-                    <button type="submit" class="px-6 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm"><?= $LANG['save_changes_btn'] ?? 'Save Changes' ?></button>
-                </div>
-            </form>
-        </div>
 
-        <!-- Change Password -->
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-100"><h3 class="font-semibold text-slate-800"><?= $LANG['change_password'] ?? 'Change Password' ?></h3></div>
-            <form method="POST" class="px-6 py-5 space-y-4">
-                <?= csrfField() ?><input type="hidden" name="action" value="change_password">
-                <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['current_password'] ?? 'Current Password' ?></label>
+                <!-- Password Fields -->
+                <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['current_password'] ?? 'Current Password' ?> <span class="text-red-500">*</span></label>
                     <input type="password" name="current_password" required placeholder="••••••••" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
+                    <p class="mt-1 text-xs text-slate-400"><?= $LANG['verify_to_save'] ?? 'Enter your current password to save changes.' ?></p>
                 </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['new_password_label'] ?? 'New Password' ?></label>
-                        <input type="password" name="new_password" required placeholder="••••••••" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
-                    </div>
-                    <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['confirm_password_label'] ?? 'Confirm Password' ?></label>
-                        <input type="password" name="confirm_password" required placeholder="••••••••" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
-                    </div>
+                <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['new_password_label'] ?? 'New Password' ?> <span class="text-xs text-slate-400">(<?= $LANG['new_password_hint'] ?? 'leave blank to keep current' ?>)</span></label>
+                    <input type="password" name="new_password" minlength="6" placeholder="••••••••" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
                 </div>
-                <div class="flex justify-end">
-                    <button type="submit" class="px-6 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm"><?= $LANG['update_password_btn'] ?? 'Update Password' ?></button>
+                <div><label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['confirm_password_label'] ?? 'Confirm New Password' ?></label>
+                    <input type="password" name="confirm_password" minlength="6" placeholder="••••••••" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
+                </div>
+
+                <div class="flex justify-end gap-3">
+                    <a href="profile.php" class="px-6 py-2.5 text-sm font-semibold bg-slate-500 text-white hover:bg-slate-600 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></a>
+                    <button type="submit" class="px-6 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm"><?= $LANG['save_changes_btn'] ?? 'Save Changes' ?></button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<script>
+    // Profile image preview
+    document.getElementById('profileImageInput').addEventListener('change', function (e) {
+        var file = e.target.files[0];
+        if (file) {
+            var reader = new FileReader();
+            reader.onload = function (ev) {
+                var preview = document.getElementById('imagePreview');
+                var initials = document.getElementById('initialsPreview');
+                preview.src = ev.target.result;
+                preview.classList.remove('hidden');
+                initials.classList.add('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+</script>
 
 <?php include '../includes/admin_footer.php'; ?>

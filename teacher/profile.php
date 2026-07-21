@@ -297,7 +297,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                         <p id="pwHintMsg" class="text-xs text-slate-400 mt-1<?= $passwordErr ? ' hidden' : '' ?>">At least 6 characters. Only letters, numbers, and @ allowed.</p>
                     </div>
 
-                    <div class="flex justify-end">
+                    <div class="flex justify-end gap-3">
+                        <a href="profile.php" class="px-6 py-2.5 text-sm font-semibold bg-slate-500 text-white hover:bg-slate-600 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></a>
                         <button type="submit"
                             class="px-6 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors"><?= $LANG['update_btn'] ?? 'Update Profile' ?></button>
                     </div>

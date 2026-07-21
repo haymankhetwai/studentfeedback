@@ -818,7 +818,7 @@ include '../includes/admin_sidebar.php';
                 <button type="submit"
                     class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-all h-[42px]"><?= $LANG["search"] ?? "Search" ?></button>
                 <a href="results_all.php"
-                    class="px-5 py-2.5 btn-reset text-sm font-semibold rounded-xl transition-all h-[42px] inline-flex items-center"><?= $LANG["reset"] ?? "Reset" ?></a>
+                    class="px-5 py-2.5 bg-red-600 text-white hover:bg-red-700 text-sm font-semibold rounded-xl transition-all h-[42px] inline-flex items-center"><?= $LANG["reset"] ?? "Reset" ?></a>
             </div>
         </div>
     </form>

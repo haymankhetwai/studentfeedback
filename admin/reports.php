@@ -544,7 +544,7 @@ include '../includes/admin_sidebar.php';
             <button type="submit" class="px-5 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors">
                 <?= $LANG['filter'] ?? 'Filter' ?>
             </button>
-            <a href="reports.php#academic-feedback" class="px-4 py-2 btn-reset text-sm font-semibold rounded-xl transition-colors">
+            <a href="reports.php#academic-feedback" class="px-4 py-2 bg-red-600 text-white hover:bg-red-700 text-sm font-semibold rounded-xl transition-colors">
                 <?= $LANG['reset'] ?? 'Reset' ?>
             </a>
         </div>
@@ -670,7 +670,7 @@ include '../includes/admin_sidebar.php';
             <button type="submit" class="px-5 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors">
                 <?= $LANG['filter'] ?? 'Filter' ?>
             </button>
-            <a href="reports.php#sa-feedback" class="px-4 py-2 btn-reset text-sm font-semibold rounded-xl transition-colors">
+            <a href="reports.php#sa-feedback" class="px-4 py-2 bg-red-600 text-white hover:bg-red-700 text-sm font-semibold rounded-xl transition-colors">
                 <?= $LANG['reset'] ?? 'Reset' ?>
             </a>
         </div>
@@ -763,7 +763,7 @@ include '../includes/admin_sidebar.php';
             <button type="submit" class="px-5 py-2 bg-orange-600 text-white text-sm font-semibold rounded-xl hover:bg-orange-700 transition-colors">
                 <?= $LANG['filter'] ?? 'Filter' ?>
             </button>
-            <a href="reports.php#admin-feedback" class="px-4 py-2 btn-reset text-sm font-semibold rounded-xl transition-colors">
+            <a href="reports.php#admin-feedback" class="px-4 py-2 bg-red-600 text-white hover:bg-red-700 text-sm font-semibold rounded-xl transition-colors">
                 <?= $LANG['reset'] ?? 'Reset' ?>
             </a>
         </div>
