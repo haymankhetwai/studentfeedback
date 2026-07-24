@@ -299,6 +299,7 @@ $LANG = [
     'edit_form_modal' => 'အကြံပြုချက် ဖောင် ပြင်ဆင်ရန်',
     'delete_form_modal' => 'ဖောင် ဖျက်ရန်',
     'delete_form_confirm' => 'နှင့် ၎င်း၏ မေးခွန်းများနှင့် အဖြေများအားလုံးကို ဖျက်မည်လား?',
+    'section' => "အတန်းများ", 
 
     // ─── Feedback Questions ──────────────────────────────────
     'academic_questions_title' => 'ပညာရေး အကြံပြုချက် မေးခွန်းများ',
@@ -388,7 +389,7 @@ $LANG = [
     'filter_sections' => 'အတန်းများ စစ်ရန်...',
     'remove_assignment_modal' => 'တာဝန်ချမှု ဖယ်ရန်',
     'remove_all_assignments_modal' => 'တာဝန်ချမှု အားလုံး ဖယ်ရန်',
-    'remove_all_confirm' => 'ဘာသာရပ် စာရင်းသွင်းမှု အားလုံးကို အပြည့်အစုံ ဖျက်ချင်ပါသလား',
+    'remove_all_confirm' => 'ဖျက်ရန်အတည်ပြုပါသလား',
     'no_assignments_found' => 'တာဝန်ချမှု မတွေ့ပါ။',
     'no_assignments_for_filter' => 'ရွေးချယ်ထားသည့် ဘွဲ့နှင့် အုပ်စုအတွက် တာဝန်ချထားသည့် ဘာသာရပ်များ မတွေ့ပါ။',
 
@@ -535,7 +536,7 @@ $LANG = [
     'filter_sections' => 'အတန်းများ စစ်ရန်...',
     'remove_assignment_modal' => 'တာဝန်ချမှု ဖယ်ရန်',
     'remove_all_assignments_modal' => 'တာဝန်ချမှု အားလုံး ဖယ်ရန်',
-    'remove_all_confirm' => 'ဘာသာရပ် စာရင်းသွင်းမှု အားလုံးကို အပြည့်အစုံ ဖျက်ချင်ပါသလား',
+    'remove_all_confirm' => 'ဖျက်ရန်အတည်ပြုပါသလား',
     'no_assignments_found' => 'တာဝန်ချမှု မတွေ့ပါ။',
     'no_assignments_for_filter' => 'ရွေးချယ်ထားသည့် ဘွဲ့နှင့် အုပ်စုအတွက် တာဝန်ချထားသည့် ဘာသာရပ်များ မတွေ့ပါ။',
     'flash_assignment_updated' => 'တာဝန်ချမှု အောင်မြင်စွာ ပြင်ဆင်ပြီးပါပြီ။',

@@ -127,8 +127,10 @@ if (isset($_GET['ajax_forms']) && $_GET['ajax_forms'] === '1') {
     if ($ajaxFormTypes) {
         $ajaxFormStmt = $conn->prepare($ajaxFormSql);
         $ajaxFormBind = [];
-        if ($ajaxAY) $ajaxFormBind[] = $ajaxAY;
-        if ($ajaxSem) $ajaxFormBind[] = $ajaxSem;
+        if ($ajaxAY)
+            $ajaxFormBind[] = $ajaxAY;
+        if ($ajaxSem)
+            $ajaxFormBind[] = $ajaxSem;
         $ajaxFormStmt->bind_param($ajaxFormTypes, ...$ajaxFormBind);
         $ajaxFormStmt->execute();
         $ajaxFormList = $ajaxFormStmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -956,117 +958,118 @@ include '../includes/admin_sidebar.php';
                 </div>
             </div>
         </div>
-    <?php if ($completedCount === 0): ?>
-        <div class="bg-blue-50 border border-blue-200 rounded-2xl px-5 py-4 mb-6 flex items-center gap-3 no-print">
-            <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                <?= iconSvg('question', 'w-5 h-5 text-blue-600') ?>
+        <?php if ($completedCount === 0): ?>
+            <div class="bg-blue-50 border border-blue-200 rounded-2xl px-5 py-4 mb-6 flex items-center gap-3 no-print">
+                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                    <?= iconSvg('question', 'w-5 h-5 text-blue-600') ?>
+                </div>
+                <div>
+                    <p class="text-sm font-semibold text-blue-800">No responses have been submitted yet.</p>
+                    <p class="text-xs text-blue-600 mt-0.5">Results will appear here once students submit their feedback.</p>
+                </div>
             </div>
-            <div>
-                <p class="text-sm font-semibold text-blue-800">No responses have been submitted yet.</p>
-                <p class="text-xs text-blue-600 mt-0.5">Results will appear here once students submit their feedback.</p>
-            </div>
-        </div>
-    <?php endif; ?>
+        <?php endif; ?>
 
-    <!-- Results Table -->
-    <div class="w-full mx-auto no-print">
-        <div class="bg-white shadow-md rounded-xl border border-slate-200 p-6 md:p-8 mb-8">
-            <div class="text-center border-b-2 border-slate-800 pb-4 mb-5">
-                <h2 class="text-lg md:text-xl font-bold text-slate-900 mb-1"><?= e($form['title']) ?></h2>
-                <p class="text-xs text-slate-400 font-mono"><?= moduleBadge($form['module']) ?> Statistical Evaluation
-                    Report</p>
-                <p class="text-xs text-slate-400 mt-1">Period: <?= formatDateTime($form['start_date']) ?> —
-                    <?= formatDateTime($form['end_date']) ?>
-                </p>
-            </div>
+        <!-- Results Table -->
+        <div class="w-full mx-auto no-print">
+            <div class="bg-white shadow-md rounded-xl border border-slate-200 p-6 md:p-8 mb-8">
+                <div class="text-center border-b-2 border-slate-800 pb-4 mb-5">
+                    <h2 class="text-lg md:text-xl font-bold text-slate-900 mb-1"><?= e($form['title']) ?></h2>
+                    <p class="text-xs text-slate-400 font-mono"><?= moduleBadge($form['module']) ?> Statistical Evaluation
+                        Report</p>
+                    <p class="text-xs text-slate-400 mt-1">Period: <?= formatDateTime($form['start_date']) ?> —
+                        <?= formatDateTime($form['end_date']) ?>
+                    </p>
+                </div>
 
-            <?php if ($module === 'academic' && !empty($formMeta)): ?>
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6">
-                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Form Information</h3>
-                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        <div>
-                            <p class="text-[11px] font-semibold text-slate-400 uppercase">
-                                <?= $LANG["academic_year"] ?? "Academic Year" ?>
-                            </p>
-                            <p class="text-sm font-bold text-slate-800"><?= e($formMeta['academic_year'] ?? '—') ?></p>
-                        </div>
-                        <div>
-                            <p class="text-[11px] font-semibold text-slate-400 uppercase">
-                                <?= $LANG["semester_filter"] ?? "Semester" ?>
-                            </p>
-                            <p class="text-sm font-bold text-slate-800"><?= e(semesterToRoman($formMeta['semester'] ?? '')) ?>
-                            </p>
-                        </div>
-                        <div>
-                            <p class="text-[11px] font-semibold text-slate-400 uppercase">
-                                <?= $LANG["course_code"] ?? "Course Code" ?>
-                            </p>
-                            <p class="text-sm font-bold text-slate-800"><?= e($formMeta['course_code'] ?? '—') ?></p>
-                        </div>
-                        <div>
-                            <p class="text-[11px] font-semibold text-slate-400 uppercase">
-                                <?= $LANG["course_name"] ?? "Course Name" ?>
-                            </p>
-                            <p class="text-sm font-bold text-slate-800"><?= e($formMeta['course_name'] ?? '—') ?></p>
-                        </div>
-                        <div>
-                            <p class="text-[11px] font-semibold text-slate-400 uppercase">
-                                <?= $LANG["section_name"] ?? "Section" ?>
-                            </p>
-                            <p class="text-sm font-bold text-slate-800"><?= e($formMeta['section'] ?? '—') ?></p>
-                        </div>
-                        <div>
-                            <p class="text-[11px] font-semibold text-slate-400 uppercase">
-                                <?= $LANG["teacher_name"] ?? "Teacher Name" ?>
-                            </p>
-                            <p class="text-sm font-bold text-slate-800"><?= e($formMeta['teacher_name'] ?? '—') ?></p>
+                <?php if ($module === 'academic' && !empty($formMeta)): ?>
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6">
+                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Form Information</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            <div>
+                                <p class="text-[11px] font-semibold text-slate-400 uppercase">
+                                    <?= $LANG["academic_year"] ?? "Academic Year" ?>
+                                </p>
+                                <p class="text-sm font-bold text-slate-800"><?= e($formMeta['academic_year'] ?? '—') ?></p>
+                            </div>
+                            <div>
+                                <p class="text-[11px] font-semibold text-slate-400 uppercase">
+                                    <?= $LANG["semester_filter"] ?? "Semester" ?>
+                                </p>
+                                <p class="text-sm font-bold text-slate-800"><?= e(semesterToRoman($formMeta['semester'] ?? '')) ?>
+                                </p>
+                            </div>
+                            <div>
+                                <p class="text-[11px] font-semibold text-slate-400 uppercase">
+                                    <?= $LANG["course_code"] ?? "Course Code" ?>
+                                </p>
+                                <p class="text-sm font-bold text-slate-800"><?= e($formMeta['course_code'] ?? '—') ?></p>
+                            </div>
+                            <div>
+                                <p class="text-[11px] font-semibold text-slate-400 uppercase">
+                                    <?= $LANG["course_name"] ?? "Course Name" ?>
+                                </p>
+                                <p class="text-sm font-bold text-slate-800"><?= e($formMeta['course_name'] ?? '—') ?></p>
+                            </div>
+                            <div>
+                                <p class="text-[11px] font-semibold text-slate-400 uppercase">
+                                    <?= $LANG["section_name"] ?? "Section" ?>
+                                </p>
+                                <p class="text-sm font-bold text-slate-800"><?= e($formMeta['section'] ?? '—') ?></p>
+                            </div>
+                            <div>
+                                <p class="text-[11px] font-semibold text-slate-400 uppercase">
+                                    <?= $LANG["teacher_name"] ?? "Teacher Name" ?>
+                                </p>
+                                <p class="text-sm font-bold text-slate-800"><?= e($formMeta['teacher_name'] ?? '—') ?></p>
+                            </div>
                         </div>
                     </div>
-                </div>
-            <?php elseif (($module === 'student_affairs' || $module === 'administration') && !empty($formMeta)): ?>
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6">
-                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Form Information</h3>
-                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        <div>
-                            <p class="text-[11px] font-semibold text-slate-400 uppercase">
-                                <?= $LANG["university_name"] ?? "University Name" ?>
-                            </p>
-                            <p class="text-sm font-bold text-slate-800"><?= e($formMeta['university_name'] ?? '—') ?></p>
-                        </div>
-                        <div>
-                            <p class="text-[11px] font-semibold text-slate-400 uppercase">
-                                <?= $LANG["university_campus"] ?? "Campus" ?>
-                            </p>
-                            <p class="text-sm font-bold text-slate-800"><?= e($formMeta['university_campus'] ?? '—') ?></p>
-                        </div>
-                        <div>
-                            <p class="text-[11px] font-semibold text-slate-400 uppercase">
-                                <?= $LANG["academic_year"] ?? "Academic Year" ?>
-                            </p>
-                            <p class="text-sm font-bold text-slate-800"><?= e($formMeta['academic_year'] ?? '—') ?></p>
-                        </div>
-                        <div>
-                            <p class="text-[11px] font-semibold text-slate-400 uppercase">
-                                <?= $LANG["semester_filter"] ?? "Semester" ?>
-                            </p>
-                            <p class="text-sm font-bold text-slate-800"><?= e(semesterToRoman($formMeta['semester'] ?? '')) ?>
-                            </p>
-                        </div>
-                        <div>
-                            <p class="text-[11px] font-semibold text-slate-400 uppercase">Form Type</p>
-                            <p class="text-sm font-bold text-slate-800"><?= moduleBadge($module) ?></p>
+                <?php elseif (($module === 'student_affairs' || $module === 'administration') && !empty($formMeta)): ?>
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6">
+                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Form Information</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            <div>
+                                <p class="text-[11px] font-semibold text-slate-400 uppercase">
+                                    <?= $LANG["university_name"] ?? "University Name" ?>
+                                </p>
+                                <p class="text-sm font-bold text-slate-800"><?= e($formMeta['university_name'] ?? '—') ?></p>
+                            </div>
+                            <div>
+                                <p class="text-[11px] font-semibold text-slate-400 uppercase">
+                                    <?= $LANG["university_campus"] ?? "Campus" ?>
+                                </p>
+                                <p class="text-sm font-bold text-slate-800"><?= e($formMeta['university_campus'] ?? '—') ?></p>
+                            </div>
+                            <div>
+                                <p class="text-[11px] font-semibold text-slate-400 uppercase">
+                                    <?= $LANG["academic_year"] ?? "Academic Year" ?>
+                                </p>
+                                <p class="text-sm font-bold text-slate-800"><?= e($formMeta['academic_year'] ?? '—') ?></p>
+                            </div>
+                            <div>
+                                <p class="text-[11px] font-semibold text-slate-400 uppercase">
+                                    <?= $LANG["semester_filter"] ?? "Semester" ?>
+                                </p>
+                                <p class="text-sm font-bold text-slate-800"><?= e(semesterToRoman($formMeta['semester'] ?? '')) ?>
+                                </p>
+                            </div>
+                            <div>
+                                <p class="text-[11px] font-semibold text-slate-400 uppercase">Form Type</p>
+                                <p class="text-sm font-bold text-slate-800"><?= moduleBadge($module) ?></p>
+                            </div>
                         </div>
                     </div>
-                </div>
-            <?php endif ?>
+                <?php endif ?>
 
-            <?php if (!empty($ratingQuestions)): ?>
-                <div class="mb-8">
-                    <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3">
-                        <?= $LANG['question_stats_header'] ?? 'Question-wise Statistical Results' ?></h3>
-                    <div class="overflow-x-auto border border-slate-300 rounded-lg">
-                        <table class="w-full text-left border-collapse min-w-[850px] text-xs">
-                            <!-- <thead>
+                <?php if (!empty($ratingQuestions)): ?>
+                    <div class="mb-8">
+                        <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3">
+                            <?= $LANG['question_stats_header'] ?? 'Question-wise Statistical Results' ?>
+                        </h3>
+                        <div class="overflow-x-auto border border-slate-300 rounded-lg">
+                            <table class="w-full text-left border-collapse min-w-[850px] text-xs">
+                                <!-- <thead>
                                 <tr class="text-white font-bold">
                                     <th class="bg-blue-300 p-3 w-12 text-center text-lg font-semibold">No.</th>
                                     <th class="p-3 bg-blue-500 text-lg font-semibold">Evaluation Questions</th>
@@ -1084,126 +1087,126 @@ include '../includes/admin_sidebar.php';
                                     </th>
                                 </tr>
                             </thead> -->
-                            <thead>
-                                <tr class=" text-white font-bold">
-                                    <th class="p-3 w-12 text-center bg-blue-300 text-lg"><?= $LANG['col_no'] ?? 'စဉ်' ?></th>
-                                    <th class="p-3 bg-blue-500/80 text-lg">
-                                        <?= $LANG['eval_questions_header'] ?? 'Evaluation Questions' ?>
-                                    </th>
-                                    <th class="p-3 w-28 text-center bg-emerald-700/80">
-                                        <div class="text-lg"><?= $LANG['good'] ?? 'Good' ?></div>
-                                        <div class="text-[10px] font-normal"><?= $LANG['count_pct'] ?? 'COUNT / %' ?>
-                                        </div>
-                                    </th>
-                                    <th class="p-3 w-28 text-center bg-amber-600/80">
-                                        <div class="text-lg"><?= $LANG['fair'] ?? 'Fair' ?></div>
-                                        <div class="text-[10px] font-normal"><?= $LANG['count_pct'] ?? 'COUNT / %' ?>
-                                        </div>
-                                    </th>
-                                    <th class="p-3 w-28 text-center bg-red-700/70">
-                                        <div class="text-lg"><?= $LANG['bad'] ?? 'Bad' ?></div>
-                                        <div class="text-[10px] font-normal"><?= $LANG['count_pct'] ?? 'COUNT / %' ?>
-                                        </div>
-                                    </th>
-                                </tr>
-                            </thead>
-
-
-                            <tbody class="divide-y divide-slate-200 text-slate-800 font-medium">
-                                <?php foreach ($ratingQuestions as $q):
-                                    $gc = $ratingStats[$q['id']]['Good'] ?? 0;
-                                    $fc = $ratingStats[$q['id']]['Fair'] ?? 0;
-                                    $bc = $ratingStats[$q['id']]['Bad'] ?? 0;
-                                    $tv = $gc + $fc + $bc;
-                                    $gp = $tv > 0 ? round(($gc / $tv) * 100) : 0;
-                                    $fp = $tv > 0 ? round(($fc / $tv) * 100) : 0;
-                                    $bp = $tv > 0 ? round(($bc / $tv) * 100) : 0;
-                                    ?>
-                                    <tr class="hover:bg-slate-50/60 transition-colors">
-                                        <td class="p-3 text-center font-bold font-mono border-r text-lg">
-                                            <?= e(displayQuestionNumber($q['question_no'], $_SESSION['lang'] ?? 'en')) ?>
-                                        </td>
-                                        <td class="p-3 border-r leading-relaxed text-lg"><?= e($q['question_text']) ?></td>
-                                        <td class="p-3 text-center border-r bg-emerald-50/30"><span
-                                                class="text-emerald-700 font-bold block text-sm"><?= $gc ?> persons</span><span
-                                                class="text-[10px] text-slate-500">(<?= $gp ?>%)</span></td>
-                                        <td class="p-3 text-center border-r bg-amber-50/30"><span
-                                                class="text-amber-700 font-bold block text-sm"><?= $fc ?> persons</span><span
-                                                class="text-[10px] text-slate-500">(<?= $fp ?>%)</span></td>
-                                        <td class="p-3 text-center bg-red-50/30"><span
-                                                class="text-red-700 font-bold block text-sm"><?= $bc ?> persons</span><span
-                                                class="text-[10px] text-slate-500">(<?= $bp ?>%)</span></td>
+                                <thead>
+                                    <tr class=" text-white font-bold">
+                                        <th class="p-3 w-12 text-center bg-blue-300 text-lg"><?= $LANG['col_no'] ?? 'စဉ်' ?></th>
+                                        <th class="p-3 bg-blue-500/80 text-lg">
+                                            <?= $LANG['eval_questions_header'] ?? 'Evaluation Questions' ?>
+                                        </th>
+                                        <th class="p-3 w-28 text-center bg-emerald-700/80">
+                                            <div class="text-lg"><?= $LANG['good'] ?? 'Good' ?></div>
+                                            <div class="text-[10px] font-normal"><?= $LANG['count_pct'] ?? 'COUNT / %' ?>
+                                            </div>
+                                        </th>
+                                        <th class="p-3 w-28 text-center bg-amber-600/80">
+                                            <div class="text-lg"><?= $LANG['fair'] ?? 'Fair' ?></div>
+                                            <div class="text-[10px] font-normal"><?= $LANG['count_pct'] ?? 'COUNT / %' ?>
+                                            </div>
+                                        </th>
+                                        <th class="p-3 w-28 text-center bg-red-700/70">
+                                            <div class="text-lg"><?= $LANG['bad'] ?? 'Bad' ?></div>
+                                            <div class="text-[10px] font-normal"><?= $LANG['count_pct'] ?? 'COUNT / %' ?>
+                                            </div>
+                                        </th>
                                     </tr>
-                                <?php endforeach ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            <?php endif ?>
+                                </thead>
 
-            <?php if (!empty($commentQuestions)): ?>
-                <div class="space-y-6 pt-6 border-t-2 border-slate-300">
-                    <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                        <?= $LANG['comments_header'] ?? 'Comments' ?>
-                    </h3>
-                    <?php foreach ($commentQuestions as $cq):
-                        $commentsForQ = $allComments[$cq['id']] ?? [];
-                        ?>
-                        <div class="space-y-2 text-lg">
-                            <label class="block font-bold text-slate-700 text-lg">
-                                <?= displayQuestionNumber($cq['question_no'], $_SESSION['lang'] ?? 'en') ?>
-                                <?= e($cq['question_text']) ?>
-                                <span class="text-slate-400 font-normal">(<?= count($commentsForQ) ?>
-                                    comments)</span></label>
-                            <div
-                                class="w-full bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-2.5 max-h-[300px] overflow-y-auto">
-                                <?php if (!empty($commentsForQ)): ?>
-                                    <?php foreach ($commentsForQ as $idx => $commentText): ?>
-                                        <div class="bg-white border border-slate-100 p-3 rounded-lg shadow-2xs flex items-start gap-2">
-                                            <span class="text-slate-400 font-bold">#<?= $idx + 1 ?></span>
-                                            <div class="text-slate-800 font-medium whitespace-pre-wrap"><?= e($commentText) ?></div>
-                                        </div>
+
+                                <tbody class="divide-y divide-slate-200 text-slate-800 font-medium">
+                                    <?php foreach ($ratingQuestions as $q):
+                                        $gc = $ratingStats[$q['id']]['Good'] ?? 0;
+                                        $fc = $ratingStats[$q['id']]['Fair'] ?? 0;
+                                        $bc = $ratingStats[$q['id']]['Bad'] ?? 0;
+                                        $tv = $gc + $fc + $bc;
+                                        $gp = $tv > 0 ? round(($gc / $tv) * 100) : 0;
+                                        $fp = $tv > 0 ? round(($fc / $tv) * 100) : 0;
+                                        $bp = $tv > 0 ? round(($bc / $tv) * 100) : 0;
+                                        ?>
+                                        <tr class="hover:bg-slate-50/60 transition-colors">
+                                            <td class="p-3 text-center font-bold font-mono border-r text-lg">
+                                                <?= e(displayQuestionNumber($q['question_no'], $_SESSION['lang'] ?? 'en')) ?>
+                                            </td>
+                                            <td class="p-3 border-r leading-relaxed text-lg"><?= e($q['question_text']) ?></td>
+                                            <td class="p-3 text-center border-r bg-emerald-50/30"><span
+                                                    class="text-emerald-700 font-bold block text-sm"><?= $gc ?> persons</span><span
+                                                    class="text-[10px] text-slate-500">(<?= $gp ?>%)</span></td>
+                                            <td class="p-3 text-center border-r bg-amber-50/30"><span
+                                                    class="text-amber-700 font-bold block text-sm"><?= $fc ?> persons</span><span
+                                                    class="text-[10px] text-slate-500">(<?= $fp ?>%)</span></td>
+                                            <td class="p-3 text-center bg-red-50/30"><span
+                                                    class="text-red-700 font-bold block text-sm"><?= $bc ?> persons</span><span
+                                                    class="text-[10px] text-slate-500">(<?= $bp ?>%)</span></td>
+                                        </tr>
                                     <?php endforeach ?>
-                                <?php else: ?>
-                                    <div class="text-slate-400 italic text-center py-4">No comments for this question.</div>
-                                <?php endif ?>
-                            </div>
+                                </tbody>
+                            </table>
                         </div>
-                    <?php endforeach ?>
-                </div>
-            <?php endif ?>
-
-            <?php if (!empty($surveyQuestions)): ?>
-                <div class="space-y-6 pt-6 border-t-2 border-slate-300">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Survey Results (MCQ)</h3>
-                        <span class="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full font-semibold">Not
-                            included in Overall Rating</span>
                     </div>
-                    <?php foreach ($surveyQuestions as $q):
-                        $opts = json_decode($q['options_json'] ?? '[]', true) ?: [];
-                        $qStats = $surveyStats[$q['id']] ?? [];
-                        $mostSelected = getMostSelectedSurveyOptions($qStats);
-                        $totalVotes = $mostSelected['total'];
-                        $doughnutColors = ['#7c3aed', '#2563eb', '#059669', '#d97706', '#dc2626', '#8b5cf6', '#0891b2', '#c026d3'];
-                        $chartLabels = $chartData = $chartColors = [];
-                        foreach ($opts as $idx => $opt) {
-                            $chartLabels[] = $opt;
-                            $chartData[] = $qStats[$idx] ?? 0;
-                            $chartColors[] = $doughnutColors[$idx % count($doughnutColors)];
-                        }
-                        ?>
-                        <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm"
-                            data-qid="<?= $q['id'] ?>">
-                            <div class="px-6 pt-5 pb-3 border-b border-slate-100">
-                                <div class="flex items-start gap-3">
-                                    <span
-                                        class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.5 shrink-0"><?= e(displayQuestionNumber($q['question_no'], $_SESSION['lang'] ?? 'en')) ?></span>
-                                    <div class="flex-1 min-w-0">
-                                        <h4 class="text-lg font-bold text-slate-800 leading-snug"><?= e($q['question_text']) ?></h4>
-                                        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-[11px] text-slate-400">
-                                            <span><?= $totalVotes > 0 ? $totalVotes . ' responses' : 'No responses yet' ?></span>
-                                            <!-- <?php if ($totalVotes > 0 && !empty($mostSelected['indices'])): ?>
+                <?php endif ?>
+
+                <?php if (!empty($commentQuestions)): ?>
+                    <div class="space-y-6 pt-6 border-t-2 border-slate-300">
+                        <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                            <?= $LANG['comments_header'] ?? 'Comments' ?>
+                        </h3>
+                        <?php foreach ($commentQuestions as $cq):
+                            $commentsForQ = $allComments[$cq['id']] ?? [];
+                            ?>
+                            <div class="space-y-2 text-lg">
+                                <label class="block font-bold text-slate-700 text-lg">
+                                    <?= displayQuestionNumber($cq['question_no'], $_SESSION['lang'] ?? 'en') ?>
+                                    <?= e($cq['question_text']) ?>
+                                    <span class="text-slate-400 font-normal">(<?= count($commentsForQ) ?>
+                                        comments)</span></label>
+                                <div
+                                    class="w-full bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-2.5 max-h-[300px] overflow-y-auto">
+                                    <?php if (!empty($commentsForQ)): ?>
+                                        <?php foreach ($commentsForQ as $idx => $commentText): ?>
+                                            <div class="bg-white border border-slate-100 p-3 rounded-lg shadow-2xs flex items-start gap-2">
+                                                <span class="text-slate-400 font-bold">#<?= $idx + 1 ?></span>
+                                                <div class="text-slate-800 font-medium whitespace-pre-wrap"><?= e($commentText) ?></div>
+                                            </div>
+                                        <?php endforeach ?>
+                                    <?php else: ?>
+                                        <div class="text-slate-400 italic text-center py-4">No comments for this question.</div>
+                                    <?php endif ?>
+                                </div>
+                            </div>
+                        <?php endforeach ?>
+                    </div>
+                <?php endif ?>
+
+                <?php if (!empty($surveyQuestions)): ?>
+                    <div class="space-y-6 pt-6 border-t-2 border-slate-300">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Survey Results (MCQ)</h3>
+                            <span class="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full font-semibold">Not
+                                included in Overall Rating</span>
+                        </div>
+                        <?php foreach ($surveyQuestions as $q):
+                            $opts = json_decode($q['options_json'] ?? '[]', true) ?: [];
+                            $qStats = $surveyStats[$q['id']] ?? [];
+                            $mostSelected = getMostSelectedSurveyOptions($qStats);
+                            $totalVotes = $mostSelected['total'];
+                            $doughnutColors = ['#7c3aed', '#2563eb', '#059669', '#d97706', '#dc2626', '#8b5cf6', '#0891b2', '#c026d3'];
+                            $chartLabels = $chartData = $chartColors = [];
+                            foreach ($opts as $idx => $opt) {
+                                $chartLabels[] = $opt;
+                                $chartData[] = $qStats[$idx] ?? 0;
+                                $chartColors[] = $doughnutColors[$idx % count($doughnutColors)];
+                            }
+                            ?>
+                            <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm"
+                                data-qid="<?= $q['id'] ?>">
+                                <div class="px-6 pt-5 pb-3 border-b border-slate-100">
+                                    <div class="flex items-start gap-3">
+                                        <span
+                                            class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.5 shrink-0"><?= e(displayQuestionNumber($q['question_no'], $_SESSION['lang'] ?? 'en')) ?></span>
+                                        <div class="flex-1 min-w-0">
+                                            <h4 class="text-lg font-bold text-slate-800 leading-snug"><?= e($q['question_text']) ?></h4>
+                                            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-[11px] text-slate-400">
+                                                <span><?= $totalVotes > 0 ? $totalVotes . ' responses' : 'No responses yet' ?></span>
+                                                <!-- <?php if ($totalVotes > 0 && !empty($mostSelected['indices'])): ?>
                                                 <span class="inline-flex items-center gap-1 text-violet-700 bg-violet-50 px-2 py-0.5 rounded-md font-semibold">
                                                     🔥 အများဆုံးရွေးချယ်မှု: 
                                                     <?php
@@ -1217,382 +1220,382 @@ include '../includes/admin_sidebar.php';
                                                     ?>
                                                 </span>
                                             <?php endif; ?> -->
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            <?php if ($totalVotes > 0): ?>
-                                <div class="p-6">
-                                    <div class="flex flex-col md:flex-row gap-6 items-start">
-                                        <div class="w-full md:w-5/12 flex justify-center">
-                                            <div class="relative" style="width:260px;height:260px;">
-                                                <canvas id="surveyChart_<?= $q['id'] ?>" data-type="survey" width="260"
-                                                    height="260"></canvas>
+                                <?php if ($totalVotes > 0): ?>
+                                    <div class="p-6">
+                                        <div class="flex flex-col md:flex-row gap-6 items-start">
+                                            <div class="w-full md:w-5/12 flex justify-center">
+                                                <div class="relative" style="width:260px;height:260px;">
+                                                    <canvas id="surveyChart_<?= $q['id'] ?>" data-type="survey" width="260"
+                                                        height="260"></canvas>
+                                                </div>
+                                            </div>
+                                            <div class="w-full md:w-7/12 space-y-2">
+                                                <?php foreach ($opts as $idx => $opt):
+                                                    $votes = $chartData[$idx];
+                                                    $pct = $totalVotes > 0 ? round(($votes / $totalVotes) * 100) : 0;
+                                                    $isMostSelected = in_array($idx, $mostSelected['indices']);
+                                                    ?>
+                                                    <div class="flex items-center gap-3">
+                                                        <span class="w-3 h-3 rounded-full shrink-0 ring-2 ring-white shadow-sm"
+                                                            style="background-color: <?= $chartColors[$idx] ?>"></span>
+                                                        <div class="flex-1 min-w-0">
+                                                            <div class="flex items-center justify-between gap-2">
+                                                                <span
+                                                                    class="text-sm font-semibold text-slate-700 truncate"><?= e($opt) ?></span>
+                                                                <div class="flex items-center gap-2 shrink-0">
+                                                                    <span class="text-[11px] text-slate-400 font-medium"><?= $votes ?>
+                                                                        votes</span>
+                                                                    <?php if ($isMostSelected): ?>
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                                                                            fill="currentColor" class="w-4 h-4 text-violet-600">
+                                                                            <path fill-rule="evenodd"
+                                                                                d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                                                                                clip-rule="evenodd" />
+                                                                        </svg>
+                                                                    <?php endif ?>
+                                                                </div>
+                                                            </div>
+                                                            <div class="w-full bg-slate-100 rounded-full h-1.5 mt-1.5 overflow-hidden">
+                                                                <div class="h-full rounded-full transition-all duration-700"
+                                                                    style="width: <?= $pct ?>%; background-color: <?= $chartColors[$idx] ?>">
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                <?php endforeach ?>
                                             </div>
                                         </div>
-                                        <div class="w-full md:w-7/12 space-y-2">
-                                            <?php foreach ($opts as $idx => $opt):
-                                                $votes = $chartData[$idx];
-                                                $pct = $totalVotes > 0 ? round(($votes / $totalVotes) * 100) : 0;
-                                                $isMostSelected = in_array($idx, $mostSelected['indices']);
+                                    </div>
+                                    <?php if (!empty($mostSelected['indices'])): ?>
+                                        <div
+                                            class="mx-6 mb-6 p-4 bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-200 rounded-xl">
+                                            <p class="text-xs font-bold text-violet-600 uppercase tracking-wider mb-2">Most Selected
+                                                Answer<?= count($mostSelected['indices']) > 1 ? 's' : '' ?></p>
+                                            <?php foreach ($mostSelected['indices'] as $msIdx):
+                                                $msLabel = $opts[$msIdx] ?? '';
+                                                $msCount = $mostSelected['max_votes'];
+                                                $msPct = $totalVotes > 0 ? round(($msCount / $totalVotes) * 100, 1) : 0;
                                                 ?>
+                                                <div class="flex items-center gap-3 mb-2 last:mb-0">
+                                                    <span class="text-lg">⭐</span>
+                                                    <div>
+                                                        <p class="text-sm font-bold text-slate-800"><?= e($msLabel) ?></p>
+                                                        <p class="text-xs text-slate-500">
+                                                            <span class="inline-flex items-center gap-1">👥 <?= $msCount ?> Students</span>
+                                                            <span class="mx-1.5">·</span>
+                                                            <span class="inline-flex items-center gap-1">📊 <?= $msPct ?>%</span>
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            <?php endforeach ?>
+                                        </div>
+                                    <?php endif ?>
+                                <?php else: ?>
+                                    <div class="p-6">
+                                        <p class="text-sm text-slate-400 italic text-center py-4">No responses yet.</p>
+                                        <div class="space-y-2">
+                                            <?php foreach ($opts as $idx => $opt): ?>
                                                 <div class="flex items-center gap-3">
                                                     <span class="w-3 h-3 rounded-full shrink-0 ring-2 ring-white shadow-sm"
                                                         style="background-color: <?= $chartColors[$idx] ?>"></span>
                                                     <div class="flex-1 min-w-0">
                                                         <div class="flex items-center justify-between gap-2">
-                                                            <span
-                                                                class="text-sm font-semibold text-slate-700 truncate"><?= e($opt) ?></span>
-                                                            <div class="flex items-center gap-2 shrink-0">
-                                                                <span class="text-[11px] text-slate-400 font-medium"><?= $votes ?>
-                                                                    votes</span>
-                                                                <?php if ($isMostSelected): ?>
-                                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
-                                                                        fill="currentColor" class="w-4 h-4 text-violet-600">
-                                                                        <path fill-rule="evenodd"
-                                                                            d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
-                                                                            clip-rule="evenodd" />
-                                                                    </svg>
-                                                                <?php endif ?>
-                                                            </div>
+                                                            <span class="text-sm font-semibold text-slate-700 truncate"><?= e($opt) ?></span>
+                                                            <span class="text-[11px] text-slate-400 font-medium">0 votes</span>
                                                         </div>
                                                         <div class="w-full bg-slate-100 rounded-full h-1.5 mt-1.5 overflow-hidden">
                                                             <div class="h-full rounded-full transition-all duration-700"
-                                                                style="width: <?= $pct ?>%; background-color: <?= $chartColors[$idx] ?>">
-                                                            </div>
+                                                                style="width: 0%; background-color: <?= $chartColors[$idx] ?>"></div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             <?php endforeach ?>
                                         </div>
                                     </div>
-                                </div>
-                                <?php if (!empty($mostSelected['indices'])): ?>
-                                    <div
-                                        class="mx-6 mb-6 p-4 bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-200 rounded-xl">
-                                        <p class="text-xs font-bold text-violet-600 uppercase tracking-wider mb-2">Most Selected
-                                            Answer<?= count($mostSelected['indices']) > 1 ? 's' : '' ?></p>
-                                        <?php foreach ($mostSelected['indices'] as $msIdx):
-                                            $msLabel = $opts[$msIdx] ?? '';
-                                            $msCount = $mostSelected['max_votes'];
-                                            $msPct = $totalVotes > 0 ? round(($msCount / $totalVotes) * 100, 1) : 0;
-                                            ?>
-                                            <div class="flex items-center gap-3 mb-2 last:mb-0">
-                                                <span class="text-lg">⭐</span>
-                                                <div>
-                                                    <p class="text-sm font-bold text-slate-800"><?= e($msLabel) ?></p>
-                                                    <p class="text-xs text-slate-500">
-                                                        <span class="inline-flex items-center gap-1">👥 <?= $msCount ?> Students</span>
-                                                        <span class="mx-1.5">·</span>
-                                                        <span class="inline-flex items-center gap-1">📊 <?= $msPct ?>%</span>
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        <?php endforeach ?>
-                                    </div>
                                 <?php endif ?>
-                            <?php else: ?>
-                                <div class="p-6">
-                                    <p class="text-sm text-slate-400 italic text-center py-4">No responses yet.</p>
-                                    <div class="space-y-2">
-                                        <?php foreach ($opts as $idx => $opt): ?>
-                                            <div class="flex items-center gap-3">
-                                                <span class="w-3 h-3 rounded-full shrink-0 ring-2 ring-white shadow-sm"
-                                                    style="background-color: <?= $chartColors[$idx] ?>"></span>
-                                                <div class="flex-1 min-w-0">
-                                                    <div class="flex items-center justify-between gap-2">
-                                                        <span class="text-sm font-semibold text-slate-700 truncate"><?= e($opt) ?></span>
-                                                        <span class="text-[11px] text-slate-400 font-medium">0 votes</span>
-                                                    </div>
-                                                    <div class="w-full bg-slate-100 rounded-full h-1.5 mt-1.5 overflow-hidden">
-                                                        <div class="h-full rounded-full transition-all duration-700"
-                                                            style="width: 0%; background-color: <?= $chartColors[$idx] ?>"></div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        <?php endforeach ?>
-                                    </div>
+                            </div>
+                        <?php endforeach ?>
+                    </div>
+                <?php endif ?>
+
+                <div class="mt-8 pt-4 border-t border-slate-100 text-center text-[11px] text-blue-500 font-semibold italic">
+                    This is an automated anonymous statistical report.
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════════════════ -->
+        <!-- PROFESSIONAL PRINTABLE REPORT (print-only, hidden on screen) -->
+        <!-- ═══════════════════════════════════════════════════════════════════════ -->
+        <div class="print-only myanmar-font" style="max-width: 100%;">
+            <!-- University Header -->
+            <div class="print-report-header">
+                <h1>University of Computer Studies(Hinthada)</h1>
+                <h2>Student Feedback Evaluation Report</h2>
+                <p>Confidential — For Internal Academic Use Only</p>
+            </div>
+
+            <!-- Teacher & Subject Information -->
+            <div class="print-section">
+                <div class="print-section-title">
+                    <?= ($module === 'academic') ? (($LANG['teacher_label'] ?? 'Teacher') . ' & ' . ($LANG['subject_filter'] ?? 'Subject')) : 'Form' ?>
+                    Information
+                </div>
+                <dl class="print-info-grid">
+                    <dt>Academic Year:</dt>
+                    <dd><?= e($formMeta['academic_year'] ?? '') ?></dd>
+                    <dt>Semester:</dt>
+                    <dd><?= e(semesterToRoman($formMeta['semester'] ?? '')) ?></dd>
+                    <?php if ($module === 'academic'): ?>
+                        <dt>Subject:</dt>
+                        <dd><?= e($formMeta['course_code'] ?? '') ?> — <?= e($formMeta['course_name'] ?? '') ?></dd>
+                        <dt>Teacher:</dt>
+                        <dd><?= e($formMeta['teacher_name'] ?? '') ?></dd>
+                        <dt>Section:</dt>
+                        <dd><?= e($formMeta['section'] ?? '') ?></dd>
+                    <?php else: ?>
+                        <dt>Module:</dt>
+                        <dd><?= moduleBadge($module) ?></dd>
+                        <?php if (!empty($formMeta['university_name'])): ?>
+                            <dt>University:</dt>
+                            <dd><?= e($formMeta['university_name'] ?? '') ?></dd>
+                        <?php endif; ?>
+                        <?php if (!empty($formMeta['university_campus'])): ?>
+                            <dt>Campus:</dt>
+                            <dd><?= e($formMeta['university_campus'] ?? '') ?></dd>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                    <dt>Feedback Period:</dt>
+                    <dd><?= formatDateTime($form['start_date']) ?> — <?= formatDateTime($form['end_date']) ?></dd>
+                    <dt>Total Students:</dt>
+                    <dd><?= $totalStudents ?></dd>
+                    <dt><?= $LANG['total_responses'] ?? 'Total Responses' ?>:</dt>
+                    <dd><?= $completedCount ?> (<?= $totalStudents > 0 ? round(($completedCount / $totalStudents) * 100) : 0 ?>%
+                        response rate)</dd>
+                </dl>
+            </div>
+
+            <!-- Overall Teacher Rating Summary -->
+            <?php if (!empty($ratingQuestions) && $completedCount > 0): ?>
+                <div class="print-section">
+                    <div class="print-section-title"><?= $LANG['overall_teacher_rating'] ?? 'Overall Teacher Rating' ?> — Total
+                    </div>
+                    <div class="print-rating-summary">
+                        <div class="print-rating-item">
+                            <div class="value"><?= $overallPct ?>%</div>
+                            <div class="label"><?= $LANG["overall_rating"] ?? "Overall Rating" ?></div>
+                        </div>
+                        <div class="print-rating-item">
+                            <div class="value"><span class="print-grade-badge"><?= $grade ?></span></div>
+                            <div class="label" style="margin-top:6px;"><?= $LANG['performance_grade'] ?? 'Performance Grade' ?>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display:flex; justify-content:center; gap:24px; font-size:9pt; margin-top:8px; color:#475569;">
+                        <span>🟢 <?= $LANG['good'] ?? 'Good' ?>: <?= $totalGood ?> (<?= $aggGoodPct ?>%)</span>
+                        <span>🟡 <?= $LANG['fair'] ?? 'Fair' ?>: <?= $totalFair ?> (<?= $aggFairPct ?>%)</span>
+                        <span>🔴 <?= $LANG['bad'] ?? 'Bad' ?>: <?= $totalBad ?> (<?= $aggBadPct ?>%)</span>
+                    </div>
+                    <div style="font-size:8pt; color:#94a3b8; text-align:center; margin-top:4px;">
+                        <?= $LANG['good'] ?? 'Good' ?> = 5 pts · <?= $LANG['fair'] ?? 'Fair' ?> = 3 pts ·
+                        <?= $LANG['bad'] ?? 'Bad' ?> = 1 pt &nbsp;|&nbsp; <?= $LANG['rating_questions'] ?? 'Rating Questions' ?>:
+                        <?= $numRatingQuestions ?> &nbsp;|&nbsp; Survey questions excluded from rating
+                    </div>
+                </div>
+            <?php endif ?>
+
+            <!-- Rating Questions Result Table -->
+            <?php if (!empty($ratingQuestions)): ?>
+                <div class="print-section">
+                    <div class="print-section-title"><?= $LANG['rating_questions'] ?? 'Rating Questions' ?> — Detailed Results</div>
+                    <table class="print-table">
+                        <thead>
+                            <tr>
+                                <th style="width:40px;"><?= $LANG['col_no'] ?? 'စဉ်' ?></th>
+                                <th style="text-align:left;"><?= $LANG['eval_questions_header'] ?? 'Evaluation Questions' ?></th>
+                                <th style="width:80px;"><?= $LANG['good'] ?? 'Good' ?></th>
+                                <th style="width:80px;"><?= $LANG['fair'] ?? 'Fair' ?></th>
+                                <th style="width:80px;"><?= $LANG['bad'] ?? 'Bad' ?></th>
+                                <th style="width:60px;"><?= $LANG['total'] ?? 'Total' ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($ratingQuestions as $q):
+                                $gc = $ratingStats[$q['id']]['Good'] ?? 0;
+                                $fc = $ratingStats[$q['id']]['Fair'] ?? 0;
+                                $bc = $ratingStats[$q['id']]['Bad'] ?? 0;
+                                $tv = $gc + $fc + $bc;
+                                $gp = $tv > 0 ? round(($gc / $tv) * 100) : 0;
+                                $fp = $tv > 0 ? round(($fc / $tv) * 100) : 0;
+                                $bp = $tv > 0 ? round(($bc / $tv) * 100) : 0;
+                                ?>
+                                <tr>
+                                    <td style="text-align:center; font-weight:700;">
+                                        <?= e(displayQuestionNumber($q['question_no'], $_SESSION['lang'] ?? 'en')) ?>
+                                    </td>
+                                    <td style="text-align:left;"><?= e($q['question_text']) ?></td>
+                                    <td style="text-align:center;"><?= $gc ?> (<?= $gp ?>%)</td>
+                                    <td style="text-align:center;"><?= $fc ?> (<?= $fp ?>%)</td>
+                                    <td style="text-align:center;"><?= $bc ?> (<?= $bp ?>%)</td>
+                                    <td style="text-align:center; font-weight:700;"><?= $tv ?></td>
+                                </tr>
+                            <?php endforeach ?>
+                            <tr
+                                style="font-weight:700; background:#e2e8f0 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact;">
+                                <td colspan="2" style="text-align:right; padding-right:12px;"><?= $LANG['total'] ?? 'TOTALS' ?>:
+                                </td>
+                                <td style="text-align:center;"><?= $totalGood ?> (<?= $aggGoodPct ?>%)</td>
+                                <td style="text-align:center;"><?= $totalFair ?> (<?= $aggFairPct ?>%)</td>
+                                <td style="text-align:center;"><?= $totalBad ?> (<?= $aggBadPct ?>%)</td>
+                                <td style="text-align:center;"><?= $totalRatingResponses ?></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif ?>
+
+            <!-- Survey Results with Doughnut Charts -->
+            <?php if (!empty($surveyQuestions)): ?>
+                <div class="print-section">
+                    <div class="print-section-title"><?= $LANG['survey_results'] ?? 'Survey Results' ?></div>
+                    <div style="font-size:8pt; color:#64748b; margin-bottom:10px;">
+                        <?= $LANG['not_in_overall'] ?? 'Not included in Overall Rating' ?> calculation.
+                    </div>
+
+                    <?php foreach ($surveyQuestions as $q):
+                        $opts = json_decode($q['options_json'] ?? '[]', true) ?: [];
+                        $qStats = $surveyStats[$q['id']] ?? [];
+                        $mostSelected = getMostSelectedSurveyOptions($qStats);
+                        $totalVotes = $mostSelected['total'];
+                        $doughnutColors = ['#7c3aed', '#2563eb', '#059669', '#d97706', '#dc2626', '#8b5cf6', '#0891b2', '#c026d3'];
+                        $pColors = [];
+                        $pLabels = [];
+                        $pValues = [];
+                        foreach ($opts as $idx => $opt) {
+                            $pColors[] = $doughnutColors[$idx % count($doughnutColors)];
+                            $pLabels[] = addslashes($opt);
+                            $pValues[] = (int) ($qStats[$idx] ?? 0);
+                        }
+                        ?>
+                        <div style="margin-bottom:16px; page-break-inside:avoid;">
+                            <div style="display:flex; align-items:flex-start; gap:12px;">
+                                <div style="width:120px; height:120px; flex-shrink:0; position:relative;">
+                                    <canvas id="printChart_<?= $q['id'] ?>" width="120" height="120"></canvas>
                                 </div>
-                            <?php endif ?>
+                                <div style="flex:1; min-width:0;">
+                                    <div style="font-size:9.5pt; font-weight:700; color:#0f172a; margin-bottom:4px;">
+                                        <?= e(displayQuestionNumber($q['question_no'], $_SESSION['lang'] ?? 'en')) ?>
+                                        <?= e($q['question_text']) ?>
+                                        <?php if ($totalVotes > 0 && !empty($mostSelected['indices'])): ?>
+                                            <span style="font-size:8pt; color:#6d28d9; margin-left:8px; font-weight:bold;">
+                                                (အများဆုံးရွေးချယ်မှု: <?php
+                                                $printMostLabels = [];
+                                                foreach ($mostSelected['indices'] as $msIdx) {
+                                                    if (isset($opts[$msIdx]))
+                                                        $printMostLabels[] = $opts[$msIdx];
+                                                }
+                                                echo e(implode(' / ', $printMostLabels));
+                                                ?>)
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <?php foreach ($opts as $idx => $opt):
+                                        $votes = $qStats[$idx] ?? 0;
+                                        $isMost = in_array($idx, $mostSelected['indices']);
+                                        ?>
+                                        <div style="display:flex; align-items:center; gap:6px; margin-bottom:3px; font-size:8.5pt;">
+                                            <span
+                                                style="display:inline-block; width:8px; height:8px; border-radius:50%; background:<?= $pColors[$idx] ?>; flex-shrink:0;"></span>
+                                            <span
+                                                style="flex:1; color:#334155;<?= $isMost ? 'font-weight:700;' : '' ?>"><?= e($opt) ?><?= $isMost ? ' ✓' : '' ?></span>
+                                            <span style="color:#64748b; font-size:8pt; white-space:nowrap;"><?= $votes ?>
+                                                <?= $votes != 1 ? ($LANG['votes'] ?? 'votes') : ($LANG['vote'] ?? 'vote') ?></span>
+                                        </div>
+                                    <?php endforeach ?>
+                                </div>
+                            </div>
                         </div>
                     <?php endforeach ?>
                 </div>
             <?php endif ?>
 
-            <div class="mt-8 pt-4 border-t border-slate-100 text-center text-[11px] text-blue-500 font-semibold italic">
-                This is an automated anonymous statistical report.
-            </div>
-        </div>
-    </div>
-
-    <!-- ═══════════════════════════════════════════════════════════════════════ -->
-    <!-- PROFESSIONAL PRINTABLE REPORT (print-only, hidden on screen) -->
-    <!-- ═══════════════════════════════════════════════════════════════════════ -->
-    <div class="print-only myanmar-font" style="max-width: 100%;">
-        <!-- University Header -->
-        <div class="print-report-header">
-            <h1>University of Computer Studies(Hinthada)</h1>
-            <h2>Student Feedback Evaluation Report</h2>
-            <p>Confidential — For Internal Academic Use Only</p>
-        </div>
-
-        <!-- Teacher & Subject Information -->
-        <div class="print-section">
-            <div class="print-section-title">
-                <?= ($module === 'academic') ? (($LANG['teacher_label'] ?? 'Teacher') . ' & ' . ($LANG['subject_filter'] ?? 'Subject')) : 'Form' ?>
-                Information
-            </div>
-            <dl class="print-info-grid">
-                <dt>Academic Year:</dt>
-                <dd><?= e($formMeta['academic_year'] ?? '') ?></dd>
-                <dt>Semester:</dt>
-                <dd><?= e(semesterToRoman($formMeta['semester'] ?? '')) ?></dd>
-                <?php if ($module === 'academic'): ?>
-                    <dt>Subject:</dt>
-                    <dd><?= e($formMeta['course_code'] ?? '') ?> — <?= e($formMeta['course_name'] ?? '') ?></dd>
-                    <dt>Teacher:</dt>
-                    <dd><?= e($formMeta['teacher_name'] ?? '') ?></dd>
-                    <dt>Section:</dt>
-                    <dd><?= e($formMeta['section'] ?? '') ?></dd>
-                <?php else: ?>
-                    <dt>Module:</dt>
-                    <dd><?= moduleBadge($module) ?></dd>
-                    <?php if (!empty($formMeta['university_name'])): ?>
-                        <dt>University:</dt>
-                        <dd><?= e($formMeta['university_name'] ?? '') ?></dd>
-                    <?php endif; ?>
-                    <?php if (!empty($formMeta['university_campus'])): ?>
-                        <dt>Campus:</dt>
-                        <dd><?= e($formMeta['university_campus'] ?? '') ?></dd>
-                    <?php endif; ?>
-                <?php endif; ?>
-                <dt>Feedback Period:</dt>
-                <dd><?= formatDateTime($form['start_date']) ?> — <?= formatDateTime($form['end_date']) ?></dd>
-                <dt>Total Students:</dt>
-                <dd><?= $totalStudents ?></dd>
-                <dt><?= $LANG['total_responses'] ?? 'Total Responses' ?>:</dt>
-                <dd><?= $completedCount ?> (<?= $totalStudents > 0 ? round(($completedCount / $totalStudents) * 100) : 0 ?>%
-                    response rate)</dd>
-            </dl>
-        </div>
-
-        <!-- Overall Teacher Rating Summary -->
-        <?php if (!empty($ratingQuestions) && $completedCount > 0): ?>
-            <div class="print-section">
-                <div class="print-section-title"><?= $LANG['overall_teacher_rating'] ?? 'Overall Teacher Rating' ?> — Total
-                </div>
-                <div class="print-rating-summary">
-                    <div class="print-rating-item">
-                        <div class="value"><?= $overallPct ?>%</div>
-                        <div class="label"><?= $LANG["overall_rating"] ?? "Overall Rating" ?></div>
-                    </div>
-                    <div class="print-rating-item">
-                        <div class="value"><span class="print-grade-badge"><?= $grade ?></span></div>
-                        <div class="label" style="margin-top:6px;"><?= $LANG['performance_grade'] ?? 'Performance Grade' ?>
-                        </div>
-                    </div>
-                </div>
-                <div style="display:flex; justify-content:center; gap:24px; font-size:9pt; margin-top:8px; color:#475569;">
-                    <span>🟢 <?= $LANG['good'] ?? 'Good' ?>: <?= $totalGood ?> (<?= $aggGoodPct ?>%)</span>
-                    <span>🟡 <?= $LANG['fair'] ?? 'Fair' ?>: <?= $totalFair ?> (<?= $aggFairPct ?>%)</span>
-                    <span>🔴 <?= $LANG['bad'] ?? 'Bad' ?>: <?= $totalBad ?> (<?= $aggBadPct ?>%)</span>
-                </div>
-                <div style="font-size:8pt; color:#94a3b8; text-align:center; margin-top:4px;">
-                    <?= $LANG['good'] ?? 'Good' ?> = 5 pts · <?= $LANG['fair'] ?? 'Fair' ?> = 3 pts ·
-                    <?= $LANG['bad'] ?? 'Bad' ?> = 1 pt &nbsp;|&nbsp; <?= $LANG['rating_questions'] ?? 'Rating Questions' ?>:
-                    <?= $numRatingQuestions ?> &nbsp;|&nbsp; Survey questions excluded from rating
-                </div>
-            </div>
-        <?php endif ?>
-
-        <!-- Rating Questions Result Table -->
-        <?php if (!empty($ratingQuestions)): ?>
-            <div class="print-section">
-                <div class="print-section-title"><?= $LANG['rating_questions'] ?? 'Rating Questions' ?> — Detailed Results</div>
-                <table class="print-table">
-                    <thead>
-                        <tr>
-                            <th style="width:40px;"><?= $LANG['col_no'] ?? 'စဉ်' ?></th>
-                            <th style="text-align:left;"><?= $LANG['eval_questions_header'] ?? 'Evaluation Questions' ?></th>
-                            <th style="width:80px;"><?= $LANG['good'] ?? 'Good' ?></th>
-                            <th style="width:80px;"><?= $LANG['fair'] ?? 'Fair' ?></th>
-                            <th style="width:80px;"><?= $LANG['bad'] ?? 'Bad' ?></th>
-                            <th style="width:60px;"><?= $LANG['total'] ?? 'Total' ?></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($ratingQuestions as $q):
-                            $gc = $ratingStats[$q['id']]['Good'] ?? 0;
-                            $fc = $ratingStats[$q['id']]['Fair'] ?? 0;
-                            $bc = $ratingStats[$q['id']]['Bad'] ?? 0;
-                            $tv = $gc + $fc + $bc;
-                            $gp = $tv > 0 ? round(($gc / $tv) * 100) : 0;
-                            $fp = $tv > 0 ? round(($fc / $tv) * 100) : 0;
-                            $bp = $tv > 0 ? round(($bc / $tv) * 100) : 0;
-                            ?>
-                            <tr>
-                                <td style="text-align:center; font-weight:700;">
-                                    <?= e(displayQuestionNumber($q['question_no'], $_SESSION['lang'] ?? 'en')) ?>
-                                </td>
-                                <td style="text-align:left;"><?= e($q['question_text']) ?></td>
-                                <td style="text-align:center;"><?= $gc ?> (<?= $gp ?>%)</td>
-                                <td style="text-align:center;"><?= $fc ?> (<?= $fp ?>%)</td>
-                                <td style="text-align:center;"><?= $bc ?> (<?= $bp ?>%)</td>
-                                <td style="text-align:center; font-weight:700;"><?= $tv ?></td>
-                            </tr>
-                        <?php endforeach ?>
-                        <tr
-                            style="font-weight:700; background:#e2e8f0 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact;">
-                            <td colspan="2" style="text-align:right; padding-right:12px;"><?= $LANG['total'] ?? 'TOTALS' ?>:
-                            </td>
-                            <td style="text-align:center;"><?= $totalGood ?> (<?= $aggGoodPct ?>%)</td>
-                            <td style="text-align:center;"><?= $totalFair ?> (<?= $aggFairPct ?>%)</td>
-                            <td style="text-align:center;"><?= $totalBad ?> (<?= $aggBadPct ?>%)</td>
-                            <td style="text-align:center;"><?= $totalRatingResponses ?></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        <?php endif ?>
-
-        <!-- Survey Results with Doughnut Charts -->
-        <?php if (!empty($surveyQuestions)): ?>
-            <div class="print-section">
-                <div class="print-section-title"><?= $LANG['survey_results'] ?? 'Survey Results' ?></div>
-                <div style="font-size:8pt; color:#64748b; margin-bottom:10px;">
-                    <?= $LANG['not_in_overall'] ?? 'Not included in Overall Rating' ?> calculation.
-                </div>
-
-                <?php foreach ($surveyQuestions as $q):
-                    $opts = json_decode($q['options_json'] ?? '[]', true) ?: [];
-                    $qStats = $surveyStats[$q['id']] ?? [];
-                    $mostSelected = getMostSelectedSurveyOptions($qStats);
-                    $totalVotes = $mostSelected['total'];
-                    $doughnutColors = ['#7c3aed', '#2563eb', '#059669', '#d97706', '#dc2626', '#8b5cf6', '#0891b2', '#c026d3'];
-                    $pColors = [];
-                    $pLabels = [];
-                    $pValues = [];
-                    foreach ($opts as $idx => $opt) {
-                        $pColors[] = $doughnutColors[$idx % count($doughnutColors)];
-                        $pLabels[] = addslashes($opt);
-                        $pValues[] = (int) ($qStats[$idx] ?? 0);
+            <!-- Student Comments -->
+            <?php if (!empty($commentQuestions)): ?>
+                <?php
+                $hasAnyComments = false;
+                foreach ($commentQuestions as $cq) {
+                    if (!empty($allComments[$cq['id']])) {
+                        $hasAnyComments = true;
+                        break;
                     }
-                    ?>
-                    <div style="margin-bottom:16px; page-break-inside:avoid;">
-                        <div style="display:flex; align-items:flex-start; gap:12px;">
-                            <div style="width:120px; height:120px; flex-shrink:0; position:relative;">
-                                <canvas id="printChart_<?= $q['id'] ?>" width="120" height="120"></canvas>
-                            </div>
-                            <div style="flex:1; min-width:0;">
-                                <div style="font-size:9.5pt; font-weight:700; color:#0f172a; margin-bottom:4px;">
-                                    <?= e(displayQuestionNumber($q['question_no'], $_SESSION['lang'] ?? 'en')) ?>
-                                    <?= e($q['question_text']) ?>
-                                    <?php if ($totalVotes > 0 && !empty($mostSelected['indices'])): ?>
-                                        <span style="font-size:8pt; color:#6d28d9; margin-left:8px; font-weight:bold;">
-                                            (အများဆုံးရွေးချယ်မှု: <?php
-                                            $printMostLabels = [];
-                                            foreach ($mostSelected['indices'] as $msIdx) {
-                                                if (isset($opts[$msIdx]))
-                                                    $printMostLabels[] = $opts[$msIdx];
-                                            }
-                                            echo e(implode(' / ', $printMostLabels));
-                                            ?>)
-                                        </span>
-                                    <?php endif; ?>
+                }
+                ?>
+                <div class="print-section">
+                    <div class="print-section-title"><?= $LANG['comments_suggestions'] ?? 'Student Comments' ?></div>
+                    <?php if ($hasAnyComments): ?>
+                        <?php foreach ($commentQuestions as $cq):
+                            $commentsForQ = $allComments[$cq['id']] ?? [];
+                            if (empty($commentsForQ))
+                                continue;
+                            ?>
+                            <div style="margin-bottom:10px; page-break-inside:avoid;">
+                                <div style="font-size:9pt; font-weight:700; color:#0f172a; margin-bottom:4px;">
+                                    <?= e(displayQuestionNumber($cq['question_no'], $_SESSION['lang'] ?? 'en')) ?>
+                                    <?= e($cq['question_text']) ?>
+
+                                    <span style="font-weight:400; color:#64748b; font-size:7.5pt;">(<?= count($commentsForQ) ?>
+                                        comments)</span>
                                 </div>
-                                <?php foreach ($opts as $idx => $opt):
-                                    $votes = $qStats[$idx] ?? 0;
-                                    $isMost = in_array($idx, $mostSelected['indices']);
-                                    ?>
-                                    <div style="display:flex; align-items:center; gap:6px; margin-bottom:3px; font-size:8.5pt;">
-                                        <span
-                                            style="display:inline-block; width:8px; height:8px; border-radius:50%; background:<?= $pColors[$idx] ?>; flex-shrink:0;"></span>
-                                        <span
-                                            style="flex:1; color:#334155;<?= $isMost ? 'font-weight:700;' : '' ?>"><?= e($opt) ?><?= $isMost ? ' ✓' : '' ?></span>
-                                        <span style="color:#64748b; font-size:8pt; white-space:nowrap;"><?= $votes ?>
-                                            <?= $votes != 1 ? ($LANG['votes'] ?? 'votes') : ($LANG['vote'] ?? 'vote') ?></span>
+                                <?php foreach ($commentsForQ as $idx => $commentText): ?>
+                                    <div
+                                        style="font-size:8.5pt; color:#334155; padding:4px 0 4px 12px; border-left:2px solid #e2e8f0; margin-bottom:4px;">
+                                        <span style="color:#94a3b8; font-weight:600;">#<?= $idx + 1 ?></span> <?= e($commentText) ?>
                                     </div>
                                 <?php endforeach ?>
                             </div>
-                        </div>
-                    </div>
-                <?php endforeach ?>
-            </div>
-        <?php endif ?>
+                        <?php endforeach ?>
+                    <?php else: ?>
+                        <p style="font-size:9pt; color:#64748b; font-style:italic;">No comments submitted.</p>
+                    <?php endif ?>
+                </div>
+            <?php endif ?>
 
-        <!-- Student Comments -->
-        <?php if (!empty($commentQuestions)): ?>
-            <?php
-            $hasAnyComments = false;
-            foreach ($commentQuestions as $cq) {
-                if (!empty($allComments[$cq['id']])) {
-                    $hasAnyComments = true;
-                    break;
-                }
-            }
-            ?>
+            <!-- Conclusion / Recommendation -->
             <div class="print-section">
-                <div class="print-section-title"><?= $LANG['comments_suggestions'] ?? 'Student Comments' ?></div>
-                <?php if ($hasAnyComments): ?>
-                    <?php foreach ($commentQuestions as $cq):
-                        $commentsForQ = $allComments[$cq['id']] ?? [];
-                        if (empty($commentsForQ))
-                            continue;
-                        ?>
-                        <div style="margin-bottom:10px; page-break-inside:avoid;">
-                            <div style="font-size:9pt; font-weight:700; color:#0f172a; margin-bottom:4px;">
-                                <?= e(displayQuestionNumber($cq['question_no'], $_SESSION['lang'] ?? 'en')) ?>
-                                <?= e($cq['question_text']) ?>
-
-                                <span style="font-weight:400; color:#64748b; font-size:7.5pt;">(<?= count($commentsForQ) ?>
-                                    comments)</span>
-                            </div>
-                            <?php foreach ($commentsForQ as $idx => $commentText): ?>
-                                <div
-                                    style="font-size:8.5pt; color:#334155; padding:4px 0 4px 12px; border-left:2px solid #e2e8f0; margin-bottom:4px;">
-                                    <span style="color:#94a3b8; font-weight:600;">#<?= $idx + 1 ?></span> <?= e($commentText) ?>
-                                </div>
-                            <?php endforeach ?>
-                        </div>
-                    <?php endforeach ?>
-                <?php else: ?>
-                    <p style="font-size:9pt; color:#64748b; font-style:italic;">No comments submitted.</p>
-                <?php endif ?>
+                <div class="print-section-title"><?= $LANG['col_actions'] ?? 'Conclusion' ?> &
+                    <?= $LANG['col_actions'] ?? 'Recommendation' ?>
+                </div>
+                <div class="print-conclusion">
+                    <strong>Grade: <?= $grade ?> (<?= $overallPct ?>%)</strong><br><br>
+                    <?= $conclusionText ?>
+                </div>
             </div>
-        <?php endif ?>
 
-        <!-- Conclusion / Recommendation -->
-        <div class="print-section">
-            <div class="print-section-title"><?= $LANG['col_actions'] ?? 'Conclusion' ?> &
-                <?= $LANG['col_actions'] ?? 'Recommendation' ?>
+            <!-- Signature Lines -->
+            <div style="display:flex; justify-content:space-between; margin-top:40px; font-size:9pt; color:#334155;">
+                <div style="text-align:center; width:200px;">
+                    <div style="border-top:1px solid #334155; padding-top:4px;">Prepared By</div>
+                </div>
+                <div style="text-align:center; width:200px;">
+                    <div style="border-top:1px solid #334155; padding-top:4px;">Head of Department</div>
+                </div>
+                <div style="text-align:center; width:220px;">
+                    <div style="border-top:1px solid #334155; padding-top:4px;">Vice Rector</div>
+                    <div style="font-size:7.5pt; color:#64748b; margin-top:2px;">University of Computer Studies (Hinthada)</div>
+                </div>
             </div>
-            <div class="print-conclusion">
-                <strong>Grade: <?= $grade ?> (<?= $overallPct ?>%)</strong><br><br>
-                <?= $conclusionText ?>
+
+            <!-- Footer -->
+            <div class="print-footer">
+                Generated by Student Feedback Management System (SFMS) — University of Computer Studies(Hinthada) —
+                <?= date('F d, Y') ?>
             </div>
         </div>
-
-        <!-- Signature Lines -->
-        <div style="display:flex; justify-content:space-between; margin-top:40px; font-size:9pt; color:#334155;">
-            <div style="text-align:center; width:200px;">
-                <div style="border-top:1px solid #334155; padding-top:4px;">Prepared By</div>
-            </div>
-            <div style="text-align:center; width:200px;">
-                <div style="border-top:1px solid #334155; padding-top:4px;">Head of Department</div>
-            </div>
-            <div style="text-align:center; width:220px;">
-                <div style="border-top:1px solid #334155; padding-top:4px;">Vice Rector</div>
-                <div style="font-size:7.5pt; color:#64748b; margin-top:2px;">University of Computer Studies (Hinthada)</div>
-            </div>
-        </div>
-
-        <!-- Footer -->
-        <div class="print-footer">
-            Generated by Student Feedback Management System (SFMS) — University of Computer Studies(Hinthada) —
-            <?= date('F d, Y') ?>
-        </div>
-    </div>
-<?php endif; ?>
+    <?php endif; ?>
 <?php endif; ?>
 
 
@@ -1650,7 +1653,7 @@ include '../includes/admin_sidebar.php';
 
 <div id="studentModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4"
     onclick="if(event.target===this)closeStudentModal()">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[85vh] flex flex-col">
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
             <h3 id="modalTitle" class="font-semibold text-slate-800">Student List</h3>
             <button onclick="closeStudentModal()"

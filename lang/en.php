@@ -298,6 +298,7 @@ $LANG = [
     'edit_form_modal' => 'Edit Feedback Form',
     'delete_form_modal' => 'Delete Form',
     'delete_form_confirm' => 'and all its questions and responses?',
+    'section' => "Section", 
 
     // ─── Feedback Questions ──────────────────────────────────
     'academic_questions_title' => 'Academic Feedback Questions',

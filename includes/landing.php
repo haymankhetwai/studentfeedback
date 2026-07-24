@@ -268,14 +268,14 @@ if ($r)
                 </div>
                 <div class="flex items-center gap-5">
                     <?php if (($loginType ?? '') !== 'admin'): ?>
-                    <a href="/studentfeedbackucsh/index.php"
-                        class="inline-flex items-center gap-1.5 text-blue-600/80 hover:text-blue-700 font-semibold text-sm transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
-                        </svg>
-                        <?= $LANG['home'] ?? 'Home' ?>
-                    </a>
+                        <a href="/studentfeedbackucsh/index.php"
+                            class="inline-flex items-center gap-1.5 text-blue-600/80 hover:text-blue-700 font-semibold text-sm transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+                            </svg>
+                            <?= $LANG['home'] ?? 'Home' ?>
+                        </a>
                     <?php endif; ?>
                     <!-- <span
                         class="text-xs text-blue-700/70 hidden md:block font-semibold capitalize tracking-wide"><?= e($loginType) ?>
@@ -425,16 +425,22 @@ if ($r)
                         <div
                             class="bg-white rounded-2xl shadow-2xl border border-slate-200/80 overflow-hidden text-slate-800">
 
-                            <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-5 text-center relative">
+                            <div
+                                class="bg-gradient-to-r from-blue-600/70 to-violet-700/50 px-6 py-5 text-center relative">
                                 <button type="button" id="closeLoginBtn"
                                     class="absolute top-3 right-3 text-white/70 hover:text-white text-xs bg-black/10 hover:bg-black/20 px-2 py-1 rounded-md transition-colors cursor-pointer">✕</button>
-                                <div
+                                <!-- <div
                                     class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-white/20 backdrop-blur mb-3">
                                     <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor"
                                         viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                                             d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5" />
                                     </svg>
+                                </div> -->
+                                <div
+                                    class="inline-flex items-center justify-center w-11 h-11 rounded-xl  mb-3">
+                                    <img src="/studentfeedbackucsh/assets/uploads/profiles/image.png" alt="UCSH Logo"
+                                        class="w-full h-full object-contain rounded-xl">
                                 </div>
                                 <h1 class="text-xl font-bold text-white tracking-wide"><?= $LANG['sfms'] ?? 'SFMS' ?>
                                 </h1>
@@ -522,8 +528,12 @@ if ($r)
                                             </div>
                                         </div>
 
+                                        <!-- <button type="submit"
+                                            class="w-full bg-gradient-to-r from-blue-600/50 to-blue-700/50 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md transition-all hover:shadow-lg hover:-translate-y-0.5 text-sm cursor-pointer">
+                                            <?= $LANG['sign_in'] ?? 'Sign In' ?>
+                                        </button> -->
                                         <button type="submit"
-                                            class="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md transition-all hover:shadow-lg hover:-translate-y-0.5 text-sm cursor-pointer">
+                                            class="w-full bg-blue-600/90  hover:bg-blue-800 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md transition-all hover:shadow-lg hover:-translate-y-0.5 text-sm cursor-pointer">
                                             <?= $LANG['sign_in'] ?? 'Sign In' ?>
                                         </button>
                                     </div>

@@ -187,14 +187,70 @@ $whereClauses = [];
 $bindParams = [];
 $bindTypes = "";
 
+// if ($search) {
+//     $whereClauses[] = "(u.name LIKE ? OR st.roll_no LIKE ? OR c.course_name LIKE ? OR c.course_code LIKE ?)";
+//     $s = "%$search%";
+//     $bindParams[] = $s;
+//     $bindParams[] = $s;
+//     $bindParams[] = $s;
+//     $bindParams[] = $s;
+//     //$bindParams[] = strtoupper(trim($search));
+//     $bindTypes .= "ssss";
+// }
+
+
+
+
+
+// Search filter
 if ($search) {
-    $whereClauses[] = "(u.name LIKE ? OR st.roll_no LIKE ? OR c.course_name LIKE ? OR c.course_code LIKE ?)";
-    $s = "%$search%";
-    $bindParams[] = $s;
-    $bindParams[] = $s;
-    $bindParams[] = $s;
-    $bindParams[] = $s;
-    $bindTypes .= "ssss";
+    $search = trim($search);
+
+    /*
+     * SECTION SEARCH
+     * 
+     * Uppercase A, B, C:
+     * A -> Section A only
+     * B -> Section B only
+     * C -> Section C only
+     *
+     * Lowercase:
+     * a -> will NOT search Section A
+     * b -> will NOT search Section B
+     * c -> will NOT search Section C
+     */
+
+    if ($search === 'A' || $search === 'B' || $search === 'C') {
+
+        // Exact case-sensitive section search
+        $whereClauses[] = "BINARY s.section = ?";
+
+        $bindParams[] = $search;
+        $bindTypes .= "s";
+
+    } else {
+
+        // Normal search:
+        // Student name
+        // Roll number
+        // Course name
+        // Course code
+        $whereClauses[] = "(
+            u.name LIKE ?
+            OR st.roll_no LIKE ?
+            OR c.course_name LIKE ?
+            OR c.course_code LIKE ?
+        )";
+
+        $s = "%$search%";
+
+        $bindParams[] = $s;
+        $bindParams[] = $s;
+        $bindParams[] = $s;
+        $bindParams[] = $s;
+
+        $bindTypes .= "ssss";
+    }
 }
 if ($filter_semester) {
     $whereClauses[] = "s.semester_id = ?";
@@ -429,12 +485,12 @@ include '../includes/admin_sidebar.php';
                                         <button type="button"
                                             onclick="openEdit(<?= (int) $course['assignment_id'] ?>, <?= (int) $course['section_id'] ?>, '<?= addslashes(e($row['name'])) ?>')"
                                             class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 rounded-lg">
-                                            <?= iconSvg('edit', 'w-3.5 h-3.5') ?>            <?= $LANG["edit"] ?? "Edit" ?></button>
+                                            <?= iconSvg('edit', 'w-3.5 h-3.5') ?>             <?= $LANG["edit"] ?? "Edit" ?></button>
                                         </button>
                                         <button type="button"
                                             onclick="openDelete(<?= (int) $course['assignment_id'] ?>, '<?= addslashes(e($row['name'] . ' - ' . $course['course_name'])) ?>')"
-                                           class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg">
-                                        <?= iconSvg('trash', 'w-3.5 h-3.5') ?><?= $LANG["delete"] ?? "Delete" ?></button>
+                                            class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg">
+                                            <?= iconSvg('trash', 'w-3.5 h-3.5') ?>             <?= $LANG["delete"] ?? "Delete" ?></button>
                                         </button>
                                     </div>
                                 </td>

@@ -1253,7 +1253,7 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
 
     <div id="studentModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4"
         onclick="if(event.target===this)closeStudentModal()">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[85vh] flex flex-col">
             <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
                 <h3 id="modalTitle" class="font-semibold text-slate-800">Student List</h3>
                 <button onclick="closeStudentModal()"
