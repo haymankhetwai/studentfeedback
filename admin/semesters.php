@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require_once '../config/db.php';
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
@@ -182,7 +182,7 @@ include '../includes/admin_sidebar.php';
                         <?= $LANG["sections"] ?? "Sections" ?></th>
                     <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">
                         <?= $LANG["forms"] ?? "Forms" ?></th>
-                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">
+                    <th class="text-right px-5 py-3 text-slate-500 text-sm font-semibold">
                         <?= $LANG["col_actions"] ?? "Actions" ?></th>
                 </tr>
             </thead>
@@ -201,7 +201,7 @@ include '../includes/admin_sidebar.php';
                                     class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700"><?= $row['form_count'] ?></span>
                             </td>
                             <td class="px-5 py-3 text-center">
-                                <div class="flex items-center justify-center gap-2">
+                                <div class="flex items-center justify-end gap-2">
                                     <button onclick="openEdit(<?= htmlspecialchars(json_encode($row), ENT_QUOTES) ?>)"
                                         class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 rounded-lg">
                                         <?= iconSvg('edit', 'w-3.5 h-3.5') ?>        <?= $LANG["edit"] ?? "Edit" ?></button>

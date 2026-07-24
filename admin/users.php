@@ -615,17 +615,23 @@ include '../includes/admin_sidebar.php';
                 <tr>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">#</th>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
-                        <?= $LANG['col_name'] ?? 'Name' ?></th>
+                        <?= $LANG['col_name'] ?? 'Name' ?>
+                    </th>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
-                        <?= $LANG['col_username'] ?? 'Username' ?></th>
+                        <?= $LANG['col_username'] ?? 'Username' ?>
+                    </th>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
-                        <?= $LANG['col_email'] ?? 'Email' ?></th>
+                        <?= $LANG['col_email'] ?? 'Email' ?>
+                    </th>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
-                        <?= $LANG['col_role'] ?? 'Role' ?></th>
+                        <?= $LANG['col_role'] ?? 'Role' ?>
+                    </th>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
-                        <?= $LANG['col_created'] ?? 'Created' ?></th>
+                        <?= $LANG['col_created'] ?? 'Created' ?>
+                    </th>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
-                        <?= $LANG['col_actions'] ?? 'Actions' ?></th>
+                        <?= $LANG['col_actions'] ?? 'Actions' ?>
+                    </th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -693,7 +699,8 @@ include '../includes/admin_sidebar.php';
                     <label
                         class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['full_name'] ?? 'Full Name' ?>
                         <span class="text-red-500">*</span></label>
-                    <input type="text" name="name" id="add_name" required placeholder="<?= $LANG["full_name_placeholder"] ?? "John Doe" ?>"
+                    <input type="text" name="name" id="add_name" required
+                        placeholder="<?= $LANG["full_name_placeholder"] ?? "John Doe" ?>"
                         value="<?= e($reopenModal === 'addModal' ? ($formValues['name'] ?? '') : '') ?>"
                         class="w-full border <?= $addNameErr ? $borderRed : 'border-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20' ?> rounded-xl px-4 py-2.5 text-sm outline-none">
                     <?php if ($addNameErr): ?>
@@ -705,7 +712,8 @@ include '../includes/admin_sidebar.php';
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['username'] ?? 'Username' ?>
                         <span class="text-red-500">*</span></label>
-                    <input type="text" name="username" id="add_username" required placeholder="<?= $LANG["username_placeholder"] ?? "john_doe" ?>"
+                    <input type="text" name="username" id="add_username" required
+                        placeholder="<?= $LANG["username_placeholder"] ?? "john_doe" ?>"
                         value="<?= e($reopenModal === 'addModal' ? ($formValues['username'] ?? '') : '') ?>"
                         class="w-full border <?= $addUsernameErr ? $borderRed : 'border-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20' ?> rounded-xl px-4 py-2.5 text-sm outline-none">
                     <?php if ($addUsernameErr): ?>
@@ -731,7 +739,8 @@ include '../includes/admin_sidebar.php';
                 <div class="col-span-2">
                     <label class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['email'] ?? 'Email' ?> <span
                             class="text-red-500">*</span></label>
-                    <input type="email" name="email" id="add_email" required placeholder="<?= $LANG["email_placeholder"] ?? "name@ucsh.edu.mm" ?>"
+                    <input type="email" name="email" id="add_email" required
+                        placeholder="<?= $LANG["email_placeholder"] ?? "name@ucsh.edu.mm" ?>"
                         value="<?= e($reopenModal === 'addModal' ? ($formValues['email'] ?? '') : '') ?>"
                         class="w-full border <?= $addEmailErr ? $borderRed : 'border-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20' ?> rounded-xl px-4 py-2.5 text-sm outline-none">
                     <?php if ($addEmailErr): ?>
@@ -917,7 +926,8 @@ include '../includes/admin_sidebar.php';
     data-modal-backdrop>
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg modal-box">
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-            <h3 class="font-semibold text-slate-800"><?= $LANG['import_students_excel'] ?? 'Import Students (Excel)' ?></h3>
+            <h3 class="font-semibold text-slate-800"><?= $LANG['import_students_excel'] ?? 'Import Students (Excel)' ?>
+            </h3>
             <button onclick="closeModal('importModal')"
                 class="text-slate-400 hover:text-slate-600"><?= iconSvg('x', 'w-5 h-5') ?></button>
         </div>
@@ -989,7 +999,8 @@ include '../includes/admin_sidebar.php';
                         </div>
                         <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
                             <p class="text-2xl font-black text-emerald-600"><?= $importResults['imported'] ?></p>
-                            <p class="text-xs font-bold text-emerald-500 uppercase mt-1"><?= $LANG["imported"] ?? "Imported" ?></p>
+                            <p class="text-xs font-bold text-emerald-500 uppercase mt-1"><?= $LANG["imported"] ?? "Imported" ?>
+                            </p>
                         </div>
                         <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
                             <p class="text-2xl font-black text-amber-600"><?= $importResults['skipped'] ?></p>
@@ -1013,12 +1024,18 @@ include '../includes/admin_sidebar.php';
                             <table class="w-full text-xs" id="failedRecordsTable">
                                 <thead class="bg-slate-100">
                                     <tr>
-                                        <th class="px-3 py-2 text-left font-semibold text-slate-600"><?= $LANG["col_row"] ?? "Row" ?></th>
-                                        <th class="px-3 py-2 text-left font-semibold text-slate-600"><?= $LANG["col_name"] ?? "Name" ?></th>
-                                        <th class="px-3 py-2 text-left font-semibold text-slate-600"><?= $LANG["col_username"] ?? "Username" ?></th>
-                                        <th class="px-3 py-2 text-left font-semibold text-slate-600"><?= $LANG["col_email"] ?? "Email" ?></th>
-                                        <th class="px-3 py-2 text-left font-semibold text-slate-600"><?= $LANG["col_roll_no"] ?? "Roll No" ?></th>
-                                        <th class="px-3 py-2 text-left font-semibold text-slate-600"><?= $LANG["col_reason"] ?? "Reason" ?></th>
+                                        <th class="px-3 py-2 text-left font-semibold text-slate-600">
+                                            <?= $LANG["col_row"] ?? "Row" ?></th>
+                                        <th class="px-3 py-2 text-left font-semibold text-slate-600">
+                                            <?= $LANG["col_name"] ?? "Name" ?></th>
+                                        <th class="px-3 py-2 text-left font-semibold text-slate-600">
+                                            <?= $LANG["col_username"] ?? "Username" ?></th>
+                                        <th class="px-3 py-2 text-left font-semibold text-slate-600">
+                                            <?= $LANG["col_email"] ?? "Email" ?></th>
+                                        <th class="px-3 py-2 text-left font-semibold text-slate-600">
+                                            <?= $LANG["col_roll_no"] ?? "Roll No" ?></th>
+                                        <th class="px-3 py-2 text-left font-semibold text-slate-600">
+                                            <?= $LANG["col_reason"] ?? "Reason" ?></th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-slate-100">
