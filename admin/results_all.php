@@ -749,7 +749,7 @@ include '../includes/admin_sidebar.php';
     <?php if ($form): ?>
         <button onclick="setTimeout(function(){ window.print(); }, 500);"
             class="no-print inline-flex items-center gap-2 bg-slate-700 hover:bg-slate-800 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm transition-all hover:-translate-y-0.5">
-            <?= iconSvg('document', 'w-4 h-4') ?> Print Report
+            <?= iconSvg('document', 'w-4 h-4') ?>     <?= $LANG['print_report'] ?? 'Print Report' ?>
         </button>
     <?php endif ?>
 </div>
@@ -832,7 +832,9 @@ include '../includes/admin_sidebar.php';
             <?= iconSvg('question', 'w-5 h-5 text-amber-600') ?>
         </div>
         <div>
-            <p class="text-sm font-semibold text-amber-800">No feedback forms for this section</p>
+            <p class="text-sm font-semibold text-amber-800">
+                <?= $LANG['no_feedback_forms_section'] ?? 'No feedback forms for this section' ?>
+            </p>
         </div>
     </div>
 <?php endif; ?>
@@ -865,7 +867,8 @@ include '../includes/admin_sidebar.php';
             </p>
             <p class="text-3xl font-black text-amber-600"><?= $pendingCount ?></p>
             <p class="text-[10px] text-slate-400 mt-1">
-                <?= $totalStudents > 0 ? round(($pendingCount / $totalStudents) * 100) : 0 ?>% remaining
+                <?= $totalStudents > 0 ? round(($pendingCount / $totalStudents) * 100) : 0 ?>%
+                <?= $LANG['remaining'] ?? 'remaining' ?>
             </p>
         </div>
     </div>
@@ -878,9 +881,11 @@ include '../includes/admin_sidebar.php';
                 <div class="relative z-10">
                     <div class="flex items-center gap-2 mb-5">
                         <?= iconSvg('star', 'w-5 h-5 text-indigo-300') ?>
-                        <h3 class="text-sm font-bold uppercase tracking-wider text-indigo-200">Overall Rating Score</h3>
-                        <span class="ml-auto text-[10px] text-slate-400 bg-slate-700/50 px-2 py-0.5 rounded-full">Rating
-                            Questions Only</span>
+                        <h3 class="text-sm font-bold uppercase tracking-wider text-indigo-200">
+                            <?= $LANG['overall_rating_score'] ?? 'Overall Rating Score' ?>
+                        </h3>
+                        <span
+                            class="ml-auto text-[10px] text-slate-400 bg-slate-700/50 px-2 py-0.5 rounded-full"><?= $LANG['rating_questions_only'] ?? 'Rating Questions Only' ?></span>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
                         <div class="md:col-span-3 flex flex-col items-center justify-center">
@@ -888,7 +893,8 @@ include '../includes/admin_sidebar.php';
                                 <canvas id="overallRatingPieChart" data-type="overall" width="160" height="160"></canvas>
                                 <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                                     <span class="text-xl font-black text-white" id="ratingPctDisplay">0%</span>
-                                    <span class="text-[9px] text-slate-300 font-bold uppercase">Score Matrix</span>
+                                    <span
+                                        class="text-[9px] text-slate-300 font-bold uppercase"><?= $LANG['score_matrix'] ?? 'Score Matrix' ?></span>
                                 </div>
                             </div>
                         </div>
@@ -898,7 +904,9 @@ include '../includes/admin_sidebar.php';
                                 <div>
                                     <span
                                         class="grade-badge inline-block px-4 py-1.5 rounded-lg text-sm font-extrabold <?= match ($gradeColor) { 'emerald' => 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30', 'blue' => 'bg-blue-500/20 text-blue-300 border border-blue-400/30', 'cyan' => 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/30', 'amber' => 'bg-amber-500/20 text-amber-300 border border-amber-400/30', 'red' => 'bg-red-500/20 text-red-300 border border-red-400/30', default => 'bg-slate-500/20 text-slate-300 border border-slate-400/30'} ?>"><?= $grade ?></span>
-                                    <p class="text-[10px] text-slate-400 mt-1">Performance Grade</p>
+                                    <p class="text-[10px] text-slate-400 mt-1">
+                                        <?= $LANG['performance_grade'] ?? 'Performance Grade' ?>
+                                    </p>
                                 </div>
                             </div>
                             <div class="grid grid-cols-2 gap-3 text-xs">
@@ -909,18 +917,22 @@ include '../includes/admin_sidebar.php';
                                     <p class="text-lg font-black text-white"><?= $completedCount ?></p>
                                 </div>
                                 <div class="bg-white/5 backdrop-blur rounded-lg p-3 border border-white/10">
-                                    <p class="text-slate-400 font-semibold mb-0.5">Rating Questions</p>
+                                    <p class="text-slate-400 font-semibold mb-0.5">
+                                        <?= $LANG['rating_questions'] ?? 'Rating Questions' ?>
+                                    </p>
                                     <p class="text-lg font-black text-white"><?= $numRatingQuestions ?></p>
                                 </div>
                             </div>
                         </div>
                         <div class="md:col-span-5 space-y-3">
-                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Rating Distribution
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                                <?= $LANG['rating_distribution'] ?? 'Rating Distribution' ?>
                             </p>
                             <div class="space-y-1">
                                 <div class="flex items-center justify-between text-xs">
                                     <span class="font-semibold text-emerald-300 flex items-center gap-1.5"><span
-                                            class="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span> Good</span>
+                                            class="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
+                                        <?= $LANG['good'] ?? 'Good' ?></span>
                                     <span class="text-slate-300 font-bold"><?= $totalGood ?> <span
                                             class="text-slate-500 font-normal">(<?= $aggGoodPct ?>%)</span></span>
                                 </div>
@@ -932,7 +944,8 @@ include '../includes/admin_sidebar.php';
                             <div class="space-y-1">
                                 <div class="flex items-center justify-between text-xs">
                                     <span class="font-semibold text-amber-300 flex items-center gap-1.5"><span
-                                            class="w-2 h-2 rounded-full bg-amber-400 inline-block"></span> Fair</span>
+                                            class="w-2 h-2 rounded-full bg-amber-400 inline-block"></span>
+                                        <?= $LANG['fair'] ?? 'Fair' ?></span>
                                     <span class="text-slate-300 font-bold"><?= $totalFair ?> <span
                                             class="text-slate-500 font-normal">(<?= $aggFairPct ?>%)</span></span>
                                 </div>
@@ -944,7 +957,8 @@ include '../includes/admin_sidebar.php';
                             <div class="space-y-1">
                                 <div class="flex items-center justify-between text-xs">
                                     <span class="font-semibold text-red-300 flex items-center gap-1.5"><span
-                                            class="w-2 h-2 rounded-full bg-red-400 inline-block"></span> Bad</span>
+                                            class="w-2 h-2 rounded-full bg-red-400 inline-block"></span>
+                                        <?= $LANG['bad'] ?? 'Bad' ?></span>
                                     <span class="text-slate-300 font-bold"><?= $totalBad ?> <span
                                             class="text-slate-500 font-normal">(<?= $aggBadPct ?>%)</span></span>
                                 </div>
@@ -964,8 +978,12 @@ include '../includes/admin_sidebar.php';
                     <?= iconSvg('question', 'w-5 h-5 text-blue-600') ?>
                 </div>
                 <div>
-                    <p class="text-sm font-semibold text-blue-800">No responses have been submitted yet.</p>
-                    <p class="text-xs text-blue-600 mt-0.5">Results will appear here once students submit their feedback.</p>
+                    <p class="text-sm font-semibold text-blue-800">
+                        <?= $LANG['no_responses_submitted'] ?? 'No responses have been submitted yet.' ?>
+                    </p>
+                    <p class="text-xs text-blue-600 mt-0.5">
+                        <?= $LANG['results_appear_later'] ?? 'Results will appear here once students submit their feedback.' ?>
+                    </p>
                 </div>
             </div>
         <?php endif; ?>
@@ -975,16 +993,20 @@ include '../includes/admin_sidebar.php';
             <div class="bg-white shadow-md rounded-xl border border-slate-200 p-6 md:p-8 mb-8">
                 <div class="text-center border-b-2 border-slate-800 pb-4 mb-5">
                     <h2 class="text-lg md:text-xl font-bold text-slate-900 mb-1"><?= e($form['title']) ?></h2>
-                    <p class="text-xs text-slate-400 font-mono"><?= moduleBadge($form['module']) ?> Statistical Evaluation
-                        Report</p>
-                    <p class="text-xs text-slate-400 mt-1">Period: <?= formatDateTime($form['start_date']) ?> —
+                    <p class="text-xs text-slate-400 font-mono"><?= moduleBadge($form['module']) ?>
+                        <?= $LANG['statistical_evaluation_report'] ?? 'Statistical Evaluation Report' ?>
+                    </p>
+                    <p class="text-xs text-slate-400 mt-1"><?= $LANG['feedback_period'] ?? 'Feedback Period' ?>:
+                        <?= formatDateTime($form['start_date']) ?> —
                         <?= formatDateTime($form['end_date']) ?>
                     </p>
                 </div>
 
                 <?php if ($module === 'academic' && !empty($formMeta)): ?>
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6">
-                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Form Information</h3>
+                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+                            <?= $LANG['form_information'] ?? 'Form Information' ?>
+                        </h3>
                         <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                             <div>
                                 <p class="text-[11px] font-semibold text-slate-400 uppercase">
@@ -1027,7 +1049,9 @@ include '../includes/admin_sidebar.php';
                     </div>
                 <?php elseif (($module === 'student_affairs' || $module === 'administration') && !empty($formMeta)): ?>
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6">
-                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Form Information</h3>
+                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+                            <?= $LANG['form_information'] ?? 'Form Information' ?>
+                        </h3>
                         <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                             <div>
                                 <p class="text-[11px] font-semibold text-slate-400 uppercase">
@@ -1055,7 +1079,9 @@ include '../includes/admin_sidebar.php';
                                 </p>
                             </div>
                             <div>
-                                <p class="text-[11px] font-semibold text-slate-400 uppercase">Form Type</p>
+                                <p class="text-[11px] font-semibold text-slate-400 uppercase">
+                                    <?= $LANG['form_type_label'] ?? 'Form Type' ?>
+                                </p>
                                 <p class="text-sm font-bold text-slate-800"><?= moduleBadge($module) ?></p>
                             </div>
                         </div>
@@ -1128,13 +1154,16 @@ include '../includes/admin_sidebar.php';
                                             </td>
                                             <td class="p-3 border-r leading-relaxed text-lg"><?= e($q['question_text']) ?></td>
                                             <td class="p-3 text-center border-r bg-emerald-50/30"><span
-                                                    class="text-emerald-700 font-bold block text-sm"><?= $gc ?> persons</span><span
+                                                    class="text-emerald-700 font-bold block text-sm"><?= $gc ?>
+                                                    <?= $LANG['persons'] ?? 'persons' ?></span><span
                                                     class="text-[10px] text-slate-500">(<?= $gp ?>%)</span></td>
                                             <td class="p-3 text-center border-r bg-amber-50/30"><span
-                                                    class="text-amber-700 font-bold block text-sm"><?= $fc ?> persons</span><span
+                                                    class="text-amber-700 font-bold block text-sm"><?= $fc ?>
+                                                    <?= $LANG['persons'] ?? 'persons' ?></span><span
                                                     class="text-[10px] text-slate-500">(<?= $fp ?>%)</span></td>
                                             <td class="p-3 text-center bg-red-50/30"><span
-                                                    class="text-red-700 font-bold block text-sm"><?= $bc ?> persons</span><span
+                                                    class="text-red-700 font-bold block text-sm"><?= $bc ?>
+                                                    <?= $LANG['persons'] ?? 'persons' ?></span><span
                                                     class="text-[10px] text-slate-500">(<?= $bp ?>%)</span></td>
                                         </tr>
                                     <?php endforeach ?>
@@ -1157,7 +1186,7 @@ include '../includes/admin_sidebar.php';
                                     <?= displayQuestionNumber($cq['question_no'], $_SESSION['lang'] ?? 'en') ?>
                                     <?= e($cq['question_text']) ?>
                                     <span class="text-slate-400 font-normal">(<?= count($commentsForQ) ?>
-                                        comments)</span></label>
+                                        <?= $LANG['comments_box'] ?? 'comments' ?>)</span></label>
                                 <div
                                     class="w-full bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-2.5 max-h-[300px] overflow-y-auto">
                                     <?php if (!empty($commentsForQ)): ?>
@@ -1168,7 +1197,9 @@ include '../includes/admin_sidebar.php';
                                             </div>
                                         <?php endforeach ?>
                                     <?php else: ?>
-                                        <div class="text-slate-400 italic text-center py-4">No comments for this question.</div>
+                                        <div class="text-slate-400 italic text-center py-4">
+                                            <?= $LANG['no_comments_this_question'] ?? 'No comments for this question.' ?>
+                                        </div>
                                     <?php endif ?>
                                 </div>
                             </div>
@@ -1179,9 +1210,11 @@ include '../includes/admin_sidebar.php';
                 <?php if (!empty($surveyQuestions)): ?>
                     <div class="space-y-6 pt-6 border-t-2 border-slate-300">
                         <div class="flex items-center justify-between">
-                            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Survey Results (MCQ)</h3>
-                            <span class="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full font-semibold">Not
-                                included in Overall Rating</span>
+                            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                                <?= $LANG['survey_results_mcq'] ?? 'Survey Results (MCQ)' ?>
+                            </h3>
+                            <span
+                                class="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full font-semibold"><?= $LANG['not_included_overall_rating'] ?? 'Not included in Overall Rating' ?></span>
                         </div>
                         <?php foreach ($surveyQuestions as $q):
                             $opts = json_decode($q['options_json'] ?? '[]', true) ?: [];
@@ -1205,7 +1238,7 @@ include '../includes/admin_sidebar.php';
                                         <div class="flex-1 min-w-0">
                                             <h4 class="text-lg font-bold text-slate-800 leading-snug"><?= e($q['question_text']) ?></h4>
                                             <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-[11px] text-slate-400">
-                                                <span><?= $totalVotes > 0 ? $totalVotes . ' responses' : 'No responses yet' ?></span>
+                                                <span><?= $totalVotes > 0 ? $totalVotes . ' ' . ($LANG['responses'] ?? 'responses') : ($LANG['no_responses_yet'] ?? 'No responses yet') ?></span>
                                                 <!-- <?php if ($totalVotes > 0 && !empty($mostSelected['indices'])): ?>
                                                 <span class="inline-flex items-center gap-1 text-violet-700 bg-violet-50 px-2 py-0.5 rounded-md font-semibold">
                                                     🔥 အများဆုံးရွေးချယ်မှု: 
@@ -1248,7 +1281,7 @@ include '../includes/admin_sidebar.php';
                                                                     class="text-sm font-semibold text-slate-700 truncate"><?= e($opt) ?></span>
                                                                 <div class="flex items-center gap-2 shrink-0">
                                                                     <span class="text-[11px] text-slate-400 font-medium"><?= $votes ?>
-                                                                        votes</span>
+                                                                        <?= $votes != 1 ? ($LANG['votes'] ?? 'votes') : ($LANG['vote'] ?? 'vote') ?></span>
                                                                     <?php if ($isMostSelected): ?>
                                                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
                                                                             fill="currentColor" class="w-4 h-4 text-violet-600">
@@ -1273,8 +1306,10 @@ include '../includes/admin_sidebar.php';
                                     <?php if (!empty($mostSelected['indices'])): ?>
                                         <div
                                             class="mx-6 mb-6 p-4 bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-200 rounded-xl">
-                                            <p class="text-xs font-bold text-violet-600 uppercase tracking-wider mb-2">Most Selected
-                                                Answer<?= count($mostSelected['indices']) > 1 ? 's' : '' ?></p>
+                                            <p class="text-xs font-bold text-violet-600 uppercase tracking-wider mb-2">
+                                                <?= $LANG['most_selected_answer'] ?? 'Most Selected Answer' ?>
+                                                <?= count($mostSelected['indices']) > 1 ? 's' : '' ?>
+                                            </p>
                                             <?php foreach ($mostSelected['indices'] as $msIdx):
                                                 $msLabel = $opts[$msIdx] ?? '';
                                                 $msCount = $mostSelected['max_votes'];
@@ -1285,7 +1320,8 @@ include '../includes/admin_sidebar.php';
                                                     <div>
                                                         <p class="text-sm font-bold text-slate-800"><?= e($msLabel) ?></p>
                                                         <p class="text-xs text-slate-500">
-                                                            <span class="inline-flex items-center gap-1">👥 <?= $msCount ?> Students</span>
+                                                            <span class="inline-flex items-center gap-1">👥 <?= $msCount ?>
+                                                                <?= $LANG['students_label'] ?? 'Students' ?></span>
                                                             <span class="mx-1.5">·</span>
                                                             <span class="inline-flex items-center gap-1">📊 <?= $msPct ?>%</span>
                                                         </p>
@@ -1296,7 +1332,9 @@ include '../includes/admin_sidebar.php';
                                     <?php endif ?>
                                 <?php else: ?>
                                     <div class="p-6">
-                                        <p class="text-sm text-slate-400 italic text-center py-4">No responses yet.</p>
+                                        <p class="text-sm text-slate-400 italic text-center py-4">
+                                            <?= $LANG['no_responses_yet'] ?? 'No responses yet.' ?>
+                                        </p>
                                         <div class="space-y-2">
                                             <?php foreach ($opts as $idx => $opt): ?>
                                                 <div class="flex items-center gap-3">
@@ -1305,7 +1343,8 @@ include '../includes/admin_sidebar.php';
                                                     <div class="flex-1 min-w-0">
                                                         <div class="flex items-center justify-between gap-2">
                                                             <span class="text-sm font-semibold text-slate-700 truncate"><?= e($opt) ?></span>
-                                                            <span class="text-[11px] text-slate-400 font-medium">0 votes</span>
+                                                            <span
+                                                                class="text-[11px] text-slate-400 font-medium"><?= $LANG['zero_votes'] ?? '0 votes' ?></span>
                                                         </div>
                                                         <div class="w-full bg-slate-100 rounded-full h-1.5 mt-1.5 overflow-hidden">
                                                             <div class="h-full rounded-full transition-all duration-700"
@@ -1323,7 +1362,7 @@ include '../includes/admin_sidebar.php';
                 <?php endif ?>
 
                 <div class="mt-8 pt-4 border-t border-slate-100 text-center text-[11px] text-blue-500 font-semibold italic">
-                    This is an automated anonymous statistical report.
+                    <?= $LANG['automated_report_note'] ?? 'This is an automated anonymous statistical report.' ?>
                 </div>
             </div>
         </div>
@@ -1335,47 +1374,48 @@ include '../includes/admin_sidebar.php';
             <!-- University Header -->
             <div class="print-report-header">
                 <h1>University of Computer Studies(Hinthada)</h1>
-                <h2>Student Feedback Evaluation Report</h2>
-                <p>Confidential — For Internal Academic Use Only</p>
+                <h2><?= $LANG['student_feedback_report'] ?? 'Student Feedback Evaluation Report' ?></h2>
+                <p><?= $LANG['confidential_note'] ?? 'Confidential — For Internal Academic Use Only' ?></p>
             </div>
 
             <!-- Teacher & Subject Information -->
             <div class="print-section">
                 <div class="print-section-title">
-                    <?= ($module === 'academic') ? (($LANG['teacher_label'] ?? 'Teacher') . ' & ' . ($LANG['subject_filter'] ?? 'Subject')) : 'Form' ?>
-                    Information
+                    <?= ($module === 'academic') ? (($LANG['teacher_label'] ?? 'Teacher') . ' & ' . ($LANG['subject_filter'] ?? 'Subject')) : ($LANG['form'] ?? 'Form') ?>
+                    <?= $LANG['form_information'] ?? 'Information' ?>
                 </div>
                 <dl class="print-info-grid">
-                    <dt>Academic Year:</dt>
+                    <dt><?= $LANG['academic_year'] ?? 'Academic Year' ?>:</dt>
                     <dd><?= e($formMeta['academic_year'] ?? '') ?></dd>
-                    <dt>Semester:</dt>
+                    <dt><?= $LANG['semester_filter'] ?? 'Semester' ?>:</dt>
                     <dd><?= e(semesterToRoman($formMeta['semester'] ?? '')) ?></dd>
                     <?php if ($module === 'academic'): ?>
-                        <dt>Subject:</dt>
+                        <dt><?= $LANG['subject_filter'] ?? 'Subject' ?>:</dt>
                         <dd><?= e($formMeta['course_code'] ?? '') ?> — <?= e($formMeta['course_name'] ?? '') ?></dd>
-                        <dt>Teacher:</dt>
+                        <dt><?= $LANG['teacher_label'] ?? 'Teacher' ?>:</dt>
                         <dd><?= e($formMeta['teacher_name'] ?? '') ?></dd>
-                        <dt>Section:</dt>
+                        <dt><?= $LANG['section_filter'] ?? 'Section' ?>:</dt>
                         <dd><?= e($formMeta['section'] ?? '') ?></dd>
                     <?php else: ?>
-                        <dt>Module:</dt>
+                        <dt><?= $LANG['module'] ?? 'Module' ?>:</dt>
                         <dd><?= moduleBadge($module) ?></dd>
                         <?php if (!empty($formMeta['university_name'])): ?>
-                            <dt>University:</dt>
+                            <dt><?= $LANG['university_name'] ?? 'University' ?>:</dt>
                             <dd><?= e($formMeta['university_name'] ?? '') ?></dd>
                         <?php endif; ?>
                         <?php if (!empty($formMeta['university_campus'])): ?>
-                            <dt>Campus:</dt>
+                            <dt><?= $LANG['university_campus'] ?? 'Campus' ?>:</dt>
                             <dd><?= e($formMeta['university_campus'] ?? '') ?></dd>
                         <?php endif; ?>
                     <?php endif; ?>
-                    <dt>Feedback Period:</dt>
+                    <dt><?= $LANG['feedback_period'] ?? 'Feedback Period' ?>:</dt>
                     <dd><?= formatDateTime($form['start_date']) ?> — <?= formatDateTime($form['end_date']) ?></dd>
-                    <dt>Total Students:</dt>
+                    <dt><?= $LANG['total_students'] ?? 'Total Students' ?>:</dt>
                     <dd><?= $totalStudents ?></dd>
                     <dt><?= $LANG['total_responses'] ?? 'Total Responses' ?>:</dt>
                     <dd><?= $completedCount ?> (<?= $totalStudents > 0 ? round(($completedCount / $totalStudents) * 100) : 0 ?>%
-                        response rate)</dd>
+                        <?= $LANG['response_rate'] ?? 'response rate' ?>)
+                    </dd>
                 </dl>
             </div>
 
@@ -1403,7 +1443,8 @@ include '../includes/admin_sidebar.php';
                     <div style="font-size:8pt; color:#94a3b8; text-align:center; margin-top:4px;">
                         <?= $LANG['good'] ?? 'Good' ?> = 5 pts · <?= $LANG['fair'] ?? 'Fair' ?> = 3 pts ·
                         <?= $LANG['bad'] ?? 'Bad' ?> = 1 pt &nbsp;|&nbsp; <?= $LANG['rating_questions'] ?? 'Rating Questions' ?>:
-                        <?= $numRatingQuestions ?> &nbsp;|&nbsp; Survey questions excluded from rating
+                        <?= $numRatingQuestions ?> &nbsp;|&nbsp;
+                        <?= $LANG['survey_excluded_from_rating'] ?? 'Survey questions excluded from rating' ?>
                     </div>
                 </div>
             <?php endif ?>
@@ -1411,7 +1452,9 @@ include '../includes/admin_sidebar.php';
             <!-- Rating Questions Result Table -->
             <?php if (!empty($ratingQuestions)): ?>
                 <div class="print-section">
-                    <div class="print-section-title"><?= $LANG['rating_questions'] ?? 'Rating Questions' ?> — Detailed Results</div>
+                    <div class="print-section-title"><?= $LANG['rating_questions'] ?? 'Rating Questions' ?> —
+                        <?= $LANG['detailed_results'] ?? 'Detailed Results' ?>
+                    </div>
                     <table class="print-table">
                         <thead>
                             <tr>
@@ -1548,7 +1591,7 @@ include '../includes/admin_sidebar.php';
                                     <?= e($cq['question_text']) ?>
 
                                     <span style="font-weight:400; color:#64748b; font-size:7.5pt;">(<?= count($commentsForQ) ?>
-                                        comments)</span>
+                                        <?= $LANG['comments_box'] ?? 'comments' ?>)</span>
                                 </div>
                                 <?php foreach ($commentsForQ as $idx => $commentText): ?>
                                     <div
@@ -1559,15 +1602,17 @@ include '../includes/admin_sidebar.php';
                             </div>
                         <?php endforeach ?>
                     <?php else: ?>
-                        <p style="font-size:9pt; color:#64748b; font-style:italic;">No comments submitted.</p>
+                        <p style="font-size:9pt; color:#64748b; font-style:italic;">
+                            <?= $LANG['no_comments_submitted'] ?? 'No comments submitted.' ?>
+                        </p>
                     <?php endif ?>
                 </div>
             <?php endif ?>
 
             <!-- Conclusion / Recommendation -->
             <div class="print-section">
-                <div class="print-section-title"><?= $LANG['col_actions'] ?? 'Conclusion' ?> &
-                    <?= $LANG['col_actions'] ?? 'Recommendation' ?>
+                <div class="print-section-title"><?= $LANG['conclusion_label'] ?? 'Conclusion' ?> &
+                    <?= $LANG['recommendation_label'] ?? 'Recommendation' ?>
                 </div>
                 <div class="print-conclusion">
                     <strong>Grade: <?= $grade ?> (<?= $overallPct ?>%)</strong><br><br>
@@ -1578,14 +1623,20 @@ include '../includes/admin_sidebar.php';
             <!-- Signature Lines -->
             <div style="display:flex; justify-content:space-between; margin-top:40px; font-size:9pt; color:#334155;">
                 <div style="text-align:center; width:200px;">
-                    <div style="border-top:1px solid #334155; padding-top:4px;">Prepared By</div>
+                    <div style="border-top:1px solid #334155; padding-top:4px;"><?= $LANG['prepared_by'] ?? 'Prepared By' ?>
+                    </div>
                 </div>
                 <div style="text-align:center; width:200px;">
-                    <div style="border-top:1px solid #334155; padding-top:4px;">Head of Department</div>
+                    <div style="border-top:1px solid #334155; padding-top:4px;">
+                        <?= $LANG['head_of_department'] ?? 'Head of Department' ?>
+                    </div>
                 </div>
                 <div style="text-align:center; width:220px;">
-                    <div style="border-top:1px solid #334155; padding-top:4px;">Vice Rector</div>
-                    <div style="font-size:7.5pt; color:#64748b; margin-top:2px;">University of Computer Studies (Hinthada)</div>
+                    <div style="border-top:1px solid #334155; padding-top:4px;"><?= $LANG['vice_rector'] ?? 'Vice Rector' ?>
+                    </div>
+                    <div style="font-size:7.5pt; color:#64748b; margin-top:2px;">
+                        <?= $LANG['university_name_title'] ?? 'University of Computer Studies (Hinthada)' ?>
+                    </div>
                 </div>
             </div>
 
@@ -1608,6 +1659,11 @@ include '../includes/admin_sidebar.php';
         'total_responses' => $LANG['total_responses'] ?? 'Total Responses',
         'no_data' => $LANG['no_data_yet'] ?? 'No data yet',
         'all_assigned_students' => $LANG['all_assigned_students'] ?? 'All Assigned Students',
+        'no_students_found' => $LANG['no_students_found'] ?? 'No students found.',
+        'roll_no' => $LANG['roll_no_header'] ?? 'Roll No',
+        'student_name' => $LANG['student_name'] ?? 'Student Name',
+        'submitted' => $LANG['submitted_label'] ?? 'Submitted',
+        'failed_load' => $LANG['failed_load_students'] ?? 'Failed to load student list.',
     ]) ?>;
 
     function openStudentModal(type) {
@@ -1624,12 +1680,12 @@ include '../includes/admin_sidebar.php';
             .then(function (students) {
                 if (students.error) { body.innerHTML = '<p class="text-center text-red-400 py-8 text-sm">' + students.error + '</p>'; return; }
                 title.textContent = title.textContent + ' (' + students.length + ')';
-                if (students.length === 0) { body.innerHTML = '<p class="text-center text-slate-400 py-8 text-sm">No students found.</p>'; return; }
+                if (students.length === 0) { body.innerHTML = '<p class="text-center text-slate-400 py-8 text-sm">' + LANG.no_students_found + '</p>'; return; }
                 var html = '<div class="overflow-x-auto"><table class="w-full text-xs"><thead><tr class="border-b border-slate-200 bg-slate-50">';
                 html += '<th class="text-left py-2.5 px-3 text-slate-500 font-semibold w-10">#</th>';
-                html += '<th class="text-left py-2.5 px-3 text-slate-500 font-semibold">Roll No</th>';
-                html += '<th class="text-left py-2.5 px-3 text-slate-500 font-semibold">Student Name</th>';
-                html += (type === 'completed') ? '<th class="text-left py-2.5 px-3 text-slate-500 font-semibold">Submitted</th>' : '<th class="text-left py-2.5 px-3 text-slate-500 font-semibold"></th>';
+                html += '<th class="text-left py-2.5 px-3 text-slate-500 font-semibold">' + LANG.roll_no + '</th>';
+                html += '<th class="text-left py-2.5 px-3 text-slate-500 font-semibold">' + LANG.student_name + '</th>';
+                html += (type === 'completed') ? '<th class="text-left py-2.5 px-3 text-slate-500 font-semibold">' + LANG.submitted + '</th>' : '<th class="text-left py-2.5 px-3 text-slate-500 font-semibold"></th>';
                 html += '</tr></thead><tbody class="divide-y divide-slate-100">';
                 for (var i = 0; i < students.length; i++) {
                     var s = students[i];
@@ -1645,7 +1701,7 @@ include '../includes/admin_sidebar.php';
                 html += '</tbody></table></div>';
                 body.innerHTML = html;
             })
-            .catch(function () { body.innerHTML = '<p class="text-center text-red-400 py-8 text-sm">Failed to load student list.</p>'; });
+            .catch(function () { body.innerHTML = '<p class="text-center text-red-400 py-8 text-sm">' + LANG.failed_load + '</p>'; });
     }
     function closeStudentModal() { document.getElementById('studentModal').classList.add('hidden'); }
     function escHtml(t) { var d = document.createElement('div'); d.appendChild(document.createTextNode(t || '')); return d.innerHTML; }
@@ -1655,7 +1711,7 @@ include '../includes/admin_sidebar.php';
     onclick="if(event.target===this)closeStudentModal()">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[85vh] flex flex-col">
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
-            <h3 id="modalTitle" class="font-semibold text-slate-800">Student List</h3>
+            <h3 id="modalTitle" class="font-semibold text-slate-800"><?= $LANG['student_list'] ?? 'Student List' ?></h3>
             <button onclick="closeStudentModal()"
                 class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors"><?= iconSvg('x', 'w-5 h-5') ?></button>
         </div>
@@ -1711,9 +1767,9 @@ include '../includes/admin_sidebar.php';
                 var currentModule = '';
                 var currentOptgroup = null;
                 var modLabels = {
-                    'academic': 'Academic',
-                    'student_affairs': 'Student Affairs',
-                    'administration': 'Administration'
+                    'academic': '<?= $LANG['mod_academic'] ?? 'Academic' ?>',
+                    'student_affairs': '<?= $LANG['mod_student_affairs'] ?? 'Student Affairs' ?>',
+                    'administration': '<?= $LANG['mod_administration'] ?? 'Administration' ?>'
                 };
 
                 for (var i = 0; i < forms.length; i++) {

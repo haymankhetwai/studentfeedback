@@ -1528,7 +1528,7 @@ include '../includes/admin_sidebar.php';
 
                                         <?= $row['module'] === 'academic'
                                             ? 'No Section'
-                                            : 'N/A' ?>
+                                            : 'No Section' ?>
 
                                     </span>
 
