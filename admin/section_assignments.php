@@ -10,6 +10,8 @@ $activeMenu = 'assignments';
 $sectionList = $conn->query("SELECT s.id, c.course_name, c.course_code, s.section, COALESCE(ay.year_name, '') AS academic_year, COALESCE(sm.semester_name, '') AS semester_name FROM sections s JOIN courses c ON s.course_id=c.id LEFT JOIN academic_years ay ON s.academic_year_id=ay.id LEFT JOIN semesters sm ON s.semester_id=sm.id ORDER BY c.course_name, s.section")->fetch_all(MYSQLI_ASSOC);
 $studentList = $conn->query("SELECT st.id, u.name, st.roll_no FROM students st JOIN users u ON st.user_id=u.id ORDER BY st.roll_no")->fetch_all(MYSQLI_ASSOC);
 $semesterList = $conn->query("SELECT id, semester_name FROM semesters ORDER BY id ASC")->fetch_all(MYSQLI_ASSOC);
+$academicYears = $conn->query("SELECT id, year_name FROM academic_years WHERE status='active' ORDER BY year_name DESC")->fetch_all(MYSQLI_ASSOC);
+$allAcademicYears = $conn->query("SELECT id, year_name FROM academic_years ORDER BY year_name DESC")->fetch_all(MYSQLI_ASSOC);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     $action = $_POST['action'] ?? '';
@@ -129,6 +131,7 @@ if (isset($_GET['ajax_filter']) && $_GET['ajax_filter'] == '1') {
     header('Content-Type: application/json');
     $af_sem = (int) ($_GET['semester_id'] ?? 0);
     $af_sec = clean($_GET['section_id'] ?? '');
+    $af_year = (int) ($_GET['academic_year_id'] ?? 0);
 
     $q = "SELECT s.id, c.course_name, c.course_code, s.section, COALESCE(ay.year_name, '') AS academic_year, COALESCE(sm.semester_name, '') AS semester_name 
           FROM sections s JOIN courses c ON s.course_id=c.id LEFT JOIN academic_years ay ON s.academic_year_id=ay.id LEFT JOIN semesters sm ON s.semester_id=sm.id";
@@ -144,6 +147,11 @@ if (isset($_GET['ajax_filter']) && $_GET['ajax_filter'] == '1') {
         $w[] = "s.section = ?";
         $bp[] = $af_sec;
         $bt .= "s";
+    }
+    if ($af_year) {
+        $w[] = "s.academic_year_id = ?";
+        $bp[] = $af_year;
+        $bt .= "i";
     }
     if ($w)
         $q .= " WHERE " . implode(" AND ", $w);
@@ -168,8 +176,9 @@ if (isset($_GET['ajax_filter']) && $_GET['ajax_filter'] == '1') {
 $search = clean($_GET['search'] ?? '');
 $filter_semester = clean($_GET['filter_semester'] ?? '');
 $filter_section = clean($_GET['filter_section'] ?? '');
+$filter_year = (int) ($_GET['filter_year'] ?? 0);
 
-$hasFilters = $search || $filter_semester || $filter_section;
+$hasFilters = $search || $filter_semester || $filter_section || $filter_year;
 
 $selectFrom = "FROM section_assignments sa 
               JOIN students st ON sa.student_id=st.id 
@@ -261,6 +270,11 @@ if ($filter_section) {
     $whereClauses[] = "s.section = ?";
     $bindParams[] = $filter_section;
     $bindTypes .= "s";
+}
+if ($filter_year) {
+    $whereClauses[] = "s.academic_year_id = ?";
+    $bindParams[] = $filter_year;
+    $bindTypes .= "i";
 }
 
 $whereStr = count($whereClauses) > 0 ? "WHERE " . implode(" AND ", $whereClauses) : "";
@@ -365,6 +379,16 @@ include '../includes/admin_sidebar.php';
                     class="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
             </div>
 
+            <select name="filter_year" onchange="this.form.submit()"
+                class="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
+                <option value=""><?= $LANG['all_academic_years'] ?? 'All Academic Years' ?></option>
+                <?php foreach ($allAcademicYears as $ay): ?>
+                    <option value="<?= $ay['id'] ?>" <?= $filter_year == $ay['id'] ? ' selected' : '' ?>>
+                        <?= e($ay['year_name']) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+
             <select name="filter_semester" onchange="this.form.submit()"
                 class="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
                 <option value=""><?= $LANG['all_semesters'] ?? 'All Semesters' ?></option>
@@ -392,7 +416,7 @@ include '../includes/admin_sidebar.php';
 
             <button type="submit"
                 class="px-4 py-2 text-sm bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-semibold shadow-sm transition-colors whitespace-nowrap"><?= $LANG['search'] ?? 'Search' ?></button>
-            <?php if ($search || $filter_semester || $filter_section): ?>
+            <?php if ($search || $filter_semester || $filter_section || $filter_year): ?>
                 <a href="section_assignments.php"
                     class="px-3 py-2 text-sm border border-slate-200 rounded-xl text-white hover:bg-red-700 bg-red-500 transition-colors whitespace-nowrap"><?= $LANG['clear'] ?? 'Clear' ?></a>
             <?php endif ?>
@@ -515,7 +539,7 @@ include '../includes/admin_sidebar.php';
         </table>
     </div>
     <div class="px-5 py-4 border-t border-slate-100">
-        <?= paginationLinks($pg, 'section_assignments.php' . '?' . http_build_query(array_filter(['search' => $search, 'filter_semester' => $filter_semester, 'filter_section' => $filter_section])), $perPage) ?>
+        <?= paginationLinks($pg, 'section_assignments.php' . '?' . http_build_query(array_filter(['search' => $search, 'filter_semester' => $filter_semester, 'filter_section' => $filter_section, 'filter_year' => $filter_year ?: null])), $perPage) ?>
     </div>
 </div>
 
@@ -782,10 +806,12 @@ include '../includes/admin_sidebar.php';
     function filterAddSections() {
         const sem = document.getElementById('addFilterSemester').value;
         const sec = document.getElementById('addFilterSection').value;
+        const year = document.getElementById('addFilterYear') ? document.getElementById('addFilterYear').value : '';
         const list = document.getElementById('addSectionList');
         const params = new URLSearchParams({ ajax_filter: 1 });
         if (sem) params.set('semester_id', sem);
         if (sec) params.set('section_id', sec);
+        if (year) params.set('academic_year_id', year);
         list.innerHTML = '<div class="text-center text-xs text-slate-400 py-4">' + LANG.loading + '</div>';
 
         fetch('section_assignments.php?' + params.toString())

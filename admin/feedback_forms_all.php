@@ -20,6 +20,12 @@ $academicYears = $conn->query("
     ORDER BY year_name DESC
 ")->fetch_all(MYSQLI_ASSOC);
 
+$allAcademicYears = $conn->query("
+    SELECT id, year_name
+    FROM academic_years
+    ORDER BY year_name DESC
+")->fetch_all(MYSQLI_ASSOC);
+
 $semesters = $conn->query("
     SELECT id, semester_name
     FROM semesters
@@ -1182,7 +1188,7 @@ include '../includes/admin_sidebar.php';
                 </option>
 
 
-                <?php foreach ($academicYears as $ay): ?>
+                <?php foreach ($allAcademicYears as $ay): ?>
 
                     <option value="<?= $ay['id'] ?>" <?= $filterAY == $ay['id']
                           ? 'selected'
