@@ -167,6 +167,7 @@ $filterSem = (int) ($_GET['sem_id'] ?? 0);
 $hasActiveFilters = ($filterAY > 0) || ($filterSem > 0) || ($formId > 0);
 
 $academicYears = $conn->query("SELECT id, year_name FROM academic_years WHERE status='active' ORDER BY year_name DESC")->fetch_all(MYSQLI_ASSOC);
+$allAcademicYears = $conn->query("SELECT id, year_name FROM academic_years ORDER BY year_name DESC")->fetch_all(MYSQLI_ASSOC);
 $semesters = $conn->query("SELECT id, semester_name FROM semesters ORDER BY id ASC")->fetch_all(MYSQLI_ASSOC);
 
 // Form list — filtered by AY/Sem when selected, with section/course info for academic forms
@@ -764,7 +765,7 @@ include '../includes/admin_sidebar.php';
                 <select name="ay_id" id="aySelect"
                     class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none bg-white font-semibold text-slate-700 shadow-sm focus:border-slate-500">
                     <option value=""><?= $LANG["all_academic_years"] ?? "All Academic Years" ?></option>
-                    <?php foreach ($academicYears as $ay): ?>
+                    <?php foreach ($allAcademicYears as $ay): ?>
                         <option value="<?= $ay['id'] ?>" <?= $filterAY == $ay['id'] ? 'selected' : '' ?>>
                             <?= e($ay['year_name']) ?>
                         </option>

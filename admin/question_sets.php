@@ -7,7 +7,8 @@ requireRole('admin');
 $pageTitle = $LANG['question_sets_title'] ?? 'Question Sets';
 $activeMenu = 'question_sets';
 
-$academicYears = $conn->query("SELECT id, year_name FROM academic_years ORDER BY year_name DESC")->fetch_all(MYSQLI_ASSOC);
+$academicYears = $conn->query("SELECT id, year_name FROM academic_years WHERE status='active' ORDER BY year_name DESC")->fetch_all(MYSQLI_ASSOC);
+$allAcademicYears = $conn->query("SELECT id, year_name FROM academic_years ORDER BY year_name DESC")->fetch_all(MYSQLI_ASSOC);
 
 function moduleQuestionsPage($module) {
     return 'manage_questions.php';
@@ -296,7 +297,7 @@ include '../includes/admin_sidebar.php';
             <label class="block text-xs font-semibold text-slate-500 mb-1"><?= $LANG["academic_year"] ?? "Academic Year" ?></label>
             <select name="academic_year_id" onchange="this.form.submit()" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
                 <option value=""><?= $LANG["all_years"] ?? "All Years" ?></option>
-                <?php foreach ($academicYears as $ay): ?>
+                <?php foreach ($allAcademicYears as $ay): ?>
                     <option value="<?= $ay['id'] ?>" <?= $filterAy == $ay['id'] ? 'selected' : '' ?>><?= e($ay['year_name']) ?></option>
                 <?php endforeach ?>
             </select>
