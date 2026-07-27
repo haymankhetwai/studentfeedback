@@ -132,10 +132,10 @@ include '../includes/admin_sidebar.php';
 
 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
     <div>
-        <div class="flex items-center gap-2 mb-1">
+        <!-- <div class="flex items-center gap-2 mb-1">
             <?= iconSvg('academic', 'w-5 h-5 text-indigo-600') ?>
             <h2 class="text-xl font-bold text-slate-800"><?= $LANG['academic_years_title'] ?? 'Academic Years' ?></h2>
-        </div>
+        </div> -->
         <p class="text-sm text-slate-500 mt-0.5">
             <?= $LANG["academic_years_subtitle"] ?? "Manage academic year versions. Each year has its own question sets." ?>
         </p>
@@ -171,17 +171,24 @@ include '../includes/admin_sidebar.php';
                 <tr>
                     <th class="text-left px-5 py-3 text-slate-500 w-12 text-sm font-semibold">#</th>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
-                        <?= $LANG["year_name_label"] ?? "Year Name" ?></th>
+                        <?= $LANG["year_name_label"] ?? "Year Name" ?>
+                    </th>
+                    <!-- <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
+                        <?= $LANG["status"] ?? "Status" ?></th> -->
+                    <!-- <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">
+                        <?= $LANG["sections"] ?? "Sections" ?></th> -->
+                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">
+                        <?= $LANG["forms"] ?? "Forms" ?>
+                    </th>
+                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">
+                        <?= $LANG["question_sets"] ?? "Question Sets" ?>
+                    </th>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
-                        <?= $LANG["status"] ?? "Status" ?></th>
+                        <?= $LANG["status"] ?? "Status" ?>
+                    </th>
                     <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">
-                        <?= $LANG["sections"] ?? "Sections" ?></th>
-                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">
-                        <?= $LANG["forms"] ?? "Forms" ?></th>
-                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">
-                        <?= $LANG["question_sets"] ?? "Question Sets" ?></th>
-                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">
-                        <?= $LANG["col_actions"] ?? "Actions" ?></th>
+                        <?= $LANG["col_actions"] ?? "Actions" ?>
+                    </th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -192,7 +199,7 @@ include '../includes/admin_sidebar.php';
                             <td class="px-5 py-3">
                                 <span class="text-sm font-bold text-slate-800"><?= e($row['year_name']) ?></span>
                             </td>
-                            <td class="px-5 py-3">
+                            <!-- <td class="px-5 py-3">
                                 <?php if ($row['status'] === 'active'): ?>
                                     <span
                                         class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -204,11 +211,11 @@ include '../includes/admin_sidebar.php';
                                         <span
                                             class="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block"></span><?= $LANG["inactive"] ?? "Inactive" ?></span>
                                 <?php endif ?>
-                            </td>
-                            <td class="px-5 py-3 text-center">
+                            </td> -->
+                            <!-- <td class="px-5 py-3 text-center">
                                 <span
                                     class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700"><?= $row['section_count'] ?></span>
-                            </td>
+                            </td> -->
                             <td class="px-5 py-3 text-center">
                                 <span
                                     class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700"><?= $row['form_count'] ?></span>
@@ -217,11 +224,26 @@ include '../includes/admin_sidebar.php';
                                 <span
                                     class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700"><?= $row['question_set_count'] ?></span>
                             </td>
+                            <td class="px-5 py-3">
+                                <?php if ($row['status'] === 'active'): ?>
+                                    <span
+                                        class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span>
+                                        <?= $LANG["active"] ?? "Active" ?>
+                                    </span>
+                                <?php else: ?>
+                                    <span
+                                        class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block"></span>
+                                        <?= $LANG["inactive"] ?? "Inactive" ?>
+                                    </span>
+                                <?php endif ?>
+                            </td>
                             <td class="px-5 py-3 text-center">
                                 <div class="flex items-center justify-center gap-2">
                                     <button onclick="openEdit(<?= htmlspecialchars(json_encode($row), ENT_QUOTES) ?>)"
                                         class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 rounded-lg">
-                                        <?= iconSvg('edit', 'w-3.5 h-3.5') ?>        <?= $LANG["edit"] ?? "Edit" ?></button>
+                                        <?= iconSvg('edit', 'w-3.5 h-3.5') ?>         <?= $LANG["edit"] ?? "Edit" ?></button>
                                     <!-- <button onclick="openDelete(<?= $row['id'] ?>, '<?= e($row['year_name']) ?>')"
                                         class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg">
                                         <?= iconSvg('trash', 'w-3.5 h-3.5') ?>        <?= $LANG["delete"] ?? "Delete" ?></button> -->
@@ -326,10 +348,12 @@ include '../includes/admin_sidebar.php';
                 <?= iconSvg('trash', 'w-7 h-7 text-red-600') ?>
             </div>
             <h3 class="text-lg font-semibold text-slate-800">
-                <?= $LANG["delete_academic_year"] ?? "Delete Academic Year" ?></h3>
+                <?= $LANG["delete_academic_year"] ?? "Delete Academic Year" ?>
+            </h3>
             <p class="text-sm text-slate-500 mt-2">Delete <strong id="delete_name" class="text-slate-700"></strong>?</p>
             <p class="text-xs text-red-500 mt-2">
-                <?= $LANG["cannot_delete_referenced"] ?? "Cannot delete if referenced by sections or forms." ?></p>
+                <?= $LANG["cannot_delete_referenced"] ?? "Cannot delete if referenced by sections or forms." ?>
+            </p>
         </div>
         <form method="POST"><?= csrfField() ?><input type="hidden" name="action" value="delete"><input type="hidden"
                 name="id" id="delete_id">

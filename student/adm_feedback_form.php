@@ -255,7 +255,7 @@ $initials = avatarInitials($user['name']);
         </div>
         <nav class="flex-1 py-4 px-3 space-y-0.5">
             <a href="/studentfeedbackucsh/student/dashboard.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('home','w-5 h-5 flex-shrink-0 text-yellow-300') ?> <?= $LANG['nav_dashboard'] ?? 'Dashboard' ?></a>
-            <a href="/studentfeedbackucsh/student/my_sections.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('grid','w-5 h-5 flex-shrink-0 text-blue-300') ?> <?= $LANG['nav_my_sections'] ?? 'My Sections' ?></a>
+            <a href="/studentfeedbackucsh/student/my_sections.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('grid','w-5 h-5 flex-shrink-0 text-blue-300') ?> <?= $LANG['nav_my_sections'] ?? 'My Courses' ?></a>
             <a href="/studentfeedbackucsh/student/sa_feedback.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('shield','w-5 h-5 flex-shrink-0 text-purple-300') ?> <?= $LANG['nav_student_affairs_link'] ?? 'Student Affairs' ?></a>
             <a href="/studentfeedbackucsh/student/adm_feedback.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('office','w-5 h-5 flex-shrink-0 text-orange-300') ?> <?= $LANG['nav_administration'] ?? 'Administration' ?></a>
             <a href="/studentfeedbackucsh/student/feedback_history.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('history','w-5 h-5 flex-shrink-0 text-teal-300') ?> <?= $LANG['nav_history'] ?? 'History' ?></a>
@@ -350,7 +350,7 @@ $initials = avatarInitials($user['name']);
                                     <?php foreach ($ratingQuestions as $q): ?>
                                     <tr class="hover:bg-slate-50/50 transition-colors">
                                         <td class="p-3 border-r border-slate-200 text-center font-bold font-mono"><?= e(displayQuestionNumber($q['question_no'], $_SESSION['lang'] ?? 'en')) ?></td>
-                                        <td class="p-3 border-r border-slate-200 font-medium leading-relaxed text-slate-900"><?= e($q['question_text']) ?></td>
+                                        <td class="p-3 border-r border-slate-200 font-medium leading-relaxed text-lg text-slate-900"><?= e($q['question_text']) ?></td>
                                         
                                         <td class="p-3 border-r border-slate-200 text-center bg-emerald-50/30">
                                             <input type="radio" name="rating_<?= $q['id'] ?>" value="Good" required 
@@ -379,13 +379,13 @@ $initials = avatarInitials($user['name']);
                     <div class="space-y-6 pt-4 border-t-2 border-slate-200">
                         <?php foreach ($commentQuestions as $q): ?>
                         <div class="space-y-2">
-                            <label class="block text-xs font-bold text-slate-800 leading-relaxed">
+                            <label class="block text-lg font-bold text-slate-800 leading-relaxed">
                                 (<?= displayQuestionNumber($q['question_no'], $_SESSION['lang'] ?? 'en') ?>) <?= e($q['question_text']) ?>
                             </label>
                             <textarea name="comment_<?= $q['id'] ?>" rows="4"
                                       placeholder="<?= $LANG['comment_placeholder'] ?? 'Write your comment here...' ?>"
                                       disabled
-                                      class="comment-textarea w-full border border-slate-300 bg-slate-50 rounded-xl px-4 py-3 text-xs focus:bg-white focus:border-slate-900 outline-none resize-none transition-all disabled:opacity-60"></textarea>
+                                      class="comment-textarea w-full border border-slate-300 bg-slate-50 rounded-xl px-4 py-3 text-md focus:bg-white focus:border-slate-900 outline-none resize-none transition-all disabled:opacity-60"></textarea>
                         </div>
                         <?php endforeach ?>
                         <p id="comment-error" class="text-xs text-red-500 hidden mt-2"><?= $LANG['comment_required_hint'] ?? 'Please provide a comment because you selected a rating below the highest.' ?></p>
@@ -394,22 +394,22 @@ $initials = avatarInitials($user['name']);
 
                     <?php if (!empty($surveyQuestions)): ?>
                     <div class="space-y-6 pt-4 border-t-2 border-violet-200">
-                        <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider"><?= $LANG['survey_questions_mcq'] ?? 'Survey Questions (MCQ)' ?></h3>
+                        <h3 class="text-lg font-bold text-slate-900 uppercase tracking-wider"><?= $LANG['survey_questions_mcq'] ?? 'Survey Questions (MCQ)' ?></h3>
                         <?php foreach ($surveyQuestions as $q):
                             $opts = json_decode($q['options_json'] ?? '[]', true) ?: [];
                             ?>
                             <div class="space-y-2 survey-group" data-question-id="<?= $q['id'] ?>">
-                                <label class="block text-xs font-bold text-slate-800 leading-relaxed">
+                                <label class="block text-md font-bold text-slate-800 leading-relaxed">
                                     (<?= displayQuestionNumber($q['question_no'], $_SESSION['lang'] ?? 'en') ?>) <?= e($q['question_text']) ?>
                                     <span class="text-red-500 text-[10px] font-normal">*</span>
                                 </label>
                                 <div class="space-y-2">
                                     <?php foreach ($opts as $idx => $opt): ?>
                                     <label class="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 cursor-pointer hover:bg-violet-50 transition-colors <?= !$canSubmit ? 'opacity-60 pointer-events-none' : '' ?>">
-                                        <input type="checkbox" name="survey[<?= $q['id'] ?>][]" value="<?= $idx ?>"
+                                        <input type="radio" name="survey[<?= $q['id'] ?>]" value="<?= $idx ?>"
                                                <?= !$canSubmit ? 'disabled' : '' ?>
-                                               class="w-4 h-4 text-violet-600 focus:ring-violet-500 rounded cursor-pointer survey-cb">
-                                        <span class="text-xs text-slate-700 font-medium"><?= e($opt) ?></span>
+                                               class="w-4 h-4 text-violet-600 focus:ring-violet-500 cursor-pointer survey-cb">
+                                        <span class="text-md text-slate-700 font-medium"><?= e($opt) ?></span>
                                     </label>
                                     <?php endforeach ?>
                                 </div>

@@ -743,7 +743,7 @@ include '../includes/admin_sidebar.php';
 
 <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
     <div>
-        <h2 class="text-xl font-bold text-slate-800"><?= $LANG['all_feedback_results'] ?? "All Feedback Results" ?></h2>
+        <!-- <h2 class="text-xl font-bold text-slate-800"><?= $LANG['all_feedback_results'] ?? "All Feedback Results" ?></h2> -->
         <p class="text-sm text-slate-500 mt-0.5"><?= $LANG['feedback_results_subtitle'] ?? "View results for all modules — Academic, Student Affairs, and
             Administration." ?></p>
     </div>
@@ -1091,7 +1091,7 @@ include '../includes/admin_sidebar.php';
 
                 <?php if (!empty($ratingQuestions)): ?>
                     <div class="mb-8">
-                        <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3">
+                        <h3 class="text-lg font-bold text-slate-900 uppercase tracking-wider mb-3">
                             <?= $LANG['question_stats_header'] ?? 'Question-wise Statistical Results' ?>
                         </h3>
                         <div class="overflow-x-auto border border-slate-300 rounded-lg">
@@ -1176,7 +1176,7 @@ include '../includes/admin_sidebar.php';
 
                 <?php if (!empty($commentQuestions)): ?>
                     <div class="space-y-6 pt-6 border-t-2 border-slate-300">
-                        <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                        <h3 class="text-lg font-bold text-slate-900 uppercase tracking-wider">
                             <?= $LANG['comments_header'] ?? 'Comments' ?>
                         </h3>
                         <?php foreach ($commentQuestions as $cq):
@@ -1211,7 +1211,7 @@ include '../includes/admin_sidebar.php';
                 <?php if (!empty($surveyQuestions)): ?>
                     <div class="space-y-6 pt-6 border-t-2 border-slate-300">
                         <div class="flex items-center justify-between">
-                            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                            <h3 class="text-lg font-bold text-slate-900 uppercase tracking-wider">
                                 <?= $LANG['survey_results_mcq'] ?? 'Survey Results (MCQ)' ?>
                             </h3>
                             <span
@@ -1267,7 +1267,7 @@ include '../includes/admin_sidebar.php';
                                                         height="260"></canvas>
                                                 </div>
                                             </div>
-                                            <div class="w-full md:w-7/12 space-y-2">
+                                            <div class="w-full md:w-7/12 space-y-4">
                                                 <?php foreach ($opts as $idx => $opt):
                                                     $votes = $chartData[$idx];
                                                     $pct = $totalVotes > 0 ? round(($votes / $totalVotes) * 100) : 0;
@@ -1278,8 +1278,7 @@ include '../includes/admin_sidebar.php';
                                                             style="background-color: <?= $chartColors[$idx] ?>"></span>
                                                         <div class="flex-1 min-w-0">
                                                             <div class="flex items-center justify-between gap-2">
-                                                                <span
-                                                                    class="text-sm font-semibold text-slate-700 truncate"><?= e($opt) ?></span>
+                                                                <span class="text-sm font-semibold text-slate-700"><?= e($opt) ?></span>
                                                                 <div class="flex items-center gap-2 shrink-0">
                                                                     <span class="text-[11px] text-slate-400 font-medium"><?= $votes ?>
                                                                         <?= $votes != 1 ? ($LANG['votes'] ?? 'votes') : ($LANG['vote'] ?? 'vote') ?></span>
@@ -1343,7 +1342,7 @@ include '../includes/admin_sidebar.php';
                                                         style="background-color: <?= $chartColors[$idx] ?>"></span>
                                                     <div class="flex-1 min-w-0">
                                                         <div class="flex items-center justify-between gap-2">
-                                                            <span class="text-sm font-semibold text-slate-700 truncate"><?= e($opt) ?></span>
+                                                            <span class="text-sm font-semibold text-slate-700"><?= e($opt) ?></span>
                                                             <span
                                                                 class="text-[11px] text-slate-400 font-medium"><?= $LANG['zero_votes'] ?? '0 votes' ?></span>
                                                         </div>

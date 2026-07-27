@@ -1081,9 +1081,9 @@ include '../includes/admin_sidebar.php';
 
     <div>
 
-        <h2 class="text-xl font-bold text-slate-800">
+        <!-- <h2 class="text-xl font-bold text-slate-800">
             <?= $LANG["all_feedback_forms"] ?? "All Feedback Forms" ?>
-        </h2>
+        </h2> -->
 
         <p class="text-sm text-slate-500 mt-0.5">
 
@@ -1336,12 +1336,12 @@ include '../includes/admin_sidebar.php';
 
 
                     <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold w-[100px]">
-                        Q
+                         <?= $LANG["col_questions"] ?? "Questions" ?>
                     </th>
 
 
                     <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold w-[100px]">
-                        Sub
+                       <?= $LANG["col_submissions"] ?? "Submissions" ?>
                     </th>
 
 
@@ -1379,7 +1379,7 @@ include '../includes/admin_sidebar.php';
 
                             <!-- MODULE -->
 
-                            <td class="px-5 py-3 text-xs text-slate-800 font-medium capitalize">
+                            <td class="px-5 py-3 text-sm text-slate-800 font-medium capitalize">
 
                                 <?= e($row['module']) ?>
 
@@ -1824,7 +1824,7 @@ include '../includes/admin_sidebar.php';
     data-modal-backdrop>
 
 
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg modal-box">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md modal-box">
 
 
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
@@ -1860,7 +1860,7 @@ include '../includes/admin_sidebar.php';
             <input type="hidden" name="question_set_id" id="add_question_set_id" value="0">
 
 
-            <div class="px-6 py-5 space-y-4">
+            <div class="px-6 py-5 space-y-2">
 
 
                 <!-- MODULE -->

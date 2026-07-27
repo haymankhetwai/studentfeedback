@@ -20,7 +20,7 @@ $stmt->execute();
 $student = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 $studentId = $student['id'] ?? 0;
-$pageTitle = $LANG['my_sections_page_title'] ?? 'My Sections';
+$pageTitle = $LANG['my_sections_page_title'] ?? 'My Courses';
 $activeMenu = 'sections';
 $today = date('Y-m-d');
 
@@ -37,7 +37,7 @@ if ($studentId) {
 // Fixed navigation array: Includes all 6 structural modules so items do not disappear
 $navItems = [
     ['label' => $LANG['nav_dashboard'] ?? 'Dashboard', 'href' => '/studentfeedbackucsh/student/dashboard.php', 'key' => 'dashboard', 'icon' => 'home', 'iconColor' => 'text-yellow-300'],
-    ['label' => $LANG['nav_my_sections'] ?? 'My Sections', 'href' => '/studentfeedbackucsh/student/my_sections.php', 'key' => 'sections', 'icon' => 'grid', 'iconColor' => 'text-blue-300'],
+    ['label' => $LANG['nav_my_sections'] ?? 'My Courses', 'href' => '/studentfeedbackucsh/student/my_sections.php', 'key' => 'sections', 'icon' => 'grid', 'iconColor' => 'text-blue-300'],
     ['label' => $LANG['nav_student_affairs'] ?? 'Student Affairs', 'href' => '/studentfeedbackucsh/student/sa_feedback.php', 'key' => 'sa', 'icon' => 'shield', 'iconColor' => 'text-purple-300'],
     ['label' => $LANG['nav_administration'] ?? 'Administration', 'href' => '/studentfeedbackucsh/student/adm_feedback.php', 'key' => 'adm', 'icon' => 'office', 'iconColor' => 'text-orange-300'],
     ['label' => $LANG['nav_history'] ?? 'History', 'href' => '/studentfeedbackucsh/student/feedback_history.php', 'key' => 'history', 'icon' => 'history', 'iconColor' => 'text-teal-300'],
@@ -124,11 +124,11 @@ $initials = avatarInitials($user['name']);
 
             <main class="flex-1 overflow-y-auto p-4 lg:p-6">
                 <div class="mb-6">
-                    <h2 class="text-xl font-bold text-slate-800">
-                        <?= $LANG['my_sections_page_title'] ?? 'My Sections & Feedback Forms' ?>
-                    </h2>
+                    <!-- <h2 class="text-xl font-bold text-slate-800">
+                        <?= $LANG['my_sections_page_title'] ?? 'My Courses & Feedback Forms' ?>
+                    </h2> -->
                     <p class="text-sm text-slate-500">
-                        <?= $LANG['my_sections_subtitle'] ?? 'Your enrolled sections and available feedback forms' ?>
+                        <?= $LANG['my_sections_subtitle'] ?? 'Your enrolled courses and available feedback forms' ?>
                     </p>
                 </div>
 

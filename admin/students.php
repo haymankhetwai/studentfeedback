@@ -560,11 +560,11 @@ include '../includes/admin_sidebar.php';
 
     <div>
 
-        <h2 class="text-xl font-bold text-slate-800">
+        <!-- <h2 class="text-xl font-bold text-slate-800">
 
             <?= $LANG['students_title'] ?? 'Students' ?>
 
-        </h2>
+        </h2> -->
 
 
         <p class="text-sm text-slate-500 mt-0.5">

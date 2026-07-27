@@ -44,7 +44,7 @@ $totalCompletedCount = 0;
 if ($studentId) {
     // ── Academic: load all forms the student can access (same as my_sections.php) ──
     $acadFormsStmt = $conn->prepare(
-        "SELECT ff.id, ff.start_date, ff.end_date,
+        "SELECT ff.id, ff.start_date, ff.end_date, ff.status,
                 (SELECT COUNT(*) FROM feedback_submissions fs WHERE fs.form_id=ff.id AND fs.student_id=?) AS submitted
          FROM feedback_forms ff
          JOIN section_assignments sa ON ff.section_id = sa.section_id
@@ -55,12 +55,14 @@ if ($studentId) {
     $acadRows = $acadFormsStmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $acadFormsStmt->close();
     foreach ($acadRows as $r) {
-        $acadAvailableCount++;
         if ((int) $r['submitted'] > 0) {
+            $acadAvailableCount++;
             $acadCompletedCount++;
-        } else {
+        } elseif ($r['status'] === 'Active') {
+            $acadAvailableCount++;
             $acadPendingCount++;
         }
+        // Expired + not submitted → skip (don't count)
     }
 
     // ── Year filter for SA and Admin (same as sa_feedback.php / adm_feedback.php) ──
@@ -74,7 +76,7 @@ if ($studentId) {
     // ── SA: load all forms (same query as sa_feedback.php — no date filter) ──
     if (!empty($yrPH)) {
         $saStmt = $conn->prepare(
-            "SELECT f.id, f.start_date, f.end_date,
+            "SELECT f.id, f.start_date, f.end_date, f.status,
                     (SELECT COUNT(*) FROM feedback_submissions s WHERE s.form_id=f.id AND s.student_id=?) AS submitted
              FROM feedback_forms f
              WHERE f.module='student_affairs' AND f.academic_year_id IN ($yrPH)"
@@ -84,19 +86,21 @@ if ($studentId) {
         $saRows = $saStmt->get_result()->fetch_all(MYSQLI_ASSOC);
         $saStmt->close();
         foreach ($saRows as $r) {
-            $saAvailableCount++;
             if ((int) $r['submitted'] > 0) {
+                $saAvailableCount++;
                 $saCompletedCount++;
-            } else {
+            } elseif ($r['status'] === 'Active') {
+                $saAvailableCount++;
                 $saPendingCount++;
             }
+            // Expired + not submitted → skip
         }
     }
 
     // ── Admin: load all forms (same query as adm_feedback.php — no date filter) ──
     if (!empty($yrPH)) {
         $admStmt = $conn->prepare(
-            "SELECT f.id, f.start_date, f.end_date,
+            "SELECT f.id, f.start_date, f.end_date, f.status,
                     (SELECT COUNT(*) FROM feedback_submissions s WHERE s.form_id=f.id AND s.student_id=?) AS submitted
              FROM feedback_forms f
              WHERE f.module='administration' AND f.academic_year_id IN ($yrPH)"
@@ -106,12 +110,14 @@ if ($studentId) {
         $admRows = $admStmt->get_result()->fetch_all(MYSQLI_ASSOC);
         $admStmt->close();
         foreach ($admRows as $r) {
-            $admAvailableCount++;
             if ((int) $r['submitted'] > 0) {
+                $admAvailableCount++;
                 $admCompletedCount++;
-            } else {
+            } elseif ($r['status'] === 'Active') {
+                $admAvailableCount++;
                 $admPendingCount++;
             }
+            // Expired + not submitted → skip
         }
     }
 
@@ -121,7 +127,7 @@ if ($studentId) {
 // ─── Academic Pending Forms (active, not submitted — for card listing) ─────────
 $pendingForms = [];
 if ($studentId) {
-    $rs = $conn->query("SELECT ff.id AS form_id, ff.title, ff.end_date, c.course_name, s.section, u.name AS teacher_name, COALESCE(ay.year_name, '') AS display_year, sm.semester_name AS display_semester FROM feedback_forms ff JOIN sections s ON ff.section_id=s.id JOIN courses c ON s.course_id=c.id JOIN teachers t ON s.teacher_id=t.id JOIN users u ON t.user_id=u.id JOIN section_assignments sa ON sa.section_id=s.id LEFT JOIN academic_years ay ON s.academic_year_id=ay.id LEFT JOIN semesters sm ON s.semester_id=sm.id WHERE sa.student_id=$studentId AND ff.module='academic' AND ff.id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=$studentId) ORDER BY ff.end_date ASC LIMIT 4");
+    $rs = $conn->query("SELECT ff.id AS form_id, ff.title, ff.end_date, c.course_name, s.section, u.name AS teacher_name, COALESCE(ay.year_name, '') AS display_year, sm.semester_name AS display_semester FROM feedback_forms ff JOIN sections s ON ff.section_id=s.id JOIN courses c ON s.course_id=c.id JOIN teachers t ON s.teacher_id=t.id JOIN users u ON t.user_id=u.id JOIN section_assignments sa ON sa.section_id=s.id LEFT JOIN academic_years ay ON s.academic_year_id=ay.id LEFT JOIN semesters sm ON s.semester_id=sm.id WHERE sa.student_id=$studentId AND ff.module='academic' AND ff.status='Active' AND ff.id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=$studentId) ORDER BY ff.end_date ASC LIMIT 4");
     $pendingForms = $rs->fetch_all(MYSQLI_ASSOC);
 }
 
@@ -129,7 +135,7 @@ if ($studentId) {
 $saPendingForms = [];
 if ($studentId && !empty($studentYearIds)) {
     $yrList = implode(',', $studentYearIds);
-    $rs = $conn->query("SELECT id AS form_id, title, end_date FROM feedback_forms WHERE module='student_affairs' AND academic_year_id IN ($yrList) AND id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=$studentId) ORDER BY end_date ASC LIMIT 3");
+    $rs = $conn->query("SELECT id AS form_id, title, end_date FROM feedback_forms WHERE module='student_affairs' AND status='Active' AND academic_year_id IN ($yrList) AND id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=$studentId) ORDER BY end_date ASC LIMIT 3");
     $saPendingForms = $rs->fetch_all(MYSQLI_ASSOC);
 }
 
@@ -137,13 +143,13 @@ if ($studentId && !empty($studentYearIds)) {
 $admPendingForms = [];
 if ($studentId && !empty($studentYearIds)) {
     $yrList = implode(',', $studentYearIds);
-    $rs = $conn->query("SELECT id AS form_id, title, end_date FROM feedback_forms WHERE module='administration' AND academic_year_id IN ($yrList) AND id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=$studentId) ORDER BY end_date ASC LIMIT 3");
+    $rs = $conn->query("SELECT id AS form_id, title, end_date FROM feedback_forms WHERE module='administration' AND status='Active' AND academic_year_id IN ($yrList) AND id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=$studentId) ORDER BY end_date ASC LIMIT 3");
     $admPendingForms = $rs->fetch_all(MYSQLI_ASSOC);
 }
 
 $navItems = [
     ['label' => $LANG['nav_dashboard'] ?? 'Dashboard', 'href' => '/studentfeedbackucsh/student/dashboard.php', 'key' => 'dashboard', 'icon' => 'home', 'iconColor' => 'text-yellow-300'],
-    ['label' => $LANG['nav_my_sections'] ?? 'My Sections', 'href' => '/studentfeedbackucsh/student/my_sections.php', 'key' => 'sections', 'icon' => 'grid', 'iconColor' => 'text-blue-300'],
+    ['label' => $LANG['nav_my_sections'] ?? 'My Courses', 'href' => '/studentfeedbackucsh/student/my_sections.php', 'key' => 'sections', 'icon' => 'grid', 'iconColor' => 'text-blue-300'],
     ['label' => $LANG['nav_student_affairs'] ?? 'Student Affairs', 'href' => '/studentfeedbackucsh/student/sa_feedback.php', 'key' => 'sa', 'icon' => 'shield', 'iconColor' => 'text-purple-300'],
     ['label' => $LANG['nav_administration'] ?? 'Administration', 'href' => '/studentfeedbackucsh/student/adm_feedback.php', 'key' => 'adm', 'icon' => 'office', 'iconColor' => 'text-orange-300'],
     ['label' => $LANG['nav_history'] ?? 'History', 'href' => '/studentfeedbackucsh/student/feedback_history.php', 'key' => 'history', 'icon' => 'history', 'iconColor' => 'text-teal-300'],
@@ -234,7 +240,7 @@ $initials = avatarInitials($user['name']);
                         class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3 hover:shadow-md transition-all">
                         <div>
                             <p class="text-xl font-bold text-cyan-700"><?= $sectionCount ?></p>
-                            <p class="text-xs text-slate-500"><?= $LANG['enrolled_sections'] ?? 'Enrolled Sections' ?>
+                            <p class="text-xs text-slate-500"><?= $LANG['enrolled_sections'] ?? 'Enrolled Courses' ?>
                             </p>
                         </div>
                     </div>
@@ -249,14 +255,14 @@ $initials = avatarInitials($user['name']);
                         <div>
                             <p class="text-xl font-bold text-purple-700"><?= $saPendingCount ?> <span
                                     class="text-xs font-normal text-slate-400">/ <?= $saAvailableCount ?></span></p>
-                            <p class="text-xs text-slate-500"><?= $LANG['sa_pending'] ?? 'SA Pending' ?></p>
+                            <p class="text-xs text-slate-500"><?= $LANG['sa_pending'] ?? 'Student Affairs Pending' ?></p>
                         </div>
                     </div>
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3">
                         <div>
                             <p class="text-xl font-bold text-orange-700"><?= $admPendingCount ?> <span
                                     class="text-xs font-normal text-slate-400">/ <?= $admAvailableCount ?></span></p>
-                            <p class="text-xs text-slate-500"><?= $LANG['adm_pending'] ?? 'Adm Pending' ?></p>
+                            <p class="text-xs text-slate-500"><?= $LANG['adm_pending'] ?? 'Administration Pending' ?></p>
                         </div>
                     </div>
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3">
@@ -270,7 +276,7 @@ $initials = avatarInitials($user['name']);
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
 
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                        <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-cyan-50">
+                        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-cyan-50">
                             <div class="flex items-center gap-2">
                                 <h3 class="text-sm font-semibold text-cyan-800">
                                     <?= $LANG['academic_feedback_section'] ?? 'Academic Feedback' ?>
@@ -306,7 +312,7 @@ $initials = avatarInitials($user['name']);
                     </div>
 
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                        <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-purple-50">
+                        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-purple-50">
                             <div class="flex items-center gap-2">
                                 <h3 class="text-sm font-semibold text-purple-800">
                                     <?= $LANG['student_affairs_section'] ?? 'Student Affairs' ?>
@@ -378,7 +384,7 @@ $initials = avatarInitials($user['name']);
                         class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3 hover:shadow-md hover:border-cyan-200/50 transition-all hover:-translate-y-0.5">
                         <div>
                             <p class="text-sm font-semibold text-slate-800">
-                                <?= $LANG['nav_my_sections'] ?? 'My Sections' ?>
+                                <?= $LANG['nav_my_sections'] ?? 'My Courses' ?>
                             </p>
                             <p class="text-xs text-slate-500">
                                 <?= $LANG['academic_feedback_link'] ?? 'Academic feedback' ?>

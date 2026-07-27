@@ -17,7 +17,7 @@ $stmt->bind_param('i',$user['id']); $stmt->execute();
 $teacher   = $stmt->get_result()->fetch_assoc(); $stmt->close();
 $teacherId = $teacher['id'] ?? 0;
 
-$pageTitle  = $LANG['nav_my_sections'] ?? 'My Sections';
+$pageTitle  = $LANG['nav_my_sections'] ?? 'My Courses';
 $activeMenu = 'sections';
 
 $search  = clean($_GET['search'] ?? '');
@@ -56,7 +56,7 @@ if ($teacherId) {
 <body class="h-full bg-gradient-to-br from-slate-50 via-blue-50 to-sky-50 font-inter antialiased <?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'lang-mm' : '' ?>">
 <?php require_once '../includes/teacher_sidebar.php'; ?>
 
-<div class="mb-6"><h2 class="text-xl font-bold text-slate-800"><?= $LANG['nav_my_sections'] ?? 'My Sections' ?></h2><p class="text-sm text-slate-500"><?= $LANG['my_sections_subtitle'] ?? 'Your assigned course sections' ?></p></div>
+<div class="mb-6"><p class="text-sm text-slate-500"><?= $LANG['my_sections_subtitle'] ?? 'Your assigned course sections' ?></p></div>
 
 <div class="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-blue-100/50 overflow-hidden">
     <div class="px-5 py-4 border-b border-blue-100/50 flex items-center gap-3">

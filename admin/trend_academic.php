@@ -113,7 +113,7 @@ include '../includes/admin_sidebar.php';
 <div class="mb-6">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h2 class="text-2xl font-bold text-slate-800">📊 <?= e($pageTitle) ?></h2>
+            <!-- <h2 class="text-2xl font-bold text-slate-800">📊 <?= e($pageTitle) ?></h2> -->
             <p class="text-sm text-slate-500 mt-1">
                 <?= $LANG['academic_trend_desc'] ?? 'Compare teacher feedback performance across Academic Years' ?>
             </p>

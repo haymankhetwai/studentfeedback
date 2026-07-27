@@ -198,7 +198,7 @@ $sectionBreakdown = runQuery($conn, $sectionBreakdownSql, $types, $params)->fetc
 
     <!-- Page Header -->
     <div class="mb-6">
-        <h2 class="text-2xl font-bold text-slate-800"><?= $LANG['analytics_title'] ?? 'Feedback Analytics' ?></h2>
+        <!-- <h2 class="text-2xl font-bold text-slate-800"><?= $LANG['analytics_title'] ?? 'Feedback Analytics' ?></h2> -->
         <p class="text-sm text-slate-500 mt-1">
             <?= $LANG['analytics_subtitle'] ?? 'View your feedback performance with graphical and statistical analysis' ?>
         </p>

@@ -226,7 +226,7 @@ $initials = avatarInitials($user['name']);
         </div>
         <nav class="flex-1 py-4 px-3 space-y-0.5">
             <a href="/studentfeedbackucsh/student/dashboard.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('home','w-5 h-5 flex-shrink-0 text-yellow-300') ?> <?= $LANG['nav_dashboard'] ?? 'Dashboard' ?></a>
-            <a href="/studentfeedbackucsh/student/my_sections.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm bg-white/20 text-white font-semibold"><?= iconSvg('grid','w-5 h-5 flex-shrink-0 text-blue-300') ?> <?= $LANG['nav_my_sections'] ?? 'My Sections' ?></a>
+            <a href="/studentfeedbackucsh/student/my_sections.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm bg-white/20 text-white font-semibold"><?= iconSvg('grid','w-5 h-5 flex-shrink-0 text-blue-300') ?> <?= $LANG['nav_my_sections'] ?? 'My Courses' ?></a>
             <a href="/studentfeedbackucsh/student/sa_feedback.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('shield','w-5 h-5 flex-shrink-0 text-purple-300') ?> <?= $LANG['nav_student_affairs_link'] ?? 'Student Affairs' ?></a>
             <a href="/studentfeedbackucsh/student/adm_feedback.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('office','w-5 h-5 flex-shrink-0 text-orange-300') ?> <?= $LANG['nav_administration'] ?? 'Administration' ?></a>
             <a href="/studentfeedbackucsh/student/feedback_history.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('history','w-5 h-5 flex-shrink-0 text-teal-300') ?> <?= $LANG['nav_history'] ?? 'History' ?></a>
@@ -317,7 +317,7 @@ $initials = avatarInitials($user['name']);
 
                     <?php if (!empty($ratingQuestions)): ?>
                     <div>
-                        <h3 class="font-bold text-slate-900 mb-3  underline  py-2 rounded-lg rounded-t-lg">
+                        <h3 class="font-bold text-slate-900 mb-3 text-lg underline  py-2 rounded-lg rounded-t-lg">
                             <?= $LANG['overall_evaluation_table'] ?? 'Overall Evaluation Table' ?>
                         </h3>
                         <div class="overflow-x-auto border border-slate-300 rounded-b-lg">
@@ -362,11 +362,11 @@ $initials = avatarInitials($user['name']);
 
                     <?php if (!empty($commentQuestions)): ?>
                     <div class="space-y-6 pt-4 border-t-2 border-slate-300">
-                        <h3 class="text-base font-bold text-slate-900 mb-2"><?= $LANG['comments_suggestions'] ?? 'Comments & Suggestions' ?></h3>
+                        <h3 class="text-lg font-bold text-slate-900 mb-2"><?= $LANG['comments_suggestions'] ?? 'Comments & Suggestions' ?></h3>
                         
                         <?php foreach ($commentQuestions as $q): ?>
                         <div class="space-y-2">
-                            <label class="block text-sm font-bold text-slate-800">
+                            <label class="block text-md font-bold text-slate-800">
                                 <?= displayQuestionNumber($q['question_no'], $_SESSION['lang'] ?? 'en') ?> <?= e($q['question_text']) ?>
                             </label>
                             <textarea name="comment_<?= $q['id'] ?>" rows="4" 
@@ -380,21 +380,21 @@ $initials = avatarInitials($user['name']);
 
                     <?php if (!empty($surveyQuestions)): ?>
                     <div class="space-y-6 pt-4 border-t-2 border-violet-200">
-                        <h3 class="text-base font-bold text-slate-900 mb-2"><?= $LANG['survey_questions_mcq'] ?? 'Survey Questions (MCQ)' ?></h3>
+                        <h3 class="text-lg font-bold text-slate-900 mb-2"><?= $LANG['survey_questions_mcq'] ?? 'Survey Questions (MCQ)' ?></h3>
                         <?php foreach ($surveyQuestions as $q):
                             $opts = json_decode($q['options_json'] ?? '[]', true) ?: [];
                             ?>
                             <div class="space-y-2 survey-group" data-question-id="<?= $q['id'] ?>">
-                                <label class="block text-sm font-bold text-slate-800">
+                                <label class="block text-md font-bold text-slate-800">
                                     <?= displayQuestionNumber($q['question_no'], $_SESSION['lang'] ?? 'en') ?> <?= e($q['question_text']) ?>
                                     <span class="text-red-500 text-xs font-normal">*</span>
                                 </label>
                                 <div class="space-y-2 px-4">
                                     <?php foreach ($opts as $idx => $opt): ?>
                                     <label class="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 cursor-pointer hover:bg-violet-50 transition-colors <?= !$canSubmit ? 'opacity-60 pointer-events-none' : '' ?>">
-                                        <input type="checkbox" name="survey[<?= $q['id'] ?>][]" value="<?= $idx ?>"
+                                        <input type="radio" name="survey[<?= $q['id'] ?>]" value="<?= $idx ?>"
                                                <?= !$canSubmit ? 'disabled' : '' ?>
-                                               class="w-4 h-4 text-violet-600 focus:ring-violet-500 rounded cursor-pointer survey-cb">
+                                               class="w-4 h-4 text-violet-600 focus:ring-violet-500 cursor-pointer survey-cb">
                                         <span class="text-sm text-slate-700 font-medium"><?= e($opt) ?></span>
                                     </label>
                                     <?php endforeach ?>
