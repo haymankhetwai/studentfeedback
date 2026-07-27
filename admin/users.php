@@ -552,10 +552,10 @@ include '../includes/admin_header.php';
 include '../includes/admin_sidebar.php';
 ?>
 
-<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
     <div>
-        <h2 class="text-xl font-bold text-slate-800"><?= $LANG['users_title'] ?? 'Users' ?></h2>
-        <p class="text-sm text-slate-500 mt-0.5"><?= $LANG['users_subtitle'] ?? 'Manage all system users' ?></p>
+        <!-- <h2 class="text-xl font-bold text-slate-800"><?= $LANG['users_title'] ?? 'Users' ?></h2> -->
+        <p class="text-sm text-slate-500 "><?= $LANG['users_subtitle'] ?? 'Manage all system users' ?></p>
     </div>
     <div class="flex items-center gap-3">
         <button onclick="openModal('addModal')"

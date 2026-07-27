@@ -74,7 +74,7 @@ $LANG = [
     'nav_adm_forms' => 'Administration Forms',
     'nav_adm_questions' => 'Administration Questions',
     'nav_adm_results' => 'Administration Results',
-    'nav_my_sections' => 'My Sections',
+    'nav_my_sections' => 'My Courses',
     'nav_feedback_results' => 'Feedback Results',
     'nav_analytics' => 'Analytics',
     'nav_profile' => 'Profile',
@@ -299,6 +299,7 @@ $LANG = [
     'delete_form_modal' => 'Delete Form',
     'delete_form_confirm' => 'and all its questions and responses?',
     'section' => "Section", 
+    
 
     // ─── Feedback Questions ──────────────────────────────────
     'academic_questions_title' => 'Academic Feedback Questions',
@@ -444,10 +445,10 @@ $LANG = [
     // ─── Student Dashboard ───────────────────────────────────
     'student_welcome' => 'Welcome',
     'student_overview' => "Here's your feedback overview across all modules.",
-    'enrolled_sections' => 'Enrolled Sections',
+    'enrolled_sections' => 'Enrolled Courses',
     'academic_pending' => 'Academic Pending',
-    'sa_pending' => 'SA Pending',
-    'adm_pending' => 'Adm Pending',
+    'sa_pending' => 'Student Affairs Pending',
+    'adm_pending' => 'Administration Pending',
     'total_submitted' => 'Total Submitted',
     'academic_feedback_section' => 'Academic Feedback',
     'student_affairs_section' => 'Student Affairs',
@@ -759,10 +760,10 @@ $LANG = [
     // ─── Student Dashboard (extra) ───────────────────────────
     'student_welcome' => 'Welcome',
     'student_overview' => "Here's your feedback overview across all modules.",
-    'enrolled_sections' => 'Enrolled Sections',
+    'enrolled_sections' => 'Enrolled Courses',
     'academic_pending' => 'Academic Pending',
-    'sa_pending' => 'SA Pending',
-    'adm_pending' => 'Adm Pending',
+    'sa_pending' => 'Student Affairs Pending',
+    'adm_pending' => 'Administration Pending',
     'total_submitted' => 'Total Submitted',
     'academic_feedback_section' => 'Academic Feedback',
     'student_affairs_section' => 'Student Affairs',
@@ -779,8 +780,8 @@ $LANG = [
     'due_label' => 'Due:',
 
     // ─── Student My Sections ─────────────────────────────────
-    'my_sections_page_title' => 'My Sections',
-    'my_sections_subtitle' => 'Your enrolled sections and available feedback forms',
+    'my_sections_page_title' => 'My Courses',
+    'my_sections_subtitle' => 'Your enrolled courses and available feedback forms',
     'section_label' => 'Section',
     'taught_by' => 'Taught by',
     'submitted_status' => 'Submitted',

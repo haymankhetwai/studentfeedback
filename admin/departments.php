@@ -94,7 +94,7 @@ include '../includes/admin_sidebar.php';
 
 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
     <div>
-        <h2 class="text-xl font-bold text-slate-800"><?= $LANG['departments_title'] ?? 'Departments' ?></h2>
+        <!-- <h2 class="text-xl font-bold text-slate-800"><?= $LANG['departments_title'] ?? 'Departments' ?></h2> -->
         <p class="text-sm text-slate-500 mt-0.5"><?= $LANG['departments_subtitle'] ?? 'Manage academic departments' ?>
         </p>
     </div>

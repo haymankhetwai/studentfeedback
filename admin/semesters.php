@@ -139,10 +139,10 @@ include '../includes/admin_sidebar.php';
 
 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
     <div>
-        <div class="flex items-center gap-2 mb-1">
+        <!-- <div class="flex items-center gap-2 mb-1">
             <?= iconSvg('clipboard', 'w-5 h-5 text-indigo-600') ?>
             <h2 class="text-xl font-bold text-slate-800"><?= $LANG["semesters_title"] ?? "Semesters" ?></h2>
-        </div>
+        </div> -->
         <p class="text-sm text-slate-500 mt-0.5">
             <?= $LANG["semesters_subtitle"] ?? "Manage semester master list used across the system." ?></p>
     </div>
@@ -178,8 +178,8 @@ include '../includes/admin_sidebar.php';
                     <th class="text-left px-5 py-3 text-slate-500 w-12 text-sm font-semibold">#</th>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
                         <?= $LANG['semester_name_col'] ?? 'Semester Name' ?></th>
-                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">
-                        <?= $LANG["sections"] ?? "Sections" ?></th>
+                    <!-- <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">
+                        <?= $LANG["sections"] ?? "Sections" ?></th> -->
                     <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">
                         <?= $LANG["forms"] ?? "Forms" ?></th>
                     <th class="text-right px-5 py-3 text-slate-500 text-sm font-semibold">
@@ -192,10 +192,10 @@ include '../includes/admin_sidebar.php';
                         <tr class="hover:bg-slate-50 transition-colors">
                             <td class="px-5 py-3 text-sm text-slate-400"><?= $pg['offset'] + $i + 1 ?></td>
                             <td class="px-5 py-3 text-sm font-medium text-slate-800"><?= e($row['semester_name']) ?></td>
-                            <td class="px-5 py-3 text-center">
+                            <!-- <td class="px-5 py-3 text-center">
                                 <span
                                     class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700"><?= $row['section_count'] ?></span>
-                            </td>
+                            </td> -->
                             <td class="px-5 py-3 text-center">
                                 <span
                                     class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700"><?= $row['form_count'] ?></span>

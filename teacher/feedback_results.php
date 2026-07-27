@@ -424,8 +424,8 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
     <?php require_once '../includes/teacher_sidebar.php'; ?>
     <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h2 class="text-xl font-bold text-slate-800"><?= $LANG['teacher_results_title'] ?? 'Feedback Results' ?>
-            </h2>
+            <!-- <h2 class="text-xl font-bold text-slate-800"><?= $LANG['teacher_results_title'] ?? 'Feedback Results' ?>
+            </h2> -->
             <p class="text-sm text-slate-500">
                 <?= $LANG['teacher_results_subtitle'] ?? 'View student feedback results anonymously' ?>
             </p>
@@ -654,19 +654,19 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                                         </p>
                                         <p class="text-sm font-bold text-slate-800"><?= e($formMeta['section'] ?? '—') ?></p>
                                     </div>
-                                    <div>
+                                    <!-- <div>
                                         <p class="text-[11px] font-semibold text-slate-400 uppercase">
                                             <?= $LANG["teacher_name"] ?? "Teacher Name" ?>
                                         </p>
                                         <p class="text-sm font-bold text-slate-800"><?= e($formMeta['teacher_name'] ?? '—') ?></p>
-                                    </div>
+                                    </div> -->
                                 </div>
                             </div>
                         <?php endif ?>
 
                         <?php if (!empty($ratingQuestions)): ?>
                             <div class="mb-8">
-                                <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3">
+                                <h3 class="text-xl font-bold text-slate-900 uppercase tracking-wider mb-3">
                                     <?= $LANG['question_stats_header'] ?? 'Question-wise Statistical Results' ?>
                                 </h3>
                                 <div class="overflow-x-auto border border-blue-200/50 rounded-lg">
@@ -707,7 +707,7 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                                                 $badPerc = $totalVotes > 0 ? round(($badCount / $totalVotes) * 100) : 0;
                                                 ?>
                                                 <tr class="hover:bg-blue-50/30 transition-colors">
-                                                    <td class="p-3 text-center font-bold font-mono border-r text-lg">
+                                                    <td class="p-3 text-center font-bold border-r text-lg">
                                                         <?= e(displayQuestionNumber($q['question_no'], $_SESSION['lang'] ?? 'en')) ?>
                                                     </td>
                                                     <td class="p-3 border-r leading-relaxed text-lg"><?= e($q['question_text']) ?></td>
@@ -733,7 +733,7 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
 
                         <?php if (!empty($commentQuestions)): ?>
                             <div class="space-y-6 pt-6 border-t-2 border-blue-200/50">
-                                <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                                <h3 class="text-xl font-bold text-slate-900 uppercase tracking-wider">
                                     <?= $LANG['comments_header'] ?? 'Comments' ?>
                                 </h3>
                                 <?php foreach ($commentQuestions as $q):
@@ -753,8 +753,8 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                                                 foreach ($commentsForThisQuestion as $index => $cm): ?>
                                                     <div
                                                         class="bg-white border border-blue-100/40 p-3 rounded-lg shadow-2xs flex items-start gap-2">
-                                                        <span class="text-slate-400 font-bold">#<?= $index + 1 ?></span>
-                                                        <div class="text-slate-800 font-medium">
+                                                        <span class="text-slate-400 font-bold text-lg">#<?= $index + 1 ?></span>
+                                                        <div class="text-slate-800 font-medium text-lg">
                                                             <?= e($cm['comment_text']) ?>
                                                         </div>
                                                     </div>
@@ -773,7 +773,7 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                         <?php if (!empty($surveyQuestions)): ?>
                             <div class="space-y-6 pt-6 border-t-2 border-slate-300">
                                 <div class="flex items-center justify-between">
-                                    <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider"><?= $LANG['survey_results_mcq'] ?? 'Survey Results (MCQ)' ?></h3>
+                                    <h3 class="text-xl font-bold text-slate-900 uppercase tracking-wider"><?= $LANG['survey_results_mcq'] ?? 'Survey Results (MCQ)' ?></h3>
                                     <span class="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full font-semibold"><?= $LANG['not_included_overall_rating'] ?? 'Not included in Overall Rating' ?></span>
                                 </div>
                                 <?php foreach ($surveyQuestions as $q):
@@ -844,7 +844,7 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                                                                 <div class="flex-1 min-w-0">
                                                                     <div class="flex items-center justify-between gap-2">
                                                                         <span
-                                                                            class="text-sm font-semibold text-slate-700 truncate"><?= e($opt) ?></span>
+                                                                            class="text-sm font-semibold text-slate-700"><?= e($opt) ?></span>
                                                                         <div class="flex items-center gap-2 shrink-0">
                                                                             <span class="text-[11px] text-slate-400 font-medium"><?= $votes ?>
                                                                                 <?= $votes != 1 ? ($LANG['votes'] ?? 'votes') : ($LANG['vote'] ?? 'vote') ?></span>
@@ -903,7 +903,7 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                                                             <div class="flex-1 min-w-0">
                                                                 <div class="flex items-center justify-between gap-2">
                                                                     <span
-                                                                        class="text-sm font-semibold text-slate-700 truncate"><?= e($opt) ?></span>
+                                                                        class="text-sm font-semibold text-slate-700"><?= e($opt) ?></span>
                                                                     <span class="text-[11px] text-slate-400 font-medium"><?= $LANG['zero_votes'] ?? '0 votes' ?></span>
                                                                 </div>
                                                                 <div class="w-full bg-slate-100 rounded-full h-1.5 mt-1.5 overflow-hidden">

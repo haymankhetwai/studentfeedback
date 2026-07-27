@@ -274,10 +274,10 @@ include '../includes/admin_sidebar.php';
 
 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
     <div>
-        <div class="flex items-center gap-2 mb-1">
+        <!-- <div class="flex items-center gap-2 mb-1">
             <?= iconSvg('question', 'w-5 h-5 text-indigo-600') ?>
             <h2 class="text-xl font-bold text-slate-800"><?= $LANG['question_sets_title'] ?? 'Question Sets' ?></h2>
-        </div>
+        </div> -->
         <p class="text-sm text-slate-500 mt-0.5"><?= $LANG["question_sets_subtitle"] ?? "One question set per Academic Year and Module — shared across all semesters." ?></p>
     </div>
     <div class="flex gap-2">

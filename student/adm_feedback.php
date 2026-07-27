@@ -47,7 +47,7 @@ if ($studentId && !empty($studentYearIds)) {
 
 $navItems = [
     ['label' => $LANG['nav_dashboard'] ?? 'Dashboard', 'href' => '/studentfeedbackucsh/student/dashboard.php', 'key' => 'dashboard', 'icon' => 'home', 'iconColor' => 'text-yellow-300'],
-    ['label' => $LANG['nav_my_sections'] ?? 'My Sections', 'href' => '/studentfeedbackucsh/student/my_sections.php', 'key' => 'sections', 'icon' => 'grid', 'iconColor' => 'text-blue-300'],
+    ['label' => $LANG['nav_my_sections'] ?? 'My Courses', 'href' => '/studentfeedbackucsh/student/my_sections.php', 'key' => 'sections', 'icon' => 'grid', 'iconColor' => 'text-blue-300'],
     ['label' => $LANG['nav_student_affairs'] ?? 'Student Affairs', 'href' => '/studentfeedbackucsh/student/sa_feedback.php', 'key' => 'sa', 'icon' => 'shield', 'iconColor' => 'text-purple-300'],
     ['label' => $LANG['nav_administration'] ?? 'Administration', 'href' => '/studentfeedbackucsh/student/adm_feedback.php', 'key' => 'adm', 'icon' => 'office', 'iconColor' => 'text-orange-300'],
     ['label' => $LANG['nav_history'] ?? 'History', 'href' => '/studentfeedbackucsh/student/feedback_history.php', 'key' => 'history', 'icon' => 'history', 'iconColor' => 'text-teal-300'],
@@ -117,12 +117,13 @@ $initials = avatarInitials($user['name']);
             <main class="flex-1 overflow-y-auto p-4 lg:p-6">
 
                 <div class="mb-6">
-                    <div class="flex items-center gap-2 mb-1"><?= iconSvg('office', 'w-5 h-5 text-orange-600') ?>
+                    <div class="flex items-center gap-2 mb-1">
+                        <!-- <?= iconSvg('office', 'w-5 h-5 text-orange-600') ?>
                         <h2 class="text-xl font-bold text-slate-800">
                             <?= $LANG['adm_feedback_page_title'] ?? 'Administration Feedback' ?>
-                        </h2>
+                        </h2> -->
                     </div>
-                    <p class="text-sm text-slate-500 ml-7">
+                    <p class="text-sm text-slate-500">
                         <?= $LANG['adm_feedback_subtitle'] ?? 'Rate and review the university administration' ?>
                     </p>
                 </div>

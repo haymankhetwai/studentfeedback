@@ -556,9 +556,9 @@ include '../includes/admin_sidebar.php';
 
     <div>
 
-        <h2 class="text-xl font-bold text-slate-800">
+        <!-- <h2 class="text-xl font-bold text-slate-800">
             <?= $LANG['sections_title'] ?? 'Sections' ?>
-        </h2>
+        </h2> -->
 
         <p class="text-sm text-slate-500 mt-0.5">
             <?= $LANG['sections_subtitle'] ?? 'Manage course sections per semester' ?>
