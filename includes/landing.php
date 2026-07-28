@@ -112,6 +112,8 @@ if ($r)
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Myanmar:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
     <style>
         html,
         body {
@@ -129,6 +131,35 @@ if ($r)
 
         body {
             font-family: 'Inter', sans-serif;
+        }
+
+        /* ─── Myanmar Language Mode ─────────────────────────── */
+        body.lang-mm {
+            font-family: 'Noto Sans Myanmar', 'Inter', system-ui, sans-serif;
+        }
+
+        body.lang-mm .hero-heading {
+            line-height: 1.5;
+            letter-spacing: 0.02em;
+        }
+
+        body.lang-mm .hero-sub {
+            line-height: 1.5;
+            letter-spacing: 0.02em;
+        }
+
+        body.lang-mm .hero-desc {
+            line-height: 1.8;
+            word-spacing: 0.1em;
+        }
+
+        body.lang-mm .stat-number {
+            font-size: 1.75rem;
+        }
+
+        body.lang-mm .stat-label {
+            font-size: 0.8125rem;
+            line-height: 1.5;
         }
 
         input[type="password"]::-ms-reveal,
@@ -349,19 +380,26 @@ if ($r)
                 <div class="lg:col-span-7 space-y-6 lg:space-y-8">
                     <?php if ($showBadge && !empty($badgeText)): ?>
                         <div
-                            class="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full border border-white/20 text-sm font-medium">
+                            class="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm px-4 py-2 rounded-full border border-white/15 text-sm font-medium">
                             <span class="text-sky-300">🎓</span>
                             <span class="text-white/80"><?= htmlspecialchars($badgeText) ?></span>
                         </div>
                     <?php endif; ?>
 
-                    <h2 class="text-4xl sm:text-5xl lg:text-6xl text-white font-bold tracking-tight leading-[1.4]">
-                        <?= $LANG['welcome_to'] ?? 'Welcome to' ?> <br>
-                        <span
-                            class="block mt-3 text-sky-300"><?= $LANG['student_feedback_system'] ?? 'Student Feedback Management System' ?></span>
+                    <h2 class="hero-heading text-3xl sm:text-4xl lg:text-5xl xl:text-6xl text-sky-300 font-bold tracking-tight leading-[1.25]">
+                        <?= $LANG['welcome_to'] ?? 'Welcome to' ?>
                     </h2>
 
-                    <p class="text-lg sm:text-xl text-blue-50/80 font-light max-w-xl leading-relaxed">
+                    <!-- <p class="hero-sub text-xl sm:text-2xl lg:text-3xl font-semibold text-sky-300 tracking-tight leading-snug bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400">
+                        <?= $LANG['student_feedback_system'] ?? 'Student Feedback Management System' ?>
+                    </p> -->
+
+                    <!-- Gradient accent line -->
+                    <!-- <div class="flex">
+                        <div class="h-1 w-16 rounded-full bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 opacity-70"></div>
+                    </div> -->
+
+                    <p class="hero-desc text-base sm:text-lg text-blue-50/70 font-light max-w-xl leading-relaxed">
                         <?= htmlspecialchars($heroDescription) ?>
                     </p>
 
@@ -398,25 +436,26 @@ if ($r)
                 <div class="lg:col-span-5 relative w-full min-h-[420px] flex items-center justify-center">
 
                     <div id="universityBox"
-                        class="absolute inset-0 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 flex flex-col items-center justify-center p-8 text-center transition-all duration-500 <?= $showLoginOnLoad ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100' ?> z-10">
-                        <div class="w-24 h-24 rounded-2xl  flex items-center justify-center mb-5 animate-float">
-                            <img src="../assets/uploads/profiles/image.png" alt="uscsh_logo" class="object-contain">
+                        class="absolute inset-0 bg-white/8 backdrop-blur-sm rounded-2xl border border-white/15 flex flex-col items-center justify-center p-8 text-center transition-all duration-500 <?= $showLoginOnLoad ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100' ?> z-10">
+                        <!-- Logo with ring -->
+                        <div class="relative w-24 h-24 mb-6 animate-float">
+                            <!-- <div class="absolute inset-0 rounded-2xl bg-white/10 border border-white/20 rotate-3"></div> -->
+                            <div class="relative w-full h-full flex items-center justify-center overflow-hidden">
+                                <img src="../assets/uploads/profiles/image.png" alt="UCSH Logo" class="w-16 h-16 object-contain drop-shadow-lg">
+                            </div>
                         </div>
                         <?php
                         $currentLang = $_SESSION['lang'] ?? 'en';
                         $twEn = 'UNIVERSITY OF COMPUTER STUDIES (HINTHADA)';
                         $twMm = 'ကွန်ပျူတာတက္ကသိုလ် (ဟင်္သာတ)';
                         ?>
-                        <p class="text-2xl font-bold text-white mt-2">
+                        <p class="text-lg sm:text-xl font-bold text-white mt-1">
                             <span id="tw-landing" class="tw-text"></span>
                         </p>
-                        <div class="mt-6 flex gap-2">
-                            <div class="w-2 h-2 rounded-full bg-white/40 animate-bounce" style="animation-delay:0s">
-                            </div>
-                            <div class="w-2 h-2 rounded-full bg-white/40 animate-bounce" style="animation-delay:0.15s">
-                            </div>
-                            <div class="w-2 h-2 rounded-full bg-white/40 animate-bounce" style="animation-delay:0.3s">
-                            </div>
+                        <div class="mt-5 flex gap-2">
+                            <div class="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style="animation-delay:0s"></div>
+                            <div class="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style="animation-delay:0.15s"></div>
+                            <div class="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style="animation-delay:0.3s"></div>
                         </div>
                     </div>
 

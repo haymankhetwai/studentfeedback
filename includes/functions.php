@@ -79,18 +79,32 @@ function formatDateTimeForInput(?string $date): string
 function getFeedbackStatus(string $start, string $end): string
 {
     global $LANG;
-    $now = date('Y-m-d H:i:s');
-    if ($now < $start) return $LANG['upcoming'] ?? 'Upcoming';
-    if ($now > $end) return $LANG['expired'] ?? 'Expired';
+    $now = time();
+    $startTs = strtotime($start);
+    $endTs = strtotime($end);
+    if ($startTs === false || $endTs === false) {
+        return $LANG['upcoming'] ?? 'Upcoming';
+    }
+    if ($now < $startTs)
+        return $LANG['upcoming'] ?? 'Upcoming';
+    if ($now > $endTs)
+        return $LANG['expired'] ?? 'Expired';
     return $LANG['active'] ?? 'Active';
 }
 
 function calculateFormStatus(string $start, string $end): string
 {
     global $LANG;
-    $now = date('Y-m-d H:i:s');
-    if ($now < $start) return $LANG['upcoming'] ?? 'Upcoming';
-    if ($now > $end) return $LANG['expired'] ?? 'Expired';
+    $now = time();
+    $startTs = strtotime($start);
+    $endTs = strtotime($end);
+    if ($startTs === false || $endTs === false) {
+        return $LANG['upcoming'] ?? 'Upcoming';
+    }
+    if ($now < $startTs)
+        return $LANG['upcoming'] ?? 'Upcoming';
+    if ($now > $endTs)
+        return $LANG['expired'] ?? 'Expired';
     return $LANG['active'] ?? 'Active';
 }
 
@@ -109,11 +123,14 @@ function getTimeRemaining(string $end): string
     global $LANG;
     $now = new DateTime();
     $endTime = new DateTime($end);
-    if ($now >= $endTime) return '';
+    if ($now >= $endTime)
+        return '';
     $diff = $now->diff($endTime);
     $suffix = $LANG['remaining_suffix'] ?? 'remaining';
-    if ($diff->days > 0) return $diff->days . 'd ' . $diff->h . 'h ' . $suffix;
-    if ($diff->h > 0) return $diff->h . 'h ' . $diff->i . 'm ' . $suffix;
+    if ($diff->days > 0)
+        return $diff->days . 'd ' . $diff->h . 'h ' . $suffix;
+    if ($diff->h > 0)
+        return $diff->h . 'h ' . $diff->i . 'm ' . $suffix;
     return $diff->i . 'm ' . $suffix;
 }
 
@@ -122,11 +139,14 @@ function getTimeUntilStart(string $start): string
     global $LANG;
     $now = new DateTime();
     $startTime = new DateTime($start);
-    if ($now >= $startTime) return '';
+    if ($now >= $startTime)
+        return '';
     $diff = $now->diff($startTime);
     $suffix = $LANG['until_opens'] ?? 'until opens';
-    if ($diff->days > 0) return $diff->days . 'd ' . $diff->h . 'h ' . $suffix;
-    if ($diff->h > 0) return $diff->h . 'h ' . $diff->i . 'm ' . $suffix;
+    if ($diff->days > 0)
+        return $diff->days . 'd ' . $diff->h . 'h ' . $suffix;
+    if ($diff->h > 0)
+        return $diff->h . 'h ' . $diff->i . 'm ' . $suffix;
     return $diff->i . 'm ' . $suffix;
 }
 
@@ -384,23 +404,25 @@ function moduleBadge(string $module): string
 function semesterToRoman($value): string
 {
     $n = (int) $value;
-    if ($n < 1 || $n > 20) return (string) $value;
+    if ($n < 1 || $n > 20)
+        return (string) $value;
     $ones = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'];
     $tens = ['', 'X', 'XX'];
-    $result = $tens[(int)($n / 10)] . $ones[$n % 10];
+    $result = $tens[(int) ($n / 10)] . $ones[$n % 10];
     return 'Semester ' . $result;
 }
 
 function getStudentAcademicYearIds($conn, int $studentId): array
 {
-    if (!$studentId) return [];
+    if (!$studentId)
+        return [];
     $stmt = $conn->prepare("SELECT DISTINCT s.academic_year_id FROM section_assignments sa JOIN sections s ON sa.section_id = s.id WHERE sa.student_id = ? AND s.academic_year_id IS NOT NULL");
     $stmt->bind_param('i', $studentId);
     $stmt->execute();
     $result = $stmt->get_result();
     $ids = [];
     while ($row = $result->fetch_assoc()) {
-        $ids[] = (int)$row['academic_year_id'];
+        $ids[] = (int) $row['academic_year_id'];
     }
     $stmt->close();
     return $ids;

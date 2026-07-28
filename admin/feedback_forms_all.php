@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once '../config/db.php';
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
@@ -688,42 +688,87 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
        DELETE
     ===================================================== */
 
-    if ($action === 'delete') {
+    $deleteAction = $_POST['action'] ?? $_GET['action'] ?? '';
+    $deleteId = (int) ($_POST['id'] ?? $_GET['id'] ?? 0);
 
-        $id = (int) (
-            $_POST['id'] ?? 0
-        );
+    if ($deleteAction === 'delete' && $deleteId) {
 
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verifyCsrf()) {
+            setFlash('error', 'Invalid request.');
+            header('Location: feedback_forms_all.php');
+            exit;
+        }
 
-        if ($id) {
+        $deleted = false;
 
-            $stmt = $conn->prepare("
-                DELETE FROM feedback_forms
-                WHERE id = ?
-            ");
+        try {
 
-            $stmt->bind_param(
-                'i',
-                $id
+            $conn->begin_transaction();
+
+            /* -----------------------------------------
+               Delete child records first, regardless of
+               module, so all form-related feedback data
+               is removed safely inside one transaction.
+            ----------------------------------------- */
+
+            $surveyStmt = $conn->prepare(
+                "DELETE FROM feedback_survey_answers
+                 WHERE submission_id IN (
+                     SELECT id FROM feedback_submissions
+                     WHERE form_id = ?
+                 )"
             );
+            $surveyStmt->bind_param('i', $deleteId);
+            $surveyStmt->execute();
+            $surveyStmt->close();
 
+            $ratingsStmt = $conn->prepare(
+                "DELETE FROM feedback_ratings
+                 WHERE form_id = ?"
+            );
+            $ratingsStmt->bind_param('i', $deleteId);
+            $ratingsStmt->execute();
+            $ratingsStmt->close();
 
-            if ($stmt->execute()) {
+            $commentsStmt = $conn->prepare(
+                "DELETE FROM feedback_comments
+                 WHERE form_id = ?"
+            );
+            $commentsStmt->bind_param('i', $deleteId);
+            $commentsStmt->execute();
+            $commentsStmt->close();
 
-                setFlash(
-                    'success',
-                    'Form deleted.'
-                );
+            $submissionsStmt = $conn->prepare(
+                "DELETE FROM feedback_submissions
+                 WHERE form_id = ?"
+            );
+            $submissionsStmt->bind_param('i', $deleteId);
+            $submissionsStmt->execute();
+            $submissionsStmt->close();
 
+            $formStmt = $conn->prepare(
+                "DELETE FROM feedback_forms
+                 WHERE id = ?"
+            );
+            $formStmt->bind_param('i', $deleteId);
+            $formStmt->execute();
+            $deleted = ($formStmt->affected_rows > 0);
+            $formStmt->close();
+
+            if ($deleted) {
+                $conn->commit();
             } else {
-
-                setFlash(
-                    'error',
-                    'Cannot delete.'
-                );
+                $conn->rollback();
             }
 
-            $stmt->close();
+        } catch (\Throwable $e) {
+            $conn->rollback();
+        }
+
+        if ($deleted) {
+            setFlash('success', 'Form deleted.');
+        } else {
+            setFlash('error', 'Cannot delete.');
         }
     }
 
@@ -780,6 +825,8 @@ $params = '';
 
 $types = '';
 
+$searchTerm = '';
+
 
 if ($filterMod) {
 
@@ -803,7 +850,7 @@ if ($filterAY) {
 
 if ($search) {
 
-    $s2 = "%$search%";
+    $searchTerm = "%$search%";
 
     $conds[] = "
         (
@@ -863,10 +910,10 @@ if ($types) {
     if ($search) {
 
         $bindVals[] =
-            $s2;
+            $searchTerm;
 
         $bindVals[] =
-            $s2;
+            $searchTerm;
     }
 
 
@@ -1023,10 +1070,10 @@ if ($types) {
     if ($search) {
 
         $allBind[] =
-            $s2;
+            $searchTerm;
 
         $allBind[] =
-            $s2;
+            $searchTerm;
     }
 
 
@@ -1336,12 +1383,12 @@ include '../includes/admin_sidebar.php';
 
 
                     <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold w-[100px]">
-                         <?= $LANG["col_questions"] ?? "Questions" ?>
+                        <?= $LANG["col_questions"] ?? "Questions" ?>
                     </th>
 
 
                     <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold w-[100px]">
-                       <?= $LANG["col_submissions"] ?? "Submissions" ?>
+                        <?= $LANG["col_submissions"] ?? "Submissions" ?>
                     </th>
 
 
@@ -1574,31 +1621,29 @@ include '../includes/admin_sidebar.php';
 
                                 <?php
 
-                                $now = date(
-                                    'Y-m-d H:i:s'
+                                $nowTs = time();
+
+                                $startTs = strtotime(
+                                    $row['start_date']
                                 );
 
-                                $start =
-                                    $row['start_date'];
+                                $endTs = strtotime(
+                                    $row['end_date']
+                                );
 
-                                $end =
-                                    $row['end_date'];
-
-
-                                if ($now < $start) {
-
-                                    $dynStatus =
-                                        'upcoming';
-
-                                } elseif ($now > $end) {
-
-                                    $dynStatus =
-                                        'expired';
-
+                                if ($startTs !== false && $endTs !== false) {
+                                    if ($nowTs < $startTs) {
+                                        $dynStatus = 'upcoming';
+                                    } elseif ($nowTs > $endTs) {
+                                        $dynStatus = 'expired';
+                                    } else {
+                                        $dynStatus = 'active';
+                                    }
                                 } else {
-
-                                    $dynStatus =
-                                        'active';
+                                    $dynStatus = getFeedbackStatus(
+                                        $row['start_date'],
+                                        $row['end_date']
+                                    );
                                 }
 
                                 ?>
@@ -1704,7 +1749,7 @@ include '../includes/admin_sidebar.php';
                                     </button>
 
 
-                                    <button onclick="openDelete(
+                                    <!-- <button onclick="openDelete(
                                             <?= $row['id'] ?>,
                                             '<?= addslashes(
                                                 e($row['title'])
@@ -1720,6 +1765,28 @@ include '../includes/admin_sidebar.php';
                                         <?= $LANG["delete"] ?? "Delete" ?>
 
                                     </button>
+                                     -->
+                                    <button
+    onclick='openDelete(
+        <?= (int) $row['id'] ?>,
+        <?= json_encode(
+            $row['title'],
+            JSON_HEX_TAG |
+            JSON_HEX_APOS |
+            JSON_HEX_QUOT |
+            JSON_HEX_AMP
+        ) ?>
+    )'
+    class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg">
+
+    <?= iconSvg(
+        'trash',
+        'w-3.5 h-3.5'
+    ) ?>
+
+    <?= $LANG["delete"] ?? "Delete" ?>
+
+</button>
 
                                 </div>
 
@@ -2054,8 +2121,7 @@ include '../includes/admin_sidebar.php';
                         <input type="text" id="add_section_search"
                             placeholder="Type to search Section, Course, or Teacher..." autocomplete="off"
                             class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none"
-                            oninput="filterAddSections(this.value)"
-                            onfocus="showAddSectionDropdown()"
+                            oninput="filterAddSections(this.value)" onfocus="showAddSectionDropdown()"
                             onblur="hideAddSectionDropdown()">
 
 
@@ -2066,16 +2132,14 @@ include '../includes/admin_sidebar.php';
                             <?php foreach ($sectionList as $s): ?>
 
                                 <div class="add-section-option px-4 py-2.5 cursor-pointer hover:bg-indigo-50 border-b border-slate-50 last:border-b-0 transition-colors"
-                                    data-id="<?= $s['id'] ?>"
-                                    data-search="<?= e(strtolower(
-                                        $s['section'] . ' ' .
-                                        $s['course_code'] . ' ' .
-                                        $s['course_name'] . ' ' .
-                                        $s['teacher_name'] . ' ' .
-                                        $s['academic_year'] . ' ' .
-                                        $s['semester_name']
-                                    )) ?>"
-                                    onmousedown="selectAddSection(this)">
+                                    data-id="<?= $s['id'] ?>" data-search="<?= e(strtolower(
+                                          $s['section'] . ' ' .
+                                          $s['course_code'] . ' ' .
+                                          $s['course_name'] . ' ' .
+                                          $s['teacher_name'] . ' ' .
+                                          $s['academic_year'] . ' ' .
+                                          $s['semester_name']
+                                      )) ?>" onmousedown="selectAddSection(this)">
 
 
                                     <div class="font-semibold text-sm text-slate-700">
@@ -2525,8 +2589,7 @@ include '../includes/admin_sidebar.php';
                         <input type="text" id="edit_section_search"
                             placeholder="Type to search Section, Course, or Teacher..." autocomplete="off"
                             class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none bg-white"
-                            oninput="filterEditSections(this.value)"
-                            onfocus="showEditSectionDropdown()"
+                            oninput="filterEditSections(this.value)" onfocus="showEditSectionDropdown()"
                             onblur="hideEditSectionDropdown()">
 
 
@@ -2537,16 +2600,14 @@ include '../includes/admin_sidebar.php';
                             <?php foreach ($sectionList as $s): ?>
 
                                 <div class="edit-section-option px-4 py-2.5 cursor-pointer hover:bg-indigo-50 border-b border-slate-50 last:border-b-0 transition-colors"
-                                    data-id="<?= $s['id'] ?>"
-                                    data-search="<?= e(strtolower(
-                                        $s['section'] . ' ' .
-                                        $s['course_code'] . ' ' .
-                                        $s['course_name'] . ' ' .
-                                        $s['teacher_name'] . ' ' .
-                                        $s['academic_year'] . ' ' .
-                                        $s['semester_name']
-                                    )) ?>"
-                                    onmousedown="selectEditSection(this)">
+                                    data-id="<?= $s['id'] ?>" data-search="<?= e(strtolower(
+                                          $s['section'] . ' ' .
+                                          $s['course_code'] . ' ' .
+                                          $s['course_name'] . ' ' .
+                                          $s['teacher_name'] . ' ' .
+                                          $s['academic_year'] . ' ' .
+                                          $s['semester_name']
+                                      )) ?>" onmousedown="selectEditSection(this)">
 
 
                                     <div class="font-semibold text-sm text-slate-700">

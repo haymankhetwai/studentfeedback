@@ -95,7 +95,7 @@ $LANG = [
     'total_question_sets_stat' => 'Total Question Sets',
 
     // ─── Landing Page ────────────────────────────────────────
-    'welcome_to' => 'Welcome to',
+    'welcome_to' => 'Welcome to Student Feedback Management System',
     'student_feedback_system' => 'Student Feedback Management System',
     'university_name_title' => 'University of Computer Studies (Hinthada)',
     'get_started' => 'Get Started',

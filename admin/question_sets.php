@@ -54,7 +54,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                 throw new Exception("No insert_id returned. Connection error: " . $conn->error);
             }
 
-            // Find the most recent previous Academic Year's Question Set for the same module
             $prevSet = $conn->prepare(
                 "SELECT fqs.id FROM feedback_question_sets fqs
                  JOIN academic_years ay ON fqs.academic_year_id = ay.id
@@ -70,15 +69,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             $copied = 0;
 
             if ($prevRow) {
-                // Copy questions from the previous year's Question Set
                 $prevSetId = (int)$prevRow['id'];
+
+                if ($prevSetId === $newSetId) {
+                    throw new Exception("Source and target Question Set are the same.");
+                }
+
+                $chkDup = $conn->prepare("SELECT COUNT(*) AS cnt FROM feedback_questions WHERE question_set_id = ?");
+                $chkDup->bind_param('i', $newSetId);
+                $chkDup->execute();
+                $existingCount = (int)$chkDup->get_result()->fetch_assoc()['cnt'];
+                $chkDup->close();
+
+                if ($existingCount > 0) {
+                    throw new Exception("Questions already exist for this new Question Set (possible double submission).");
+                }
+
                 $insQ = $conn->prepare(
                     "INSERT INTO feedback_questions (question_set_id, module, question_no, question_text, question_type, options_json)
                      SELECT ?, module, question_no, question_text, question_type, options_json
                      FROM feedback_questions WHERE question_set_id = ?"
                 );
                 $insQ->bind_param('ii', $newSetId, $prevSetId);
-                $insQ->execute();
+                if (!$insQ->execute()) {
+                    throw new Exception("Failed to copy questions: " . $insQ->error . " (errno: " . $insQ->errno . ")");
+                }
                 $copied = $insQ->affected_rows;
                 $insQ->close();
             }
@@ -555,5 +570,17 @@ function openDelete(id, name) {
     document.getElementById('delete_name').textContent = name;
     openModal('deleteModal');
 }
+
+// Double-submit prevention: disable submit buttons after first click
+document.querySelectorAll('#addModal form, #cloneModal form, #editModal form, #deleteModal form').forEach(function(form) {
+    form.addEventListener('submit', function() {
+        var btn = this.querySelector('button[type="submit"]');
+        if (btn && !btn.disabled) {
+            btn.disabled = true;
+            btn.dataset.originalText = btn.textContent;
+            btn.textContent = 'Processing...';
+        }
+    });
+});
 </script>
 <?php include '../includes/admin_footer.php'; ?>
