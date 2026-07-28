@@ -33,6 +33,8 @@ $currentLang = $_SESSION['lang'] ?? 'en';
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Myanmar:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
     <style>
         html,
         body {
@@ -50,6 +52,34 @@ $currentLang = $_SESSION['lang'] ?? 'en';
 
         body {
             font-family: 'Inter', sans-serif;
+        }
+
+        /* ─── Myanmar Language Mode ─────────────────────────── */
+        body.lang-mm {
+            font-family: 'Noto Sans Myanmar', 'Inter', system-ui, sans-serif;
+        }
+
+        body.lang-mm .hero-heading {
+            line-height: 1.5;
+            letter-spacing: 0.02em;
+        }
+
+        body.lang-mm .hero-desc {
+            line-height: 1.8;
+            word-spacing: 0.1em;
+        }
+
+        body.lang-mm .role-card h3 {
+            line-height: 1.5;
+        }
+
+        body.lang-mm .stat-number {
+            font-size: 1.75rem;
+        }
+
+        body.lang-mm .stat-label {
+            font-size: 0.8125rem;
+            line-height: 1.5;
         }
 
         /* ─── Animations ───────────────────────────────────── */
@@ -156,15 +186,18 @@ $currentLang = $_SESSION['lang'] ?? 'en';
             font-family: 'Courier New', 'Noto Sans Myanmar', monospace;
             letter-spacing: 0.06em;
             min-height: 1.4em;
+            line-height: 1.4;
+            vertical-align: middle;
+            display: inline-block;
         }
 
         .tw-cursor {
             display: inline-block;
             width: 3px;
-            height: 1em;
+            height: 1.1em;
             background: rgba(255, 255, 255, 0.85);
             margin-left: 2px;
-            vertical-align: text-bottom;
+            vertical-align: middle;
             animation: tw-blink 0.7s step-end infinite;
         }
 
@@ -302,43 +335,36 @@ $currentLang = $_SESSION['lang'] ?? 'en';
 
             <!-- University Branding -->
             <div class="text-center mb-14 lg:mb-20">
-                <div
-                    class="w-24 h-24 rounded-2xl flex items-center justify-center mx-auto mb-6 animate-float fade-up-1">
-                    <img src="assets/uploads/profiles/image.png" alt="ucsh_logo" class="object-contain drop-shadow-2xl">
+                <!-- Logo with subtle ring -->
+                <div class="relative w-28 h-28 mx-auto mb-4 fade-up-1">
+                    <!-- <div class="absolute inset-0 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 rotate-3"></div> -->
+                    <div class="relative w-full h-full flex items-center justify-center overflow-hidden">
+                        <img src="assets/uploads/profiles/image.png" alt="UCSH Logo" class="w-20 h-20 object-contain">
+                    </div>
                 </div>
 
                 <!-- Typewriter University Name -->
-                <p class="text-xl sm:text-2xl font-bold text-white mt-2 fade-up-1">
+                <p class="text-base sm:text-lg font-semibold text-white/90 tracking-wide mb-4 fade-up-1">
                     <span id="tw-welcome" class="tw-text"></span>
                 </p>
 
-                <h2
-                    class="text-4xl sm:text-5xl lg:text-6xl text-white font-bold tracking-tight leading-[1.3] mt-6 fade-up-2 ">
-                    <?= $LANG['welcome_to'] ?? 'Welcome to' ?> <br>
-                    <span class="inline-block mt-4 shimmer-text">
-                        <?= $LANG['student_feedback_system'] ?? 'Student Feedback Management System' ?>
-                    </span>
-                </h2>
+                <!-- Main Heading -->
+                <h1 class="hero-heading text-3xl sm:text-4xl lg:text-5xl xl:text-6xl text-sky-300 font-bold tracking-tight leading-[1.25] fade-up-2">
+                    <?= $LANG['welcome_to'] ?? 'Welcome to Student Feedback Management System' ?>
+                </h1>
+                <!-- <h1 class="hero-heading text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-extrabold tracking-tight leading-[1.25] fade-up-2 bg-gradient-to-r from-cyan-300 via-sky-400 to-indigo-400 bg-clip-text text-transparent drop-shadow-sm">
+    <?= $LANG['welcome_to'] ?? 'Welcome to Student Feedback Management System' ?>
+</h1> -->
 
-                <!-- <h2
-                    class="text-3xl sm:text-4xl lg:text-5xl text-white font-bold tracking-normal leading-relaxed mt-6 fade-up-2">
 
-                    <?= $LANG['welcome_to'] ?? 'Welcome to' ?>
 
-                    <br>
+                <!-- Gradient accent line -->
+                <!-- <div class="flex justify-center mt-6 fade-up-2">
+                    <div class="h-1 w-20 rounded-full bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 opacity-70"></div>
+                </div> -->
 
-                    <span class="block mt-4 
-        bg-gradient-to-r from-cyan-300 via-blue-300 to-purple-300 
-        bg-clip-text text-transparent">
-
-                        <?= $LANG['student_feedback_system'] ?? 'Student Feedback Management System' ?>
-
-                    </span>
-
-                </h2> -->
-
-                <p
-                    class="text-lg sm:text-xl text-blue-50/70 font-light max-w-2xl mx-auto leading-relaxed mt-6 fade-up-3">
+                <!-- Description -->
+                <p class="hero-desc text-base sm:text-lg text-blue-50/70 font-light max-w-xl mx-auto leading-relaxed mt-6 fade-up-3">
                     <?= $LANG['welcome_desc'] ?? 'Select your role below to access the feedback portal.' ?>
                 </p>
             </div>
