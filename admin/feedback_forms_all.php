@@ -355,8 +355,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
         /* ---------------------------------------------
            Student Affairs / Administration
-           ORIGINAL LOGIC PRESERVED
         --------------------------------------------- */ else {
+
+            /* Duplicate check: one SA/Admin form per AY+Semester */
+            $dupStmt = $conn->prepare("
+                SELECT id FROM feedback_forms
+                WHERE module = ? AND academic_year_id = ? AND semester_id = ?
+                LIMIT 1
+            ");
+
+            $dupStmt->bind_param(
+                'sii',
+                $module,
+                $ayId,
+                $semId
+            );
+
+            $dupStmt->execute();
+            $dupRow = $dupStmt->get_result()->fetch_assoc();
+            $dupStmt->close();
+
+            if ($dupRow) {
+
+                $modLabel = $module === 'student_affairs'
+                    ? 'Student Affairs'
+                    : 'Administration';
+
+                setFlash(
+                    'error',
+                    "A $modLabel form already exists for this Academic Year + Semester."
+                );
+
+                header('Location: feedback_forms_all.php');
+                exit;
+            }
 
             $stmt = $conn->prepare("
                 INSERT INTO feedback_forms
@@ -628,8 +660,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
             /* ---------------------------------------------
                SA / Administration Edit
-               ORIGINAL LOGIC PRESERVED
             --------------------------------------------- */ else {
+
+                /* Duplicate check: ensure no other form occupies
+                   the same module + AY + Semester slot */
+                $dupStmt = $conn->prepare("
+                    SELECT id FROM feedback_forms
+                    WHERE module = ? AND academic_year_id = ? AND semester_id = ?
+                      AND id != ?
+                    LIMIT 1
+                ");
+
+                $dupStmt->bind_param(
+                    'siii',
+                    $editModule,
+                    $editAyId,
+                    $editSemId,
+                    $id
+                );
+
+                $dupStmt->execute();
+                $dupRow = $dupStmt->get_result()->fetch_assoc();
+                $dupStmt->close();
+
+                if ($dupRow) {
+
+                    $modLabel = $editModule === 'student_affairs'
+                        ? 'Student Affairs'
+                        : 'Administration';
+
+                    setFlash(
+                        'error',
+                        "A $modLabel form already exists for this Academic Year + Semester."
+                    );
+
+                    header('Location: feedback_forms_all.php');
+                    exit;
+                }
 
                 $stmt = $conn->prepare("
                     UPDATE feedback_forms
@@ -2119,7 +2186,7 @@ include '../includes/admin_sidebar.php';
                     <div class="relative">
 
                         <input type="text" id="add_section_search"
-                            placeholder="Type to search Section, Course, or Teacher..." autocomplete="off"
+                            placeholder="Type to search Course, or Teacher..." autocomplete="off"
                             class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none"
                             oninput="filterAddSections(this.value)" onfocus="showAddSectionDropdown()"
                             onblur="hideAddSectionDropdown()">

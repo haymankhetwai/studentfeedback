@@ -317,7 +317,7 @@ $initials = avatarInitials($user['name']);
 
                     <?php if (!empty($ratingQuestions)): ?>
                     <div>
-                        <h3 class="font-bold text-slate-900 mb-3 text-lg underline  py-2 rounded-lg rounded-t-lg">
+                        <h3 class="font-bold text-slate-900 mb-3 text-lg py-2 rounded-lg rounded-t-lg">
                             <?= $LANG['overall_evaluation_table'] ?? 'Overall Evaluation Table' ?>
                         </h3>
                         <div class="overflow-x-auto border border-slate-300 rounded-b-lg">

@@ -307,9 +307,9 @@ include '../includes/admin_sidebar.php';
         <h3 class="text-lg font-semibold text-slate-700 mb-2">
             <?= $LANG['select_both_prompt'] ?? 'Please select both a Teacher and a Course to view the Trend Analysis.' ?>
         </h3>
-        <p class="text-sm text-slate-500">
+        <!-- <p class="text-sm text-slate-500">
             <?= $LANG['select_both_prompt_desc'] ?? 'Choose a teacher and a course from the dropdowns above to view their feedback trend analysis across Academic Years.' ?>
-        </p>
+        </p> -->
     </div>
 
 <?php elseif (!$hasData): ?>

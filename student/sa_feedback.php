@@ -21,25 +21,28 @@ $student = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 $studentId = $student['id'] ?? 0;
 $studentYearIds = getStudentAcademicYearIds($conn, $studentId);
+$studentSemIds = getStudentSemesterIds($conn, $studentId);
 
 $pageTitle = $LANG['sa_feedback_page_title'] ?? 'Student Affairs Feedback';
 $activeMenu = 'sa';
 $today = date('Y-m-d');
 
-// Load all SA forms and submission status (filtered by student's academic year)
+// Load all SA forms and submission status (filtered by student's academic year + semester)
 $forms = [];
-if ($studentId && !empty($studentYearIds)) {
+if ($studentId && !empty($studentYearIds) && !empty($studentSemIds)) {
     $tableCheck = $conn->query("SHOW TABLES LIKE 'feedback_forms'");
     if ($tableCheck && $tableCheck->num_rows > 0) {
         $yrPH = implode(',', array_fill(0, count($studentYearIds), '?'));
         $yrBT = str_repeat('i', count($studentYearIds));
+        $smPH = implode(',', array_fill(0, count($studentSemIds), '?'));
+        $smBT = str_repeat('i', count($studentSemIds));
         $rs = $conn->prepare("
             SELECT f.*, (SELECT COUNT(*) FROM feedback_submissions s WHERE s.form_id=f.id AND s.student_id=?) AS submitted
             FROM feedback_forms f
-            WHERE f.module='student_affairs' AND f.academic_year_id IN ($yrPH)
+            WHERE f.module='student_affairs' AND f.academic_year_id IN ($yrPH) AND f.semester_id IN ($smPH)
             ORDER BY f.end_date ASC, f.id DESC
         ");
-        $rs->bind_param('i' . $yrBT, ...array_merge([$studentId], $studentYearIds));
+        $rs->bind_param('i' . $yrBT . $smBT, ...array_merge([$studentId], $studentYearIds, $studentSemIds));
         $rs->execute();
         $forms = $rs->get_result()->fetch_all(MYSQLI_ASSOC);
         $rs->close();

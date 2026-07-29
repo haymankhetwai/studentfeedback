@@ -1154,18 +1154,47 @@ include '../includes/admin_sidebar.php';
                                                 <?= e(displayQuestionNumber($q['question_no'], $_SESSION['lang'] ?? 'en')) ?>
                                             </td>
                                             <td class="p-3 border-r leading-relaxed text-lg"><?= e($q['question_text']) ?></td>
-                                            <td class="p-3 text-center border-r bg-emerald-50/30"><span
+                                            <!-- <td class="p-3 text-center border-r bg-emerald-50/30"><span
                                                     class="text-emerald-700 font-bold block text-sm"><?= $gc ?>
                                                     <?= $LANG['persons'] ?? 'persons' ?></span><span
-                                                    class="text-[10px] text-slate-500">(<?= $gp ?>%)</span></td>
-                                            <td class="p-3 text-center border-r bg-amber-50/30"><span
+                                                    class="text-[10px] text-slate-500">(<?= $gp ?>%)</span></td> -->
+
+                                            <td class="p-3 text-center border-r bg-amber-50/30">
+                                                <span class="text-emerald-700 font-bold block text-sm">
+                                                    <?= $gc ?>
+                                                    <?= $gc <= 1
+                                                        ? ($LANG['student'] ?? 'student')
+                                                        : ($LANG['students'] ?? 'students') ?>
+                                                </span>
+                                                <span class="text-[10px] text-slate-500">(<?= $gp ?>%)</span>
+                                            </td>
+
+                                            <!-- <td class="p-3 text-center border-r bg-amber-50/30"><span
                                                     class="text-amber-700 font-bold block text-sm"><?= $fc ?>
                                                     <?= $LANG['persons'] ?? 'persons' ?></span><span
-                                                    class="text-[10px] text-slate-500">(<?= $fp ?>%)</span></td>
-                                            <td class="p-3 text-center bg-red-50/30"><span
+                                                    class="text-[10px] text-slate-500">(<?= $fp ?>%)</span></td> -->
+                                            <td class="p-3 text-center border-r bg-amber-50/30">
+                                                <span class="text-amber-700 font-bold block text-sm">
+                                                    <?= $fc ?>
+                                                    <?= $fc <= 1
+                                                        ? ($LANG['student'] ?? 'student')
+                                                        : ($LANG['students'] ?? 'students') ?>
+                                                </span>
+                                                <span class="text-[10px] text-slate-500">(<?= $fp ?>%)</span>
+                                            </td>
+                                            <!-- <td class="p-3 text-center bg-red-50/30"><span
                                                     class="text-red-700 font-bold block text-sm"><?= $bc ?>
                                                     <?= $LANG['persons'] ?? 'persons' ?></span><span
-                                                    class="text-[10px] text-slate-500">(<?= $bp ?>%)</span></td>
+                                                    class="text-[10px] text-slate-500">(<?= $bp ?>%)</span></td> -->
+                                            <td class="p-3 text-center border-r bg-amber-50/30">
+                                                <span class="text-red-700 font-bold block text-sm">
+                                                    <?= $bc ?>
+                                                    <?= $bc <= 1
+                                                        ? ($LANG['student'] ?? 'student')
+                                                        : ($LANG['students'] ?? 'students') ?>
+                                                </span>
+                                                <span class="text-[10px] text-slate-500">(<?= $bc ?>%)</span>
+                                            </td>
                                         </tr>
                                     <?php endforeach ?>
                                 </tbody>

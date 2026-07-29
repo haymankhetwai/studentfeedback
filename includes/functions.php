@@ -427,3 +427,19 @@ function getStudentAcademicYearIds($conn, int $studentId): array
     $stmt->close();
     return $ids;
 }
+
+function getStudentSemesterIds($conn, int $studentId): array
+{
+    if (!$studentId)
+        return [];
+    $stmt = $conn->prepare("SELECT DISTINCT s.semester_id FROM section_assignments sa JOIN sections s ON sa.section_id = s.id WHERE sa.student_id = ? AND s.semester_id IS NOT NULL");
+    $stmt->bind_param('i', $studentId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $ids = [];
+    while ($row = $result->fetch_assoc()) {
+        $ids[] = (int) $row['semester_id'];
+    }
+    $stmt->close();
+    return $ids;
+}
