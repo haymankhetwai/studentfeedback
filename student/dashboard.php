@@ -21,6 +21,7 @@ $student = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 $studentId = $student['id'] ?? 0;
 $studentYearIds = getStudentAcademicYearIds($conn, $studentId);
+$studentSemIds = getStudentSemesterIds($conn, $studentId);
 
 $pageTitle = 'Student Dashboard';
 $activeMenu = 'dashboard';
@@ -65,23 +66,29 @@ if ($studentId) {
         // Expired + not submitted → skip (don't count)
     }
 
-    // ── Year filter for SA and Admin (same as sa_feedback.php / adm_feedback.php) ──
+    // ── Year + Semester filter for SA and Admin (same as sa_feedback.php / adm_feedback.php) ──
     $yrPH = '';
     $yrBT = '';
+    $smPH = '';
+    $smBT = '';
     if (!empty($studentYearIds)) {
         $yrPH = implode(',', array_fill(0, count($studentYearIds), '?'));
         $yrBT = str_repeat('i', count($studentYearIds));
     }
+    if (!empty($studentSemIds)) {
+        $smPH = implode(',', array_fill(0, count($studentSemIds), '?'));
+        $smBT = str_repeat('i', count($studentSemIds));
+    }
 
-    // ── SA: load all forms (same query as sa_feedback.php — no date filter) ──
-    if (!empty($yrPH)) {
+    // ── SA: load all forms (same query as sa_feedback.php — filtered by AY + Semester) ──
+    if (!empty($yrPH) && !empty($smPH)) {
         $saStmt = $conn->prepare(
             "SELECT f.id, f.start_date, f.end_date, f.status,
                     (SELECT COUNT(*) FROM feedback_submissions s WHERE s.form_id=f.id AND s.student_id=?) AS submitted
              FROM feedback_forms f
-             WHERE f.module='student_affairs' AND f.academic_year_id IN ($yrPH)"
+             WHERE f.module='student_affairs' AND f.academic_year_id IN ($yrPH) AND f.semester_id IN ($smPH)"
         );
-        $saStmt->bind_param('i' . $yrBT, ...array_merge([$studentId], $studentYearIds));
+        $saStmt->bind_param('i' . $yrBT . $smBT, ...array_merge([$studentId], $studentYearIds, $studentSemIds));
         $saStmt->execute();
         $saRows = $saStmt->get_result()->fetch_all(MYSQLI_ASSOC);
         $saStmt->close();
@@ -97,15 +104,15 @@ if ($studentId) {
         }
     }
 
-    // ── Admin: load all forms (same query as adm_feedback.php — no date filter) ──
-    if (!empty($yrPH)) {
+    // ── Admin: load all forms (same query as adm_feedback.php — filtered by AY + Semester) ──
+    if (!empty($yrPH) && !empty($smPH)) {
         $admStmt = $conn->prepare(
             "SELECT f.id, f.start_date, f.end_date, f.status,
                     (SELECT COUNT(*) FROM feedback_submissions s WHERE s.form_id=f.id AND s.student_id=?) AS submitted
              FROM feedback_forms f
-             WHERE f.module='administration' AND f.academic_year_id IN ($yrPH)"
+             WHERE f.module='administration' AND f.academic_year_id IN ($yrPH) AND f.semester_id IN ($smPH)"
         );
-        $admStmt->bind_param('i' . $yrBT, ...array_merge([$studentId], $studentYearIds));
+        $admStmt->bind_param('i' . $yrBT . $smBT, ...array_merge([$studentId], $studentYearIds, $studentSemIds));
         $admStmt->execute();
         $admRows = $admStmt->get_result()->fetch_all(MYSQLI_ASSOC);
         $admStmt->close();
@@ -131,19 +138,21 @@ if ($studentId) {
     $pendingForms = $rs->fetch_all(MYSQLI_ASSOC);
 }
 
-// ─── SA Pending Forms (active, not submitted — same eligibility as sa_feedback.php) ───
+// ─── SA Pending Forms (active, not submitted — filtered by AY + Semester) ───
 $saPendingForms = [];
-if ($studentId && !empty($studentYearIds)) {
+if ($studentId && !empty($studentYearIds) && !empty($studentSemIds)) {
     $yrList = implode(',', $studentYearIds);
-    $rs = $conn->query("SELECT id AS form_id, title, end_date FROM feedback_forms WHERE module='student_affairs' AND status='Active' AND academic_year_id IN ($yrList) AND id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=$studentId) ORDER BY end_date ASC LIMIT 3");
+    $smList = implode(',', $studentSemIds);
+    $rs = $conn->query("SELECT id AS form_id, title, end_date FROM feedback_forms WHERE module='student_affairs' AND status='Active' AND academic_year_id IN ($yrList) AND semester_id IN ($smList) AND id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=$studentId) ORDER BY end_date ASC LIMIT 3");
     $saPendingForms = $rs->fetch_all(MYSQLI_ASSOC);
 }
 
-// ─── Admin Pending Forms (active, not submitted — same eligibility as adm_feedback.php) ───
+// ─── Admin Pending Forms (active, not submitted — filtered by AY + Semester) ───
 $admPendingForms = [];
-if ($studentId && !empty($studentYearIds)) {
+if ($studentId && !empty($studentYearIds) && !empty($studentSemIds)) {
     $yrList = implode(',', $studentYearIds);
-    $rs = $conn->query("SELECT id AS form_id, title, end_date FROM feedback_forms WHERE module='administration' AND status='Active' AND academic_year_id IN ($yrList) AND id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=$studentId) ORDER BY end_date ASC LIMIT 3");
+    $smList = implode(',', $studentSemIds);
+    $rs = $conn->query("SELECT id AS form_id, title, end_date FROM feedback_forms WHERE module='administration' AND status='Active' AND academic_year_id IN ($yrList) AND semester_id IN ($smList) AND id NOT IN (SELECT form_id FROM feedback_submissions WHERE student_id=$studentId) ORDER BY end_date ASC LIMIT 3");
     $admPendingForms = $rs->fetch_all(MYSQLI_ASSOC);
 }
 

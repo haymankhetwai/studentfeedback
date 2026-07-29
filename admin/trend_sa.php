@@ -106,9 +106,9 @@ include '../includes/admin_sidebar.php';
         <h3 class="text-lg font-semibold text-slate-700 mb-2">
             <?= $LANG['select_semester_prompt'] ?? 'Please select a Semester to view the Trend Analysis.' ?>
         </h3>
-        <p class="text-sm text-slate-500">
+        <!-- <p class="text-sm text-slate-500">
             <?= $LANG['select_semester_prompt_desc'] ?? 'Choose a semester from the dropdown above to view Student Affairs feedback trend analysis across Academic Years.' ?>
-        </p>
+        </p> -->
     </div>
 
 <?php elseif (!$hasData): ?>

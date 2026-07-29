@@ -30,6 +30,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             header('Location: profile.php'); exit;
         }
 
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            setFlash('error', $LANG['flash_invalid_email'] ?? 'Please enter a valid email address.');
+            header('Location: profile.php'); exit;
+        }
+
         // Handle password change — only if user entered a new password
         $hash = null;
         if ($newPw !== '' || $confirmPw !== '') {
@@ -111,7 +116,7 @@ include '../includes/admin_sidebar.php';
 ?>
 
 <div class="mb-6">
-    <h2 class="text-xl font-bold text-slate-800"><?= $LANG['my_profile'] ?? 'My Profile' ?></h2>
+    <!-- <h2 class="text-xl font-bold text-slate-800"><?= $LANG['my_profile'] ?? 'My Profile' ?></h2> -->
     <p class="text-sm text-slate-500 mt-0.5"><?= $LANG['profile_subtitle'] ?? 'Manage your account information and password' ?></p>
 </div>
 
