@@ -32,7 +32,7 @@ $submissionCount = $teacherId ? (int) $conn->query("SELECT COUNT(*) AS c FROM fe
 // My sections
 $sections = [];
 if ($teacherId) {
-    $rs = $conn->query("SELECT s.*, c.course_name, c.course_code, COALESCE(ay.year_name, '') AS display_year, sm.semester_name AS display_semester, (SELECT COUNT(*) FROM section_assignments sa WHERE sa.section_id=s.id) AS student_count, (SELECT COUNT(*) FROM feedback_forms ff WHERE ff.section_id=s.id AND ff.start_date<=NOW() AND ff.end_date>=NOW()) AS active_forms FROM sections s JOIN courses c ON s.course_id=c.id LEFT JOIN academic_years ay ON s.academic_year_id=ay.id LEFT JOIN semesters sm ON s.semester_id=sm.id WHERE s.teacher_id=$teacherId ORDER BY s.id DESC LIMIT 5");
+    $rs = $conn->query("SELECT s.*, c.course_name, c.course_code, sm_sec.section_name AS section_name, COALESCE(ay.year_name, '') AS display_year, sm.semester_name AS display_semester, (SELECT COUNT(*) FROM section_assignments sa WHERE sa.section_id=s.id) AS student_count, (SELECT COUNT(*) FROM feedback_forms ff WHERE ff.section_id=s.id AND ff.start_date<=NOW() AND ff.end_date>=NOW()) AS active_forms FROM sections s JOIN courses c ON s.course_id=c.id LEFT JOIN section_master sm_sec ON s.section_id = sm_sec.id LEFT JOIN academic_years ay ON s.academic_year_id=ay.id LEFT JOIN semesters sm ON s.semester_id=sm.id WHERE s.teacher_id=$teacherId ORDER BY s.id DESC LIMIT 5");
     $sections = $rs->fetch_all(MYSQLI_ASSOC);
 }
 
@@ -101,7 +101,7 @@ if ($teacherId) {
                                 <div class="px-6 py-4 flex items-center justify-between">
                                     <div>
                                         <p class="text-sm font-medium text-slate-800"><?= e($s['course_name']) ?></p>
-                                        <p class="text-xs text-slate-400"><?= e(semesterToRoman($s['display_semester'])) ?> · Sec <?= e($s['section']) ?>
+                                        <p class="text-xs text-slate-400"><?= e(semesterToRoman($s['display_semester'])) ?> · Sec <?= e($s['section_name']) ?>
                                             · <?= e($s['display_year']) ?></p>
                                     </div>
                                     <div class="flex items-center gap-4 text-right">

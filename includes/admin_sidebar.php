@@ -5,6 +5,7 @@ $academicKeys = [
     'students',
     'courses',
     'sections',
+    'section_management',
     'assignments',
     'academic_years',
     'semesters'
@@ -71,6 +72,16 @@ $nav = [
         'indent' => true,
         'group' => 'academic',
         'iconColor' => 'text-orange-500'
+    ],
+
+    [
+        'label' => $LANG['nav_section_management'] ?? 'Section Management',
+        'href' => '/studentfeedbackucsh/admin/section_management.php',
+        'key' => 'section_management',
+        'icon' => 'grid',
+        'indent' => true,
+        'group' => 'academic',
+        'iconColor' => 'text-violet-700'
     ],
 
     [

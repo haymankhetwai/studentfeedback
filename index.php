@@ -25,9 +25,9 @@ $currentLang = $_SESSION['lang'] ?? 'en';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UCSH — Student Feedback Management System</title>
+    <title>UCSH — Student Feedback Information System</title>
     <meta name="description"
-        content="University of Computer Studies (Hinthada) — Student Feedback Management System. Enter as a Teacher or Student to get started.">
+        content="University of Computer Studies (Hinthada) — Student Feedback Information System. Enter as a Teacher or Student to get started.">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -350,10 +350,10 @@ $currentLang = $_SESSION['lang'] ?? 'en';
 
                 <!-- Main Heading -->
                 <h1 class="hero-heading text-3xl sm:text-4xl lg:text-5xl xl:text-6xl text-sky-300 font-bold tracking-tight leading-[1.25] fade-up-2">
-                    <?= $LANG['welcome_to'] ?? 'Welcome to Student Feedback Management System' ?>
+                    <?= $LANG['welcome_to'] ?? 'Welcome to Student Feedback Information System' ?>
                 </h1>
                 <!-- <h1 class="hero-heading text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-extrabold tracking-tight leading-[1.25] fade-up-2 bg-gradient-to-r from-cyan-300 via-sky-400 to-indigo-400 bg-clip-text text-transparent drop-shadow-sm">
-    <?= $LANG['welcome_to'] ?? 'Welcome to Student Feedback Management System' ?>
+    <?= $LANG['welcome_to'] ?? 'Welcome to Student Feedback Information System' ?>
 </h1> -->
 
 

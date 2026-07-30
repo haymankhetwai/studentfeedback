@@ -37,7 +37,7 @@ if (!$formId) {
 
 if (!$formId) { 
     setFlash('error',$LANG['flash_no_sa_form_available'] ?? 'No Student Affairs form available right now.'); 
-    header('Location: /studentfeedbackucsh/student/dashboard.php'); 
+    header('Location: /studentfeedbackucsh/student/feedback_forms.php'); 
     exit; 
 }
 
@@ -47,16 +47,16 @@ $fs->bind_param('i', $formId); $fs->execute();
 $form = $fs->get_result()->fetch_assoc(); $fs->close();
 
 if (!$form) { 
-    setFlash('error',$LANG['flash_sa_form_not_found'] ?? 'SA Form not found.'); 
-    header('Location: /studentfeedbackucsh/student/dashboard.php'); 
+    setFlash('error',$LANG['flash_sa_form_not_found'] ?? 'SA Form not found.');
+    header('Location: /studentfeedbackucsh/student/feedback_forms.php');
     exit; 
 }
 
 // Verify form belongs to student's academic year and semester
 if (empty($studentYearIds) || !in_array((int)$form['academic_year_id'], $studentYearIds)
     || empty($studentSemIds) || !in_array((int)$form['semester_id'], $studentSemIds)) {
-    setFlash('error', $LANG['flash_form_not_available'] ?? 'This feedback form is not available for your academic year.');
-    header('Location: /studentfeedbackucsh/student/sa_feedback.php');
+    setFlash('error',$LANG['flash_form_not_available'] ?? 'This feedback form is not available for your academic year.');
+    header('Location: /studentfeedbackucsh/student/feedback_forms.php');
     exit;
 }
 
@@ -144,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                 if ($recheck->get_result()->num_rows > 0) {
                     $recheck->close(); $conn->rollback();
                     setFlash('error', $LANG['flash_already_submitted'] ?? 'You have already submitted this form.');
-                    header('Location: sa_feedback.php'); exit;
+                    header('Location: feedback_forms.php'); exit;
                 }
                 $recheck->close();
 
@@ -153,7 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                 if ($ins->affected_rows === 0) {
                     $ins->close(); $conn->rollback();
                     setFlash('error', $LANG['flash_already_submitted'] ?? 'You have already submitted this form.');
-                    header('Location: sa_feedback.php'); exit;
+                    header('Location: feedback_forms.php'); exit;
                 }
                 $ins->close();
                 $submissionId = $conn->insert_id;
@@ -187,8 +187,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                 }
 
                 $conn->commit();
-                setFlash('success', $LANG['flash_thank_you_participation'] ?? '🎉 Thank you for participating.');
-                header('Location: sa_feedback.php'); exit;
+                header('Location: feedback_forms.php'); exit;
             } catch (Exception $e) {
                 $conn->rollback();
                 setFlash('error',$LANG['flash_submission_failed_try'] ?? 'Submission failed. Please try again.');
@@ -199,6 +198,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
 $pageTitle = $LANG['sa_satisfaction_form'] ?? 'Student Affairs Satisfaction Form';
 $initials = avatarInitials($user['name']);
+$currentLang = $_SESSION['lang'] ?? 'en';
 ?>
 <!DOCTYPE html>
 <html lang="<?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'my' : 'en' ?>" class="h-full">
@@ -240,10 +240,8 @@ $initials = avatarInitials($user['name']);
         </div>
         <nav class="flex-1 py-4 px-3 space-y-0.5">
             <a href="/studentfeedbackucsh/student/dashboard.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('home','w-4 h-4 flex-shrink-0 text-yellow-300') ?> <?= $LANG['nav_dashboard'] ?? 'Dashboard' ?></a>
-            <a href="/studentfeedbackucsh/student/my_sections.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('grid','w-4 h-4 flex-shrink-0 text-blue-300') ?> <?= $LANG['nav_my_sections'] ?? 'My Courses' ?></a>
-            <a href="/studentfeedbackucsh/student/sa_feedback.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm bg-white/20 text-white font-semibold"><?= iconSvg('shield','w-4 h-4 flex-shrink-0 text-purple-300') ?> <?= $LANG['nav_student_affairs_link'] ?? 'Student Affairs' ?></a>
-            <a href="/studentfeedbackucsh/student/adm_feedback.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('office','w-4 h-4 flex-shrink-0 text-orange-300') ?> <?= $LANG['nav_administration'] ?? 'Administration' ?></a>
-            <a href="/studentfeedbackucsh/student/feedback_history.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('history','w-4 h-4 flex-shrink-0 text-teal-300') ?> <?= $LANG['nav_history'] ?? 'History' ?></a>
+            <a href="/studentfeedbackucsh/student/feedback_forms.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm bg-white/20 text-white font-semibold"><?= iconSvg('clipboard','w-4 h-4 flex-shrink-0 text-emerald-300') ?> <?= $LANG['nav_feedback_forms'] ?? 'Feedback Forms' ?></a>
+            <a href="/studentfeedbackucsh/student/feedback_history.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('history','w-4 h-4 flex-shrink-0 text-teal-300') ?> <?= $LANG['nav_history'] ?? 'Submission History' ?></a>
             <a href="/studentfeedbackucsh/student/profile.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('user','w-4 h-4 flex-shrink-0 text-rose-300') ?> <?= $LANG['nav_profile'] ?? 'Profile' ?></a>
         </nav>
        <a href="/studentfeedbackucsh/auth/logout.php" title="<?= $LANG['logout'] ?? 'Logout' ?>"
@@ -262,7 +260,13 @@ $initials = avatarInitials($user['name']);
         <header class="bg-white border-b border-slate-200 px-6 py-4 flex items-center gap-4 shadow-sm z-20">
             <button onclick="openSidebar()" class="lg:hidden text-slate-500"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg></button>
             <h1 class="text-base font-bold text-slate-800"><?= $LANG['sa_feedback_page_title'] ?? 'Student Affairs Satisfaction Form' ?></h1>
-            <a href="sa_feedback.php" class="ml-auto text-sm font-medium text-cyan-600 hover:underline">← <?= $LANG['back'] ?? 'Back' ?></a>
+            <div class="ml-auto flex items-center gap-3">
+                <div class="flex items-center gap-0.5 bg-cyan-50 rounded-lg p-0.5 text-xs font-semibold border border-cyan-100 shadow-sm">
+                    <a href="?form_id=<?= $formId ?>&lang=en" class="px-3 py-1 rounded-md transition-all <?= $currentLang === 'en' ? 'bg-white shadow text-cyan-700 font-bold' : 'text-cyan-400 hover:text-cyan-700' ?>">ENG</a>
+                    <a href="?form_id=<?= $formId ?>&lang=mm" class="px-3 py-1 rounded-md transition-all <?= $currentLang === 'mm' ? 'bg-white shadow text-cyan-700 font-bold' : 'text-cyan-400 hover:text-cyan-700' ?>">မြန်မာ</a>
+                </div>
+                <a href="feedback_forms.php" class="text-sm font-medium text-cyan-600 hover:underline">← <?= $LANG['back'] ?? 'Back' ?></a>
+            </div>
         </header>
 
         <main class="flex-1 overflow-y-auto p-4 md:p-8 mx-auto w-full">
@@ -404,7 +408,7 @@ $initials = avatarInitials($user['name']);
                     <?php endif ?>
 
                     <div class="pt-8 border-t border-slate-200 flex items-center justify-end gap-3">
-                        <a href="index.php" class="px-5 py-2 text-xs font-semibold bg-slate-500 text-white hover:bg-slate-600 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></a>
+                        <a href="feedback_forms.php" class="px-5 py-2 text-xs font-semibold bg-slate-500 text-white hover:bg-slate-600 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></a>
                         
                         <?php if ($canSubmit): ?>
                         <button type="submit" id="submit-btn"

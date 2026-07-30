@@ -7,11 +7,12 @@ requireRole('admin');
 $pageTitle = $LANG['assignments_title'] ?? 'Section Assignments';
 $activeMenu = 'assignments';
 
-$sectionList = $conn->query("SELECT s.id, c.course_name, c.course_code, s.section, COALESCE(ay.year_name, '') AS academic_year, COALESCE(sm.semester_name, '') AS semester_name FROM sections s JOIN courses c ON s.course_id=c.id LEFT JOIN academic_years ay ON s.academic_year_id=ay.id LEFT JOIN semesters sm ON s.semester_id=sm.id ORDER BY c.course_name, s.section")->fetch_all(MYSQLI_ASSOC);
+$sectionList = $conn->query("SELECT s.id, c.course_name, c.course_code, sm_sec.section_name, COALESCE(ay.year_name, '') AS academic_year, COALESCE(sm.semester_name, '') AS semester_name FROM sections s JOIN courses c ON s.course_id=c.id LEFT JOIN section_master sm_sec ON s.section_id=sm_sec.id LEFT JOIN academic_years ay ON s.academic_year_id=ay.id LEFT JOIN semesters sm ON s.semester_id=sm.id ORDER BY c.course_name, sm_sec.section_name")->fetch_all(MYSQLI_ASSOC);
 $studentList = $conn->query("SELECT st.id, u.name, st.roll_no FROM students st JOIN users u ON st.user_id=u.id ORDER BY st.roll_no")->fetch_all(MYSQLI_ASSOC);
 $semesterList = $conn->query("SELECT id, semester_name FROM semesters ORDER BY id ASC")->fetch_all(MYSQLI_ASSOC);
 $academicYears = $conn->query("SELECT id, year_name FROM academic_years WHERE status='active' ORDER BY year_name DESC")->fetch_all(MYSQLI_ASSOC);
 $allAcademicYears = $conn->query("SELECT id, year_name FROM academic_years ORDER BY year_name DESC")->fetch_all(MYSQLI_ASSOC);
+$sectionMasterList = $conn->query("SELECT section_name FROM section_master ORDER BY section_name ASC")->fetch_all(MYSQLI_ASSOC);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     $action = $_POST['action'] ?? '';
@@ -133,8 +134,8 @@ if (isset($_GET['ajax_filter']) && $_GET['ajax_filter'] == '1') {
     $af_sec = clean($_GET['section_id'] ?? '');
     $af_year = (int) ($_GET['academic_year_id'] ?? 0);
 
-    $q = "SELECT s.id, c.course_name, c.course_code, s.section, COALESCE(ay.year_name, '') AS academic_year, COALESCE(sm.semester_name, '') AS semester_name 
-          FROM sections s JOIN courses c ON s.course_id=c.id LEFT JOIN academic_years ay ON s.academic_year_id=ay.id LEFT JOIN semesters sm ON s.semester_id=sm.id";
+    $q = "SELECT s.id, c.course_name, c.course_code, sm_sec.section_name, COALESCE(ay.year_name, '') AS academic_year, COALESCE(sm.semester_name, '') AS semester_name 
+          FROM sections s JOIN courses c ON s.course_id=c.id LEFT JOIN section_master sm_sec ON s.section_id=sm_sec.id LEFT JOIN academic_years ay ON s.academic_year_id=ay.id LEFT JOIN semesters sm ON s.semester_id=sm.id";
     $w = [];
     $bp = [];
     $bt = "";
@@ -144,7 +145,7 @@ if (isset($_GET['ajax_filter']) && $_GET['ajax_filter'] == '1') {
         $bt .= "i";
     }
     if ($af_sec) {
-        $w[] = "s.section = ?";
+        $w[] = "sm_sec.section_name = ?";
         $bp[] = $af_sec;
         $bt .= "s";
     }
@@ -155,7 +156,7 @@ if (isset($_GET['ajax_filter']) && $_GET['ajax_filter'] == '1') {
     }
     if ($w)
         $q .= " WHERE " . implode(" AND ", $w);
-    $q .= " ORDER BY c.course_name, s.section";
+    $q .= " ORDER BY c.course_name, sm_sec.section_name";
 
     $stmt = $conn->prepare($q);
     if ($bp)
@@ -166,7 +167,7 @@ if (isset($_GET['ajax_filter']) && $_GET['ajax_filter'] == '1') {
 
     $html = '';
     foreach ($rows as $sec) {
-        $html .= '<label data-semester="' . e($sec['semester_name']) . '" data-section="' . e($sec['section']) . '" class="add-section-item flex items-center gap-3 px-3 py-1.5 hover:bg-white cursor-pointer rounded-lg transition-colors"><input type="checkbox" name="section_ids[]" value="' . $sec['id'] . '" class="add-section-cb w-4 h-4 rounded border-slate-300 text-cyan-600 accent-cyan-600"><div class="text-xs"><span class="font-semibold text-slate-800">' . e($sec['course_name']) . '</span><span class="font-bold text-cyan-600 bg-cyan-50 border border-cyan-200 px-1 rounded ml-1">Sec ' . e($sec['section']) . '</span><span class="text-slate-400 ml-2">(' . e(semesterToRoman($sec['semester_name'])) . ')</span></div></label>';
+        $html .= '<label data-semester="' . e($sec['semester_name']) . '" data-section="' . e($sec['section_name']) . '" class="add-section-item flex items-center gap-3 px-3 py-1.5 hover:bg-white cursor-pointer rounded-lg transition-colors"><input type="checkbox" name="section_ids[]" value="' . $sec['id'] . '" class="add-section-cb w-4 h-4 rounded border-slate-300 text-cyan-600 accent-cyan-600"><div class="text-xs"><span class="font-semibold text-slate-800">' . e($sec['course_name']) . '</span><span class="font-bold text-cyan-600 bg-cyan-50 border border-cyan-200 px-1 rounded ml-1">Sec ' . e($sec['section_name']) . '</span><span class="text-slate-400 ml-2">(' . e(semesterToRoman($sec['semester_name'])) . ')</span></div></label>';
     }
 
     echo json_encode(['html' => $html, 'count' => count($rows)]);
@@ -185,11 +186,12 @@ $selectFrom = "FROM section_assignments sa
               JOIN users u ON st.user_id=u.id 
               JOIN sections s ON sa.section_id=s.id 
               JOIN courses c ON s.course_id=c.id
+              LEFT JOIN section_master sm_sec ON s.section_id=sm_sec.id
               LEFT JOIN academic_years ay ON s.academic_year_id=ay.id
               LEFT JOIN semesters sm ON s.semester_id=sm.id";
 
 $selectColumns = "SELECT sa.id AS assignment_id, sa.student_id, u.name, st.roll_no,
-                  c.course_name, c.course_code, s.section, COALESCE(ay.year_name, '') AS academic_year, COALESCE(sm.semester_name, '') AS semester_name,
+                  c.course_name, c.course_code, sm_sec.section_name, COALESCE(ay.year_name, '') AS academic_year, COALESCE(sm.semester_name, '') AS semester_name,
                   s.id AS section_id, sa.created_at";
 
 $whereClauses = [];
@@ -218,21 +220,20 @@ if ($search) {
     /*
      * SECTION SEARCH
      * 
-     * Uppercase A, B, C:
-     * A -> Section A only
-     * B -> Section B only
-     * C -> Section C only
-     *
-     * Lowercase:
-     * a -> will NOT search Section A
-     * b -> will NOT search Section B
-     * c -> will NOT search Section C
+     * If search term matches a section name in section_master,
+     * search the section column only.
      */
 
-    if ($search === 'A' || $search === 'B' || $search === 'C') {
+    $secMatch = $conn->prepare("SELECT section_name FROM section_master WHERE section_name = ?");
+    $secMatch->bind_param('s', $search);
+    $secMatch->execute();
+    $isSectionSearch = $secMatch->get_result()->num_rows > 0;
+    $secMatch->close();
+
+    if ($isSectionSearch) {
 
         // Exact case-sensitive section search
-        $whereClauses[] = "BINARY s.section = ?";
+        $whereClauses[] = "BINARY sm_sec.section_name = ?";
 
         $bindParams[] = $search;
         $bindTypes .= "s";
@@ -267,7 +268,7 @@ if ($filter_semester) {
     $bindTypes .= "i";
 }
 if ($filter_section) {
-    $whereClauses[] = "s.section = ?";
+    $whereClauses[] = "sm_sec.section_name = ?";
     $bindParams[] = $filter_section;
     $bindTypes .= "s";
 }
@@ -309,7 +310,7 @@ foreach ($allAssignmentRows as $r) {
             'assignment_id' => $aid,
             'course_name' => $r['course_name'],
             'course_code' => $r['course_code'],
-            'section' => $r['section'],
+            'section' => $r['section_name'],
             'academic_year' => $r['academic_year'],
             'semester' => $r['semester_name'],
             'section_id' => (int) $r['section_id'],
@@ -402,16 +403,11 @@ include '../includes/admin_sidebar.php';
             <select name="filter_section" onchange="this.form.submit()"
                 class="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
                 <option value=""><?= $LANG['all_sections'] ?? 'All Sections' ?></option>
-                <option value="A" <?= $filter_section === 'A' ? 'selected' : '' ?>>
-                    <?= $LANG["section_label"] ?? "Section" ?> A
-                </option>
-                <option value="B" <?= $filter_section === 'B' ? 'selected' : '' ?>>
-                    <?= $LANG["section_label"] ?? "Section" ?> B
-                </option>
-                <option value="C" <?= $filter_section === 'C' ? 'selected' : '' ?>>
-                    <?= $LANG["section_label"] ?? "Section" ?> C
-                </option>
-                <!-- <option value="D" <?= $filter_section === 'D' ? 'selected' : '' ?>><?= $LANG["section_label"] ?? "Section" ?> D</option> -->
+                <?php foreach ($sectionMasterList as $smSec): ?>
+                    <option value="<?= e($smSec['section_name']) ?>" <?= $filter_section === $smSec['section_name'] ? 'selected' : '' ?>>
+                        <?= $LANG["section_label"] ?? "Section" ?> <?= e($smSec['section_name']) ?>
+                    </option>
+                <?php endforeach ?>
             </select>
 
             <button type="submit"
@@ -594,9 +590,9 @@ include '../includes/admin_sidebar.php';
                         <select id="addFilterSection" onchange="filterAddSections()"
                             class="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
                             <option value=""><?= $LANG['all_sections'] ?? 'All Sections' ?></option>
-                            <option value="A"><?= $LANG["section_label"] ?? "Section" ?> A</option>
-                            <option value="B"><?= $LANG["section_label"] ?? "Section" ?> B</option>
-                            <option value="C"><?= $LANG["section_label"] ?? "Section" ?> C</option>
+                            <?php foreach ($sectionMasterList as $smSec): ?>
+                                <option value="<?= e($smSec['section_name']) ?>"><?= $LANG["section_label"] ?? "Section" ?> <?= e($smSec['section_name']) ?></option>
+                            <?php endforeach ?>
                         </select>
                     </div>
                     <div class="flex items-center justify-between mb-2">
@@ -610,7 +606,7 @@ include '../includes/admin_sidebar.php';
                     <div id="addSectionList"
                         class="border border-slate-200 rounded-xl overflow-y-auto max-h-56 divide-y divide-slate-100 p-2 bg-slate-50/50">
                         <?php foreach ($sectionList as $sec): ?>
-                            <label data-semester="<?= e($sec['semester_name']) ?>" data-section="<?= e($sec['section']) ?>"
+                            <label data-semester="<?= e($sec['semester_name']) ?>" data-section="<?= e($sec['section_name']) ?>"
                                 class="add-section-item flex items-center gap-3 px-3 py-1.5 hover:bg-white cursor-pointer rounded-lg transition-colors">
                                 <input type="checkbox" name="section_ids[]" value="<?= $sec['id'] ?>"
                                     class="add-section-cb w-4 h-4 rounded border-slate-300 text-cyan-600 accent-cyan-600">
@@ -618,7 +614,7 @@ include '../includes/admin_sidebar.php';
                                     <span class="font-semibold text-slate-800"><?= e($sec['course_name']) ?></span>
                                     <span
                                         class="font-bold text-cyan-600 bg-cyan-50 border border-cyan-200 px-1 rounded ml-1">Sec
-                                        <?= e($sec['section']) ?></span>
+                                        <?= e($sec['section_name']) ?></span>
                                     <span
                                         class="text-slate-400 ml-2">(<?= e(semesterToRoman($sec['semester_name'])) ?>)</span>
                                 </div>
@@ -668,7 +664,7 @@ include '../includes/admin_sidebar.php';
                         <?php foreach ($sectionList as $sec): ?>
                             <label
                                 class="edit-section-item flex items-center gap-3 px-4 py-2.5 hover:bg-cyan-50 cursor-pointer transition-colors"
-                                data-label="[<?= e($sec['course_code']) ?>] <?= e($sec['course_name']) ?> - Sec <?= e($sec['section']) ?> (<?= e($sec['academic_year']) ?>)">
+                                data-label="[<?= e($sec['course_code']) ?>] <?= e($sec['course_name']) ?> - Sec <?= e($sec['section_name']) ?> (<?= e($sec['academic_year']) ?>)">
                                 <input type="radio" name="section_id" value="<?= $sec['id'] ?>"
                                     class="w-4 h-4 border-slate-300 text-cyan-600 accent-cyan-600">
                                 <div class="flex-1 min-w-0">
@@ -676,7 +672,7 @@ include '../includes/admin_sidebar.php';
                                         <span
                                             class="font-mono font-normal text-slate-400">(<?= e($sec['course_code']) ?>)</span>
                                     </p>
-                                    <p class="text-xs text-slate-400">Sec <?= e($sec['section']) ?> ·
+                                    <p class="text-xs text-slate-400">Sec <?= e($sec['section_name']) ?> ·
                                         <?= e($sec['academic_year']) ?> · <?= e(semesterToRoman($sec['semester_name'])) ?>
                                     </p>
                                 </div>

@@ -318,9 +318,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf() && ($_POST['action'] ?
         if ($email) {
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $errors[] = 'email_invalid';
-            } elseif (!preg_match('/@(ucsh\.edu\.mm|gmail\.com)$/', $email)) {
+            } elseif ($role !== 'admin' && !preg_match('/@(ucsh\.edu\.mm|gmail\.com)$/', $email)) {
                 $errors[] = 'email_domain';
-            } elseif (!isValidEmail($email)) {
+            } elseif ($role !== 'admin' && !isValidEmail($email)) {
                 $errors[] = 'email_invalid';
             }
         }
@@ -561,7 +561,7 @@ include '../includes/admin_sidebar.php';
         <button onclick="openModal('addModal')"
             class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm shadow-indigo-600/20 transition-all hover:-translate-y-0.5">
             <?= iconSvg('plus', 'w-4 h-4') ?>
-            <?= $LANG['add_user'] ?? 'Add User' ?>
+            <?= $LANG['add_user'] ?? 'Add New User' ?>
         </button>
         <button onclick="openModal('importModal')"
             class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm shadow-indigo-600/20 transition-all hover:-translate-y-0.5">
@@ -1089,8 +1089,12 @@ include '../includes/admin_sidebar.php';
         if (!/^[a-z0-9_]{4,30}$/.test(username)) return msgs.username_invalid;
         return '';
     }
-    function validateEmail(email) {
-        if (!/^[a-zA-Z0-9._]+@(ucsh\.edu\.mm|gmail\.com)$/.test(email)) return msgs.email_invalid;
+    function validateEmail(email, role) {
+        if (role === 'admin') {
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return msgs.email_invalid;
+        } else {
+            if (!/^[a-zA-Z0-9._]+@(ucsh\.edu\.mm|gmail\.com)$/.test(email)) return msgs.email_invalid;
+        }
         return '';
     }
     document.addEventListener('DOMContentLoaded', function () {
@@ -1100,13 +1104,14 @@ include '../includes/admin_sidebar.php';
                 var name = document.getElementById('add_name');
                 var username = document.getElementById('add_username');
                 var email = document.getElementById('add_email');
+                var role = addForm.querySelector('select[name="role"]').value;
                 var err = validateName(name.value);
                 if (err) { alert(err); name.focus(); e.preventDefault(); return; }
                 username.value = username.value.toLowerCase();
                 err = validateUsername(username.value);
                 if (err) { alert(err); username.focus(); e.preventDefault(); return; }
                 email.value = email.value.toLowerCase();
-                err = validateEmail(email.value);
+                err = validateEmail(email.value, role);
                 if (err) { alert(err); email.focus(); e.preventDefault(); return; }
             });
         }

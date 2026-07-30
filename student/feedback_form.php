@@ -25,11 +25,11 @@ if (!$studentId) {
 }
 
 $formId = (int)($_GET['form_id'] ?? 0);
-if (!$formId) { header('Location: my_sections.php'); exit; }
+if (!$formId) { header('Location: feedback_forms.php'); exit; }
 
 // ─── Step 1: Check enrollment only
 $chk = $conn->prepare(
-    "SELECT ff.*, c.course_name, c.course_code, s.section, COALESCE(ay.year_name, '') AS academic_year, sm.semester_name AS semester,
+    "SELECT ff.*, c.course_name, c.course_code, sm_sec.section_name AS section_name, COALESCE(ay.year_name, '') AS academic_year, sm.semester_name AS semester,
             u.name AS teacher_name
      FROM feedback_forms ff
      JOIN sections s           ON ff.section_id = s.id
@@ -37,6 +37,7 @@ $chk = $conn->prepare(
      JOIN teachers t           ON s.teacher_id  = t.id
      JOIN users u              ON t.user_id     = u.id
      JOIN section_assignments sa ON sa.section_id = s.id
+     LEFT JOIN section_master sm_sec ON s.section_id = sm_sec.id
      LEFT JOIN academic_years ay ON s.academic_year_id = ay.id
      LEFT JOIN semesters sm    ON s.semester_id  = sm.id
      WHERE ff.id = ? AND sa.student_id = ?
@@ -49,7 +50,7 @@ $chk->close();
 
 if (!$form) {
     setFlash('error', $LANG['flash_not_enrolled_section'] ?? 'You are not enrolled in the section for this feedback form.');
-    header('Location: my_sections.php'); exit;
+    header('Location: feedback_forms.php'); exit;
 }
 
 // ─── Step 2: Check if already submitted
@@ -118,7 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                 if ($recheck->get_result()->num_rows > 0) {
                     $recheck->close(); $conn->rollback();
                     setFlash('error', $LANG['flash_already_submitted'] ?? 'You have already submitted this form.');
-                    header('Location: my_sections.php'); exit;
+                    header('Location: feedback_forms.php'); exit;
                 }
                 $recheck->close();
 
@@ -127,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                 if ($ins->affected_rows === 0) {
                     $ins->close(); $conn->rollback();
                     setFlash('error', $LANG['flash_already_submitted'] ?? 'You have already submitted this form.');
-                    header('Location: my_sections.php'); exit;
+                    header('Location: feedback_forms.php'); exit;
                 }
                 $ins->close();
                 $submissionId = $conn->insert_id;
@@ -168,9 +169,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
                 $conn->commit();
                 
-                // Submit လုပ်ပြီးမှသာ Flash သတ်မှတ်ပြီး my_sections.php (စာရင်းစာမျက်နှာ) ဆီသို့ ခေါ်သွားပါမည်
-                setFlash('success', $LANG['flash_thank_you_participation'] ?? '🎉 Thank you for participating.');
-                header('Location: my_sections.php'); 
+                // Submit လုပ်ပြီးမှသာ flash သတ်မှတ်ပြီး feedback_forms.php ဆီသို့ ခေါ်သွားပါမည်
+                header('Location: feedback_forms.php');
                 exit;
             } catch (Exception $e) {
                 $conn->rollback();
@@ -182,6 +182,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
 
 $initials = avatarInitials($user['name']);
+$currentLang = $_SESSION['lang'] ?? 'en';
 ?>
 <!DOCTYPE html>
 <html lang="<?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'my' : 'en' ?>" class="h-full">
@@ -226,10 +227,8 @@ $initials = avatarInitials($user['name']);
         </div>
         <nav class="flex-1 py-4 px-3 space-y-0.5">
             <a href="/studentfeedbackucsh/student/dashboard.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('home','w-5 h-5 flex-shrink-0 text-yellow-300') ?> <?= $LANG['nav_dashboard'] ?? 'Dashboard' ?></a>
-            <a href="/studentfeedbackucsh/student/my_sections.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm bg-white/20 text-white font-semibold"><?= iconSvg('grid','w-5 h-5 flex-shrink-0 text-blue-300') ?> <?= $LANG['nav_my_sections'] ?? 'My Courses' ?></a>
-            <a href="/studentfeedbackucsh/student/sa_feedback.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('shield','w-5 h-5 flex-shrink-0 text-purple-300') ?> <?= $LANG['nav_student_affairs_link'] ?? 'Student Affairs' ?></a>
-            <a href="/studentfeedbackucsh/student/adm_feedback.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('office','w-5 h-5 flex-shrink-0 text-orange-300') ?> <?= $LANG['nav_administration'] ?? 'Administration' ?></a>
-            <a href="/studentfeedbackucsh/student/feedback_history.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('history','w-5 h-5 flex-shrink-0 text-teal-300') ?> <?= $LANG['nav_history'] ?? 'History' ?></a>
+            <a href="/studentfeedbackucsh/student/feedback_forms.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm bg-white/20 text-white font-semibold"><?= iconSvg('clipboard','w-5 h-5 flex-shrink-0 text-emerald-300') ?> <?= $LANG['nav_feedback_forms'] ?? 'Feedback Forms' ?></a>
+            <a href="/studentfeedbackucsh/student/feedback_history.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('history','w-5 h-5 flex-shrink-0 text-teal-300') ?> <?= $LANG['nav_history'] ?? 'Submission History' ?></a>
             <a href="/studentfeedbackucsh/student/profile.php" class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm text-cyan-100 hover:bg-white/10 hover:text-white"><?= iconSvg('user','w-5 h-5 flex-shrink-0 text-rose-300') ?> <?= $LANG['nav_profile'] ?? 'Profile' ?></a>
         </nav>
        
@@ -252,7 +251,13 @@ $initials = avatarInitials($user['name']);
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
             </button>
             <h1 class="text-lg font-bold text-slate-800"><?= $LANG['evaluation_form_label'] ?? 'Evaluation Form' ?></h1>
-            <a href="my_sections.php" class="text-sm font-medium text-emerald-600 hover:underline">← <?= $LANG['back'] ?? 'Back' ?></a>
+            <div class="ml-auto flex items-center gap-3">
+                <div class="flex items-center gap-0.5 bg-cyan-50 rounded-lg p-0.5 text-xs font-semibold border border-cyan-100 shadow-sm">
+                    <a href="?form_id=<?= $formId ?>&lang=en" class="px-3 py-1 rounded-md transition-all <?= $currentLang === 'en' ? 'bg-white shadow text-cyan-700 font-bold' : 'text-cyan-400 hover:text-cyan-700' ?>">ENG</a>
+                    <a href="?form_id=<?= $formId ?>&lang=mm" class="px-3 py-1 rounded-md transition-all <?= $currentLang === 'mm' ? 'bg-white shadow text-cyan-700 font-bold' : 'text-cyan-400 hover:text-cyan-700' ?>">မြန်မာ</a>
+                </div>
+                <a href="feedback_forms.php" class="text-sm font-medium text-emerald-600 hover:underline">← <?= $LANG['back'] ?? 'Back' ?></a>
+            </div>
         </header>
 
         <main class="flex-1 overflow-y-auto p-4 md:p-8 mx-auto w-full">
@@ -287,7 +292,7 @@ $initials = avatarInitials($user['name']);
                         </div>
                         <div>
                             <p class="text-[11px] font-semibold text-slate-400 uppercase"><?= $LANG["section_name"] ?? "Section" ?></p>
-                            <p class="text-sm font-bold text-slate-800"><?= e($form['section'] ?? '—') ?></p>
+                            <p class="text-sm font-bold text-slate-800"><?= e($form['section_name'] ?? '—') ?></p>
                         </div>
                         <div>
                             <p class="text-[11px] font-semibold text-slate-400 uppercase"><?= $LANG["teacher_name"] ?? "Teacher Name" ?></p>
@@ -411,7 +416,7 @@ $initials = avatarInitials($user['name']);
                         </div>
                         
                         <div class="flex items-center gap-4 w-full md:w-auto justify-end">
-                            <a href="my_sections.php" class="px-5 py-2.5 text-sm font-semibold bg-slate-500 text-white hover:bg-slate-600 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></a>
+                            <a href="feedback_forms.php" class="px-5 py-2.5 text-sm font-semibold bg-slate-500 text-white hover:bg-slate-600 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></a>
                             
                             <?php if ($canSubmit): ?>
                             <button type="submit" id="submit-btn"

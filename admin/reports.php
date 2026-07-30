@@ -15,6 +15,13 @@ $filterSemester     = (int)($_GET['semester'] ?? 0);
 $filterTeacher      = (int)($_GET['teacher_id'] ?? 0);
 $filterCourse       = (int)($_GET['course_id'] ?? 0);
 $filterSection      = clean($_GET['section'] ?? '');
+$filterSectionId   = 0;
+if ($filterSection !== '') {
+    $smSecRow = $conn->query("SELECT id FROM section_master WHERE section_name = '" . $conn->real_escape_string($filterSection) . "' LIMIT 1");
+    if ($smSecRow && $smSec = $smSecRow->fetch_assoc()) {
+        $filterSectionId = (int)$smSec['id'];
+    }
+}
 
 $saFilterAcademicYear = (int)($_GET['sa_academic_year'] ?? 0);
 $saFilterSemester     = (int)($_GET['sa_semester'] ?? 0);
@@ -45,10 +52,10 @@ $courses = $conn->query("
 ")->fetch_all(MYSQLI_ASSOC);
 
 $sections = $conn->query("
-    SELECT DISTINCT s.section
+    SELECT DISTINCT sm_sec.section_name
     FROM sections s
-    WHERE s.section != ''
-    ORDER BY s.section ASC
+    JOIN section_master sm_sec ON s.section_id = sm_sec.id
+    ORDER BY sm_sec.section_name ASC
 ")->fetch_all(MYSQLI_ASSOC);
 
 $saSemesters = $conn->query("
@@ -96,10 +103,10 @@ if ($filterCourse > 0) {
     $params[]     = $filterCourse;
     $types       .= 'i';
 }
-if ($filterSection !== '') {
-    $whereParts[] = 'sec.section = ?';
-    $params[]     = $filterSection;
-    $types       .= 's';
+if ($filterSectionId > 0) {
+    $whereParts[] = 'sec.section_id = ?';
+    $params[]     = $filterSectionId;
+    $types       .= 'i';
 }
 
 $whereSql = '';
@@ -189,7 +196,7 @@ foreach ($teacherPerfData as $tp) {
         " . ($filterAcademicYear > 0 ? "AND sec.academic_year_id = ?" : "") . "
         " . ($filterSemester > 0 ? "AND sec.semester_id = ?" : "") . "
         " . ($filterCourse > 0 ? "AND sec.course_id = ?" : "") . "
-        " . ($filterSection !== '' ? "AND sec.section = ?" : "") . "
+        " . ($filterSectionId > 0 ? "AND sec.section_id = ?" : "") . "
         GROUP BY fr.rating
         ORDER BY FIELD(fr.rating, 'Excellent', 'Good', 'Fair', 'Poor')
     ";
@@ -198,7 +205,7 @@ foreach ($teacherPerfData as $tp) {
     if ($filterAcademicYear > 0) { $trTypes .= 'i'; $trParams[] = $filterAcademicYear; }
     if ($filterSemester > 0)     { $trTypes .= 'i'; $trParams[] = $filterSemester; }
     if ($filterCourse > 0)       { $trTypes .= 'i'; $trParams[] = $filterCourse; }
-    if ($filterSection !== '')   { $trTypes .= 's'; $trParams[] = $filterSection; }
+    if ($filterSectionId > 0)    { $trTypes .= 'i'; $trParams[] = $filterSectionId; }
     $trResult = runFilteredQuery($conn, $trSql, $trTypes, $trParams);
     $rawRatings = $trResult->fetch_all(MYSQLI_ASSOC);
 
@@ -511,7 +518,7 @@ include '../includes/admin_sidebar.php';
             options: [
                 { value: '', text: '<?= $LANG['all_sections'] ?? 'All Sections' ?>' },
                 <?php foreach ($sections as $sec): ?>
-                { value: '<?= e($sec['section']) ?>', text: '<?= e($sec['section']) ?>' },
+                { value: '<?= e($sec['section_name']) ?>', text: '<?= e($sec['section_name']) ?>' },
                 <?php endforeach; ?>
             ],
             select(val, text) {

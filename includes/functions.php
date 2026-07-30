@@ -5,8 +5,11 @@ if (session_status() === PHP_SESSION_NONE)
 if (isset($_GET['lang']) && in_array($_GET['lang'], ['en', 'mm'])) {
     $_SESSION['lang'] = $_GET['lang'];
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        $cleanUrl = strtok($_SERVER['REQUEST_URI'], '?');
-        header('Location: ' . $cleanUrl);
+        $base = strtok($_SERVER['REQUEST_URI'], '?');
+        $params = $_GET;
+        unset($params['lang']);
+        $redirect = $base . ($params ? '?' . http_build_query($params) : '');
+        header('Location: ' . $redirect);
         exit;
     }
 }
