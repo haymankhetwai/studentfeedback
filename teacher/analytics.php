@@ -38,7 +38,7 @@ if ($teacherId) {
     while ($r = $rs->fetch_assoc())
         $semesters[] = $r['semester_value'];
 
-    $rs = $conn->query("SELECT s.id, c.course_name, s.section, sm.semester_name AS display_semester FROM sections s JOIN courses c ON s.course_id=c.id LEFT JOIN semesters sm ON s.semester_id=sm.id WHERE s.teacher_id=$teacherId ORDER BY display_semester DESC, c.course_name ASC");
+    $rs = $conn->query("SELECT s.id, c.course_name, sm_sec.section_name AS section_name, sm.semester_name AS display_semester FROM sections s JOIN courses c ON s.course_id=c.id LEFT JOIN section_master sm_sec ON s.section_id = sm_sec.id LEFT JOIN semesters sm ON s.semester_id=sm.id WHERE s.teacher_id=$teacherId ORDER BY display_semester DESC, c.course_name ASC");
     $sections = $rs->fetch_all(MYSQLI_ASSOC);
 
     $rs = $conn->query("SELECT DISTINCT c.id, c.course_name FROM sections s JOIN courses c ON s.course_id=c.id WHERE s.teacher_id=$teacherId ORDER BY c.course_name ASC");
@@ -163,16 +163,17 @@ $pieColors = ['#22c55e', '#f59e0b', '#ef4444'];
 
 // ─── Per-Section Breakdown ──────────────────────────────────────
 $sectionBreakdownSql = "
-    SELECT s.id AS section_id, c.course_name, s.section, sm.semester_name AS display_semester,
+    SELECT s.id AS section_id, c.course_name, sm_sec.section_name AS section_name, sm.semester_name AS display_semester,
            COUNT(fr.id) AS total_ratings,
            AVG(CASE WHEN fr.rating IN ('Excellent','Good') THEN 5 WHEN fr.rating = 'Fair' THEN 3 WHEN fr.rating IN ('Poor','Bad') THEN 1 ELSE 3 END) AS avg_rating
     FROM feedback_ratings fr
     JOIN feedback_forms ff ON fr.form_id = ff.id
     JOIN sections s ON ff.section_id = s.id
     JOIN courses c ON s.course_id = c.id
+    LEFT JOIN section_master sm_sec ON s.section_id = sm_sec.id
     LEFT JOIN semesters sm ON s.semester_id = sm.id
     $whereSql
-    GROUP BY s.id, c.course_name, s.section, display_semester
+    GROUP BY s.id, c.course_name, sm_sec.section_name, display_semester
     ORDER BY total_ratings DESC
 ";
 $sectionBreakdown = runQuery($conn, $sectionBreakdownSql, $types, $params)->fetch_all(MYSQLI_ASSOC);
@@ -216,7 +217,7 @@ $sectionBreakdown = runQuery($conn, $sectionBreakdownSql, $types, $params)->fetc
                     <option value="0"><?= $LANG['all_sections'] ?? 'All Sections' ?></option>
                     <?php foreach ($sections as $sec): ?>
                         <option value="<?= (int) $sec['id'] ?>" <?= $filterSection === (int) $sec['id'] ? 'selected' : '' ?>>
-                            <?= e($sec['course_name']) ?> — Sec <?= e($sec['section']) ?>
+                            <?= e($sec['course_name']) ?> — Sec <?= e($sec['section_name']) ?>
                             (<?= e(semesterToRoman($sec['display_semester'])) ?>)
                         </option>
                     <?php endforeach; ?>
@@ -353,7 +354,7 @@ $sectionBreakdown = runQuery($conn, $sectionBreakdownSql, $types, $params)->fetc
                             <?php foreach ($sectionBreakdown as $sb): ?>
                                 <tr class="hover:bg-blue-50/30 transition-colors">
                                     <td class="px-6 py-3 font-medium text-slate-800"><?= e($sb['course_name']) ?></td>
-                                    <td class="px-6 py-3 text-slate-600"><?= e($sb['section']) ?></td>
+                                    <td class="px-6 py-3 text-slate-600"><?= e($sb['section_name']) ?></td>
                                     <td class="px-6 py-3 text-slate-600"><?= e(semesterToRoman($sb['display_semester'])) ?></td>
                                     <td class="px-6 py-3 text-center font-semibold text-slate-700">
                                         <?= number_format($sb['total_ratings']) ?>

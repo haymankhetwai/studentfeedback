@@ -50,7 +50,7 @@ $semesters = $conn->query("
 $sectionList = $conn->query("
     SELECT 
         s.id,
-        s.section,
+        sm_sec.section_name AS section_name,
         s.course_id,
         s.teacher_id,
         s.academic_year_id,
@@ -66,6 +66,9 @@ $sectionList = $conn->query("
         u.name AS teacher_name
 
     FROM sections s
+
+    LEFT JOIN section_master sm_sec 
+        ON s.section_id = sm_sec.id
 
     JOIN courses c 
         ON s.course_id = c.id
@@ -84,7 +87,7 @@ $sectionList = $conn->query("
 
     ORDER BY 
         c.course_code ASC,
-        s.section ASC,
+        sm_sec.section_name ASC,
         u.name ASC
 ")->fetch_all(MYSQLI_ASSOC);
 
@@ -1040,7 +1043,7 @@ $sql = "
         fqs.title AS question_set_title,
 
         /* Section Information */
-        sec.section AS section_name,
+        sm_sec.section_name AS section_name,
 
         /* Course Information */
         c.course_code,
@@ -1084,6 +1087,9 @@ $sql = "
     /* Section */
     LEFT JOIN sections sec
         ON ff.section_id = sec.id
+
+    LEFT JOIN section_master sm_sec
+        ON sec.section_id = sm_sec.id
 
 
     /* Course */
@@ -2200,7 +2206,7 @@ include '../includes/admin_sidebar.php';
 
                                 <div class="add-section-option px-4 py-2.5 cursor-pointer hover:bg-indigo-50 border-b border-slate-50 last:border-b-0 transition-colors"
                                     data-id="<?= $s['id'] ?>" data-search="<?= e(strtolower(
-                                          $s['section'] . ' ' .
+                                          $s['section_name'] . ' ' .
                                           $s['course_code'] . ' ' .
                                           $s['course_name'] . ' ' .
                                           $s['teacher_name'] . ' ' .
@@ -2211,7 +2217,7 @@ include '../includes/admin_sidebar.php';
 
                                     <div class="font-semibold text-sm text-slate-700">
 
-                                        Section <?= e($s['section']) ?>
+                                        Section <?= e($s['section_name']) ?>
 
                                     </div>
 
@@ -2668,7 +2674,7 @@ include '../includes/admin_sidebar.php';
 
                                 <div class="edit-section-option px-4 py-2.5 cursor-pointer hover:bg-indigo-50 border-b border-slate-50 last:border-b-0 transition-colors"
                                     data-id="<?= $s['id'] ?>" data-search="<?= e(strtolower(
-                                          $s['section'] . ' ' .
+                                          $s['section_name'] . ' ' .
                                           $s['course_code'] . ' ' .
                                           $s['course_name'] . ' ' .
                                           $s['teacher_name'] . ' ' .
@@ -2679,7 +2685,7 @@ include '../includes/admin_sidebar.php';
 
                                     <div class="font-semibold text-sm text-slate-700">
 
-                                        Section <?= e($s['section']) ?>
+                                        Section <?= e($s['section_name']) ?>
 
                                     </div>
 

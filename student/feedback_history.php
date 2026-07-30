@@ -30,7 +30,7 @@ if ($studentId) {
        ff.title AS form_title,
        c.course_name,
        c.course_code,
-       s.section,
+       sm_sec.section_name AS section_name,
        COALESCE(ay.year_name, '') AS display_year,
        sm.semester_name AS display_semester,
        ff.start_date,
@@ -39,6 +39,7 @@ FROM feedback_submissions fs
 JOIN feedback_forms ff ON fs.form_id = ff.id
 JOIN sections s ON ff.section_id = s.id
 JOIN courses c ON s.course_id = c.id
+LEFT JOIN section_master sm_sec ON s.section_id = sm_sec.id
 LEFT JOIN academic_years ay ON s.academic_year_id = ay.id
 LEFT JOIN semesters sm ON s.semester_id = sm.id
 WHERE fs.student_id = ?
@@ -89,7 +90,7 @@ foreach ($academicHistory as $r) {
         'module' => 'academic',
         'submitted_at' => $r['submitted_at'],
         'form_title' => $r['form_title'],
-        'detail' => e($r['course_name']) . ' (' . e($r['course_code']) . ') — Sec ' . e($r['section']) . ' · ' . e($r['display_year']) . ' ' . e(semesterToRoman($r['display_semester'])) . ' · ' . formatDateTime($r['start_date']) . ' – ' . formatDateTime($r['end_date'])
+        'detail' => e($r['course_name']) . ' (' . e($r['course_code']) . ') — Sec ' . e($r['section_name']) . ' · ' . e($r['display_year']) . ' ' . e(semesterToRoman($r['display_semester'])) . ' · ' . formatDateTime($r['start_date']) . ' – ' . formatDateTime($r['end_date'])
     ];
 }
 foreach ($saHistory as $r) {
@@ -112,10 +113,8 @@ usort($allHistory, fn($a, $b) => strtotime($b['submitted_at']) - strtotime($a['s
 
 $navItems = [
     ['label' => $LANG['nav_dashboard'] ?? 'Dashboard', 'href' => '/studentfeedbackucsh/student/dashboard.php', 'key' => 'dashboard', 'icon' => 'home', 'iconColor' => 'text-yellow-300'],
-    ['label' => $LANG['nav_my_sections'] ?? 'My Courses', 'href' => '/studentfeedbackucsh/student/my_sections.php', 'key' => 'sections', 'icon' => 'grid', 'iconColor' => 'text-blue-300'],
-    ['label' => $LANG['nav_student_affairs'] ?? 'Student Affairs', 'href' => '/studentfeedbackucsh/student/sa_feedback.php', 'key' => 'sa', 'icon' => 'shield', 'iconColor' => 'text-purple-300'],
-    ['label' => $LANG['nav_administration'] ?? 'Administration', 'href' => '/studentfeedbackucsh/student/adm_feedback.php', 'key' => 'adm', 'icon' => 'office', 'iconColor' => 'text-orange-300'],
-    ['label' => $LANG['nav_history'] ?? 'History', 'href' => '/studentfeedbackucsh/student/feedback_history.php', 'key' => 'history', 'icon' => 'history', 'iconColor' => 'text-teal-300'],
+    ['label' => $LANG['nav_feedback_forms'] ?? 'Feedback Forms', 'href' => '/studentfeedbackucsh/student/feedback_forms.php', 'key' => 'feedback_forms', 'icon' => 'clipboard', 'iconColor' => 'text-emerald-300'],
+    ['label' => $LANG['nav_history'] ?? 'Submission History', 'href' => '/studentfeedbackucsh/student/feedback_history.php', 'key' => 'history', 'icon' => 'history', 'iconColor' => 'text-teal-300'],
     ['label' => $LANG['nav_profile'] ?? 'Profile', 'href' => '/studentfeedbackucsh/student/profile.php', 'key' => 'profile', 'icon' => 'user', 'iconColor' => 'text-rose-300'],
 ];
 $initials = avatarInitials($user['name']);

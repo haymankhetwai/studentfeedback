@@ -27,20 +27,18 @@ $today = date('Y-m-d');
 // Load sections and their forms
 $sections = [];
 if ($studentId) {
-    $rs = $conn->prepare("SELECT s.*, c.course_name, c.course_code, u.name AS teacher_name, COALESCE(ay.year_name, '') AS display_year, sm.semester_name AS display_semester FROM section_assignments sa JOIN sections s ON sa.section_id=s.id JOIN courses c ON s.course_id=c.id JOIN teachers t ON s.teacher_id=t.id JOIN users u ON t.user_id=u.id LEFT JOIN academic_years ay ON s.academic_year_id=ay.id LEFT JOIN semesters sm ON s.semester_id=sm.id WHERE sa.student_id=? ORDER BY s.id DESC");
+    $rs = $conn->prepare("SELECT s.*, c.course_name, c.course_code, sm_sec.section_name AS section_name, u.name AS teacher_name, COALESCE(ay.year_name, '') AS display_year, sm.semester_name AS display_semester FROM section_assignments sa JOIN sections s ON sa.section_id=s.id JOIN courses c ON s.course_id=c.id JOIN teachers t ON s.teacher_id=t.id JOIN users u ON t.user_id=u.id LEFT JOIN section_master sm_sec ON s.section_id = sm_sec.id LEFT JOIN academic_years ay ON s.academic_year_id=ay.id LEFT JOIN semesters sm ON s.semester_id=sm.id WHERE sa.student_id=? ORDER BY s.id DESC");
     $rs->bind_param('i', $studentId);
     $rs->execute();
     $sections = $rs->get_result()->fetch_all(MYSQLI_ASSOC);
     $rs->close();
 }
 
-// Fixed navigation array: Includes all 6 structural modules so items do not disappear
+// Fixed navigation array: Includes structural modules so items do not disappear
 $navItems = [
     ['label' => $LANG['nav_dashboard'] ?? 'Dashboard', 'href' => '/studentfeedbackucsh/student/dashboard.php', 'key' => 'dashboard', 'icon' => 'home', 'iconColor' => 'text-yellow-300'],
-    ['label' => $LANG['nav_my_sections'] ?? 'My Courses', 'href' => '/studentfeedbackucsh/student/my_sections.php', 'key' => 'sections', 'icon' => 'grid', 'iconColor' => 'text-blue-300'],
-    ['label' => $LANG['nav_student_affairs'] ?? 'Student Affairs', 'href' => '/studentfeedbackucsh/student/sa_feedback.php', 'key' => 'sa', 'icon' => 'shield', 'iconColor' => 'text-purple-300'],
-    ['label' => $LANG['nav_administration'] ?? 'Administration', 'href' => '/studentfeedbackucsh/student/adm_feedback.php', 'key' => 'adm', 'icon' => 'office', 'iconColor' => 'text-orange-300'],
-    ['label' => $LANG['nav_history'] ?? 'History', 'href' => '/studentfeedbackucsh/student/feedback_history.php', 'key' => 'history', 'icon' => 'history', 'iconColor' => 'text-teal-300'],
+    ['label' => $LANG['nav_feedback_forms'] ?? 'Feedback Forms', 'href' => '/studentfeedbackucsh/student/feedback_forms.php', 'key' => 'feedback_forms', 'icon' => 'clipboard', 'iconColor' => 'text-emerald-300'],
+    ['label' => $LANG['nav_history'] ?? 'Submission History', 'href' => '/studentfeedbackucsh/student/feedback_history.php', 'key' => 'history', 'icon' => 'history', 'iconColor' => 'text-teal-300'],
     ['label' => $LANG['nav_profile'] ?? 'Profile', 'href' => '/studentfeedbackucsh/student/profile.php', 'key' => 'profile', 'icon' => 'user', 'iconColor' => 'text-rose-300'],
 ];
 $initials = avatarInitials($user['name']);
@@ -149,7 +147,7 @@ $initials = avatarInitials($user['name']);
                                     <p class="text-sm font-semibold text-slate-800"><?= e($sec['course_name']) ?> <span
                                             class="font-mono text-xs text-slate-400">(<?= e($sec['course_code']) ?>)</span></p>
                                     <p class="text-xs text-slate-400 mt-0.5"><?= $LANG['section_label'] ?? 'Section' ?>
-                                        <?= e($sec['section']) ?> ·
+                                        <?= e($sec['section_name']) ?> ·
                                         <?= e($sec['display_year']) ?> · <?= e(semesterToRoman($sec['display_semester'])) ?> ·
                                         <?= $LANG['taught_by'] ?? 'Taught by' ?>
                                         <?= e($sec['teacher_name']) ?>

@@ -115,11 +115,12 @@ if (isset($_GET['ajax_forms']) && $_GET['ajax_forms'] === '1') {
     $ajaxFormWhere = $ajaxFormConds ? 'WHERE ' . implode(' AND ', $ajaxFormConds) : '';
     $ajaxFormSql = "SELECT ff.id, ff.title, ff.module, ff.section_id, ff.academic_year_id, ff.semester_id,
         ay.year_name AS academic_year_name, sm.semester_name,
-        c.course_code, c.course_name, sec.section AS section_name
+        c.course_code, c.course_name, sm_sec.section_name AS section_name
         FROM feedback_forms ff
         LEFT JOIN academic_years ay ON ff.academic_year_id = ay.id
         LEFT JOIN semesters sm ON ff.semester_id = sm.id
         LEFT JOIN sections sec ON ff.section_id = sec.id
+        LEFT JOIN section_master sm_sec ON sec.section_id = sm_sec.id
         LEFT JOIN courses c ON sec.course_id = c.id
         $ajaxFormWhere
         ORDER BY ff.module ASC, ay.year_name DESC, ff.id DESC";
@@ -187,11 +188,12 @@ if ($filterSem) {
 $formWhere = $formConds ? 'WHERE ' . implode(' AND ', $formConds) : '';
 $formSql = "SELECT ff.id, ff.title, ff.module, ff.section_id, ff.academic_year_id, ff.semester_id, ff.university_name, ff.university_campus,
     ay.year_name AS academic_year_name, sm.semester_name,
-    c.course_code, c.course_name, sec.section AS section_name, u.name AS teacher_name
+    c.course_code, c.course_name, sm_sec.section_name AS section_name, u.name AS teacher_name
     FROM feedback_forms ff
     LEFT JOIN academic_years ay ON ff.academic_year_id = ay.id
     LEFT JOIN semesters sm ON ff.semester_id = sm.id
     LEFT JOIN sections sec ON ff.section_id = sec.id
+    LEFT JOIN section_master sm_sec ON sec.section_id = sm_sec.id
     LEFT JOIN courses c ON sec.course_id = c.id
     LEFT JOIN teachers t ON sec.teacher_id = t.id
     LEFT JOIN users u ON t.user_id = u.id
@@ -271,7 +273,7 @@ $completedCount = 0;
 $pendingCount = 0;
 
 if ($loadForm && $formId) {
-    $r = $conn->prepare("SELECT ff.*, c.course_name, c.course_code, s.section, u.name AS teacher_name, ay.year_name AS academic_year_name, sm.semester_name FROM feedback_forms ff LEFT JOIN sections s ON ff.section_id=s.id LEFT JOIN courses c ON s.course_id=c.id LEFT JOIN teachers t ON s.teacher_id=t.id LEFT JOIN users u ON t.user_id=u.id LEFT JOIN academic_years ay ON COALESCE(s.academic_year_id, ff.academic_year_id) = ay.id LEFT JOIN semesters sm ON COALESCE(s.semester_id, ff.semester_id) = sm.id WHERE ff.id=?");
+    $r = $conn->prepare("SELECT ff.*, c.course_name, c.course_code, sm_sec.section_name, u.name AS teacher_name, ay.year_name AS academic_year_name, sm.semester_name FROM feedback_forms ff LEFT JOIN sections s ON ff.section_id=s.id LEFT JOIN section_master sm_sec ON s.section_id = sm_sec.id LEFT JOIN courses c ON s.course_id=c.id LEFT JOIN teachers t ON s.teacher_id=t.id LEFT JOIN users u ON t.user_id=u.id LEFT JOIN academic_years ay ON COALESCE(s.academic_year_id, ff.academic_year_id) = ay.id LEFT JOIN semesters sm ON COALESCE(s.semester_id, ff.semester_id) = sm.id WHERE ff.id=?");
     $r->bind_param('i', $formId);
     $r->execute();
     $form = $r->get_result()->fetch_assoc();
@@ -297,7 +299,7 @@ if ($loadForm && $formId) {
                 'semester' => $form['semester_name'] ?? '',
                 'course_code' => $form['course_code'] ?? '',
                 'course_name' => $form['course_name'] ?? '',
-                'section' => $form['section'] ?? '',
+                'section' => $form['section_name'] ?? '',
                 'teacher_name' => $form['teacher_name'] ?? '',
             ];
         } elseif ($module === 'student_affairs' || $module === 'administration') {
@@ -985,6 +987,41 @@ include '../includes/admin_sidebar.php';
                     <p class="text-xs text-blue-600 mt-0.5">
                         <?= $LANG['results_appear_later'] ?? 'Results will appear here once students submit their feedback.' ?>
                     </p>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <?php if (!empty($ratingQuestions)): ?>
+            <!-- Rating Distribution Bar Chart -->
+            <div class="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-blue-100/50 p-6 mb-6 no-print">
+                <h3 class="text-sm font-bold text-slate-800 mb-4">
+                    <?= $LANG['rating_distribution'] ?? 'Rating Distribution (Good / Fair / Bad)' ?>
+                </h3>
+                <div class="relative" style="height:280px;">
+                    <canvas id="ratingBarChart"></canvas>
+                </div>
+                <?php
+                $barTotal = $totalGood + $totalFair + $totalBad;
+                $barPctGood = $barTotal > 0 ? round(($totalGood / $barTotal) * 100) : 0;
+                $barPctFair = $barTotal > 0 ? round(($totalFair / $barTotal) * 100) : 0;
+                $barPctBad = $barTotal > 0 ? round(($totalBad / $barTotal) * 100) : 0;
+                ?>
+                <div class="grid grid-cols-3 gap-3 mt-4">
+                    <div class="text-center p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+                        <p class="text-2xl font-bold text-emerald-600"><?= $barPctGood ?>%</p>
+                        <p class="text-xs font-semibold text-emerald-700"><?= $LANG['good'] ?? 'Good' ?></p>
+                        <p class="text-[10px] text-slate-500"><?= number_format($totalGood) ?> <?= $LANG['ratings'] ?? 'ratings' ?></p>
+                    </div>
+                    <div class="text-center p-3 rounded-xl bg-amber-50 border border-amber-200">
+                        <p class="text-2xl font-bold text-amber-600"><?= $barPctFair ?>%</p>
+                        <p class="text-xs font-semibold text-amber-700"><?= $LANG['fair'] ?? 'Fair' ?></p>
+                        <p class="text-[10px] text-slate-500"><?= number_format($totalFair) ?> <?= $LANG['ratings'] ?? 'ratings' ?></p>
+                    </div>
+                    <div class="text-center p-3 rounded-xl bg-red-50 border border-red-200">
+                        <p class="text-2xl font-bold text-red-600"><?= $barPctBad ?>%</p>
+                        <p class="text-xs font-semibold text-red-700"><?= $LANG['bad'] ?? 'Bad' ?></p>
+                        <p class="text-[10px] text-slate-500"><?= number_format($totalBad) ?> <?= $LANG['ratings'] ?? 'ratings' ?></p>
+                    </div>
                 </div>
             </div>
         <?php endif; ?>
@@ -1961,6 +1998,56 @@ include '../includes/admin_sidebar.php';
                     if (progress < 1) requestAnimationFrame(animateNumber);
                 }
                 requestAnimationFrame(animateNumber);
+            }
+        <?php endif; ?>
+
+        // ==========================================
+        // Rating Distribution Bar Chart
+        // ==========================================
+        <?php if (!empty($ratingQuestions)): ?>
+            var barCanvas = document.getElementById('ratingBarChart');
+            if (barCanvas) {
+                new Chart(barCanvas, {
+                    type: 'bar',
+                    data: {
+                        labels: <?= json_encode([$LANG['good'] ?? 'Good', $LANG['fair'] ?? 'Fair', $LANG['bad'] ?? 'Bad']) ?>,
+                        datasets: [{
+                            label: <?= json_encode($LANG['ratings'] ?? 'Ratings') ?>,
+                            data: [<?= (int) $totalGood ?>, <?= (int) $totalFair ?>, <?= (int) $totalBad ?>],
+                            backgroundColor: ['#22c55e', '#f59e0b', '#ef4444'],
+                            borderWidth: 0,
+                            borderRadius: 8,
+                            barPercentage: 0.55
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function (ctx) {
+                                        var total = ctx.dataset.data.reduce(function (a, b) { return a + b; }, 0);
+                                        var pct = total > 0 ? Math.round((ctx.raw / total) * 100) : 0;
+                                        return ctx.label + ': ' + ctx.raw + ' (' + pct + '%)';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false },
+                                ticks: { font: { family: 'Inter', size: 12, weight: '600' } }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: '#f1f5f9' },
+                                ticks: { font: { family: 'Inter', size: 11 }, stepSize: 1 }
+                            }
+                        }
+                    }
+                });
             }
         <?php endif; ?>
 

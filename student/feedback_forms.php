@@ -1,0 +1,551 @@
+<?php
+require_once '../config/db.php';
+require_once '../includes/auth.php';
+require_once '../includes/functions.php';
+
+if (!isset($_SESSION['entry_allowed']) || $_SESSION['selected_role'] !== 'student') {
+    header('Location: /studentfeedbackucsh/index.php');
+    exit;
+}
+
+requireRole('student');
+updateAllFeedbackStatuses($conn);
+
+$user = getCurrentUser();
+$stmt = $conn->prepare("SELECT st.id FROM students st WHERE st.user_id=?");
+$stmt->bind_param('i', $user['id']);
+$stmt->execute();
+$student = $stmt->get_result()->fetch_assoc();
+$stmt->close();
+$studentId = $student['id'] ?? 0;
+$studentYearIds = getStudentAcademicYearIds($conn, $studentId);
+$studentSemIds = getStudentSemesterIds($conn, $studentId);
+
+if (!$studentId) {
+    setFlash('error', $LANG['flash_student_profile_missing'] ?? 'Student profile not found.');
+    header('Location: /studentfeedbackucsh/student/dashboard.php');
+    exit;
+}
+
+$now = date('Y-m-d H:i:s');
+
+// ─── Load ALL available forms across all modules ─────────────────────
+$allForms = [];
+
+// Academic forms
+if ($studentId) {
+    $acadStmt = $conn->prepare(
+        "SELECT ff.id, ff.title, ff.start_date, ff.end_date, ff.status, ff.module,
+                ff.section_id,
+                c.course_name, c.course_code, sm_sec.section_name AS section_name,
+                COALESCE(ay.year_name, '') AS display_year,
+                sm.semester_name AS display_semester,
+                u.name AS teacher_name,
+                (SELECT COUNT(*) FROM feedback_submissions fs WHERE fs.form_id=ff.id AND fs.student_id=?) AS submitted
+         FROM feedback_forms ff
+         JOIN sections s ON ff.section_id = s.id
+         JOIN courses c ON s.course_id = c.id
+         JOIN teachers t ON s.teacher_id = t.id
+         JOIN users u ON t.user_id = u.id
+         JOIN section_assignments sa ON sa.section_id = s.id
+         LEFT JOIN section_master sm_sec ON s.section_id = sm_sec.id
+         LEFT JOIN academic_years ay ON s.academic_year_id = ay.id
+         LEFT JOIN semesters sm ON s.semester_id = sm.id
+         WHERE sa.student_id = ? AND ff.module = 'academic'
+         ORDER BY ff.end_date ASC, ff.id ASC"
+    );
+    $acadStmt->bind_param('ii', $studentId, $studentId);
+    $acadStmt->execute();
+    $acadRows = $acadStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $acadStmt->close();
+    foreach ($acadRows as $r) {
+        if ($r['status'] === 'Active' || (int) $r['submitted'] > 0) {
+            $allForms[] = $r;
+        }
+    }
+}
+
+// SA forms
+if ($studentId && !empty($studentYearIds) && !empty($studentSemIds)) {
+    $yrPH = implode(',', array_fill(0, count($studentYearIds), '?'));
+    $yrBT = str_repeat('i', count($studentYearIds));
+    $smPH = implode(',', array_fill(0, count($studentSemIds), '?'));
+    $smBT = str_repeat('i', count($studentSemIds));
+
+    $saStmt = $conn->prepare(
+        "SELECT f.id, f.title, f.start_date, f.end_date, f.status, f.module,
+                NULL AS section_id,
+                NULL AS course_name, NULL AS course_code, NULL AS section_name,
+                COALESCE(ay.year_name, '') AS display_year,
+                sm.semester_name AS display_semester,
+                NULL AS teacher_name,
+                (SELECT COUNT(*) FROM feedback_submissions s WHERE s.form_id=f.id AND s.student_id=?) AS submitted
+         FROM feedback_forms f
+         LEFT JOIN academic_years ay ON f.academic_year_id = ay.id
+         LEFT JOIN semesters sm ON f.semester_id = sm.id
+         WHERE f.module='student_affairs' AND f.academic_year_id IN ($yrPH) AND f.semester_id IN ($smPH)
+         ORDER BY f.end_date ASC, f.id ASC"
+    );
+    $saStmt->bind_param('i' . $yrBT . $smBT, ...array_merge([$studentId], $studentYearIds, $studentSemIds));
+    $saStmt->execute();
+    $saRows = $saStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $saStmt->close();
+    foreach ($saRows as $r) {
+        if ($r['status'] === 'Active' || (int) $r['submitted'] > 0) {
+            $allForms[] = $r;
+        }
+    }
+}
+
+// Admin forms
+if ($studentId && !empty($studentYearIds) && !empty($studentSemIds)) {
+    $yrPH = implode(',', array_fill(0, count($studentYearIds), '?'));
+    $yrBT = str_repeat('i', count($studentYearIds));
+    $smPH = implode(',', array_fill(0, count($studentSemIds), '?'));
+    $smBT = str_repeat('i', count($studentSemIds));
+
+    $admStmt = $conn->prepare(
+        "SELECT f.id, f.title, f.start_date, f.end_date, f.status, f.module,
+                NULL AS section_id,
+                NULL AS course_name, NULL AS course_code, NULL AS section_name,
+                COALESCE(ay.year_name, '') AS display_year,
+                sm.semester_name AS display_semester,
+                NULL AS teacher_name,
+                (SELECT COUNT(*) FROM feedback_submissions s WHERE s.form_id=f.id AND s.student_id=?) AS submitted
+         FROM feedback_forms f
+         LEFT JOIN academic_years ay ON f.academic_year_id = ay.id
+         LEFT JOIN semesters sm ON f.semester_id = sm.id
+         WHERE f.module='administration' AND f.academic_year_id IN ($yrPH) AND f.semester_id IN ($smPH)
+         ORDER BY f.end_date ASC, f.id ASC"
+    );
+    $admStmt->bind_param('i' . $yrBT . $smBT, ...array_merge([$studentId], $studentYearIds, $studentSemIds));
+    $admStmt->execute();
+    $admRows = $admStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $admStmt->close();
+    foreach ($admRows as $r) {
+        if ($r['status'] === 'Active' || (int) $r['submitted'] > 0) {
+            $allForms[] = $r;
+        }
+    }
+}
+
+// Sort all forms: submitted last, then by module priority (academic, student_affairs, administration), then by date
+$moduleOrder = ['academic' => 0, 'student_affairs' => 1, 'administration' => 2];
+usort($allForms, function ($a, $b) use ($moduleOrder) {
+    $aSubmitted = (int) $a['submitted'] > 0;
+    $bSubmitted = (int) $b['submitted'] > 0;
+    if ($aSubmitted !== $bSubmitted) {
+        return $aSubmitted ? 1 : -1;
+    }
+    $aMod = $moduleOrder[$a['module']] ?? 99;
+    $bMod = $moduleOrder[$b['module']] ?? 99;
+    if ($aMod !== $bMod) {
+        return $aMod - $bMod;
+    }
+    return strtotime($a['end_date']) - strtotime($b['end_date']);
+});
+
+// ─── Find the first uncompleted form (for enforcement) ────────────────
+$firstUncompletedId = null;
+foreach ($allForms as $f) {
+    if ((int) $f['submitted'] === 0 && $f['status'] === 'Active') {
+        $firstUncompletedId = $f['id'];
+        break;
+    }
+}
+
+// ─── Handle skip prevention ──────────────────────────────────────────
+$requestedFormId = (int) ($_GET['form_id'] ?? 0);
+if ($requestedFormId && $firstUncompletedId && $requestedFormId !== $firstUncompletedId) {
+    // Check if the requested form is actually in the list and not submitted
+    $requestedSubmitted = false;
+    $requestedActive = false;
+    foreach ($allForms as $f) {
+        if ($f['id'] === $requestedFormId) {
+            $requestedSubmitted = (int) $f['submitted'] > 0;
+            $requestedActive = $f['status'] === 'Active';
+            break;
+        }
+    }
+    if (!$requestedSubmitted && $requestedActive) {
+        setFlash('error', $LANG['flash_please_complete_previous'] ?? 'Please complete the previous feedback form first.');
+        header('Location: feedback_forms.php');
+        exit;
+    }
+}
+
+// Stats
+$totalForms = count($allForms);
+$completedCount = 0;
+$pendingCount = 0;
+foreach ($allForms as $f) {
+    if ((int) $f['submitted'] > 0) {
+        $completedCount++;
+    } else {
+        $pendingCount++;
+    }
+}
+$progressPercent = $totalForms > 0 ? round(($completedCount / $totalForms) * 100) : 0;
+$allCompleted = $totalForms > 0 && $pendingCount === 0;
+
+// ─── AJAX: Get form status ───────────────────────────────────────────
+if (isset($_GET['ajax']) && $_GET['ajax'] === 'status' && isset($_GET['fid'])) {
+    header('Content-Type: application/json');
+    $fid = (int) $_GET['fid'];
+    $st = $conn->prepare("SELECT id FROM feedback_submissions WHERE form_id=? AND student_id=?");
+    $st->bind_param('ii', $fid, $studentId);
+    $st->execute();
+    $submitted = $st->get_result()->num_rows > 0;
+    $st->close();
+    echo json_encode(['submitted' => $submitted]);
+    exit;
+}
+
+$pageTitle = $LANG['nav_feedback_forms'] ?? 'Feedback Forms';
+$activeMenu = 'feedback_forms';
+$initials = avatarInitials($user['name']);
+?>
+<!DOCTYPE html>
+<html lang="<?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'my' : 'en' ?>" class="h-full">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title><?= e($pageTitle) ?> — SFMS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { theme: { extend: { fontFamily: { inter: ['Inter', 'sans-serif'] } } } }</script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/studentfeedbackucsh/assets/css/custom.css">
+    <style>
+        .form-card {
+            transition: all 0.3s ease;
+        }
+
+        .form-card.locked {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .form-card.locked .fill-btn {
+            display: none;
+        }
+
+        .progress-ring {
+            transition: stroke-dashoffset 0.6s ease;
+        }
+    </style>
+</head>
+
+<body
+    class="h-full bg-gradient-to-br from-slate-50 to-cyan-50/30 font-inter <?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'lang-mm' : '' ?>">
+    <div id="overlay" class="fixed inset-0 bg-black/40 z-30 hidden lg:hidden" onclick="closeSidebar()"></div>
+    <div class="flex h-screen overflow-hidden">
+
+        <aside id="sidebar"
+            class="fixed inset-y-0 left-0 w-64 bg-gradient-to-b from-cyan-600 to-cyan-700 text-white flex flex-col z-40 transform -translate-x-full transition-transform duration-300 lg:relative lg:translate-x-0 lg:flex-shrink-0">
+            <div class="flex items-center gap-3 px-5 py-5 border-b border-cyan-500">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    <img src="/studentfeedbackucsh/assets/uploads/profiles/image.png" alt="UCSH Logo"
+                        class="w-full h-full object-contain rounded-xl">
+                </div>
+                <div>
+                    <p class="text-lg font-bold"><?= $LANG['student_portal'] ?? 'SFMS Student' ?></p>
+                    <p class="text-[10px] text-cyan-100"><?= $LANG['student_portal_sub'] ?? 'Student Portal' ?></p>
+                </div>
+                <button onclick="closeSidebar()" class="ml-auto lg:hidden text-cyan-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                        stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <nav class="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto scrollbar-thin">
+                <?php
+                $navItems = [
+                    ['label' => $LANG['nav_dashboard'] ?? 'Dashboard', 'href' => '/studentfeedbackucsh/student/dashboard.php', 'key' => 'dashboard', 'icon' => 'home', 'iconColor' => 'text-yellow-300'],
+                    ['label' => $LANG['nav_feedback_forms'] ?? 'Feedback Forms', 'href' => '/studentfeedbackucsh/student/feedback_forms.php', 'key' => 'feedback_forms', 'icon' => 'clipboard', 'iconColor' => 'text-emerald-300'],
+                    ['label' => $LANG['nav_history'] ?? 'Submission History', 'href' => '/studentfeedbackucsh/student/feedback_history.php', 'key' => 'history', 'icon' => 'history', 'iconColor' => 'text-teal-300'],
+                    ['label' => $LANG['nav_profile'] ?? 'Profile', 'href' => '/studentfeedbackucsh/student/profile.php', 'key' => 'profile', 'icon' => 'user', 'iconColor' => 'text-rose-300'],
+                ];
+                foreach ($navItems as $n):
+                    $a = $activeMenu === $n['key']; ?>
+                    <a href="<?= $n['href'] ?>"
+                        class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm transition-all duration-150 <?= $a ? 'bg-white/20 text-white font-semibold' : 'text-cyan-100 hover:bg-white/10 hover:text-white' ?>">
+                        <?= iconSvg($n['icon'], 'w-5 h-5 flex-shrink-0 ' . ($n['iconColor'] ?? 'text-white/80')) ?>
+                        <?= e($n['label']) ?>
+                        <?php if ($a): ?><span class="ml-auto w-1.5 h-1.5 rounded-full bg-white"></span><?php endif ?>
+                    </a>
+                <?php endforeach ?>
+            </nav>
+
+            <a href="/studentfeedbackucsh/auth/logout.php" title="<?= $LANG['logout'] ?? 'Logout' ?>"
+                class="block border-t border-white/15 bg-red-500/80 text-gray-50 hover:text-gray-200 transition-colors px-4 py-4 cursor-pointer">
+                <div class="flex items-center justify-center gap-3">
+                    <div class="min-w-0">
+                        <p class="text-xl h-8"><?= $LANG['logout'] ?? 'Logout' ?></p>
+                    </div>
+                    <?= iconSvg('logout', 'w-6 h-6') ?>
+                </div>
+            </a>
+        </aside>
+
+        <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+            <?php include '../includes/student_header.php'; ?>
+            <main class="flex-1 overflow-y-auto p-4 lg:p-6">
+
+                <?php renderFlash() ?>
+
+                <!-- Progress Header -->
+                <div class="mb-6">
+                    <div class="flex items-center gap-2 mb-1">
+                        <h2 class="text-xl font-bold text-slate-800">
+                            <?= $LANG['nav_feedback_forms'] ?? 'Feedback Forms' ?>
+                        </h2>
+                    </div>
+                    <p class="text-sm text-slate-500">
+                        <?= $LANG['feedback_forms_desc'] ?? 'Complete all feedback forms in order. Forms are unlocked sequentially.' ?>
+                    </p>
+                </div>
+
+                <?php if ($allCompleted): ?>
+                    <!-- Thank You Page -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 md:p-12 text-center">
+                        <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-green-100 flex items-center justify-center">
+                            <?= iconSvg('check', 'w-10 h-10 text-green-600') ?>
+                        </div>
+                        <h3 class="text-2xl font-bold text-slate-800 mb-3"><?= $LANG['all_done'] ?? 'All Done!' ?></h3>
+                        <p class="text-lg text-slate-600 mb-8">
+                            <?= $LANG['all_forms_completed'] ?? 'You have completed all feedback forms. Thank you!' ?>
+                        </p>
+                        <a href="/studentfeedbackucsh/student/dashboard.php"
+                            class="inline-flex items-center gap-2 px-6 py-3 bg-cyan-600 text-white font-semibold rounded-xl hover:bg-cyan-700 transition-all hover:-translate-y-0.5 shadow-md">
+                            <?= iconSvg('home', 'w-5 h-5') ?>
+                            <?= $LANG['return_to_dashboard'] ?? 'Return to Dashboard' ?>
+                        </a>
+                    </div>
+                <?php else: ?>
+                    <!-- Overall Progress Card -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
+                        <div class="flex flex-col md:flex-row items-center gap-6">
+                            <!-- Progress Ring -->
+                            <div class="relative flex-shrink-0">
+                                <svg class="w-24 h-24 transform -rotate-90" viewBox="0 0 100 100">
+                                    <circle cx="50" cy="50" r="42" fill="none" stroke="#e2e8f0" stroke-width="8" />
+                                    <circle cx="50" cy="50" r="42" fill="none" stroke="#06b6d4" stroke-width="8"
+                                        stroke-linecap="round" stroke-dasharray="<?= 2 * M_PI * 42 ?>"
+                                        stroke-dashoffset="<?= 2 * M_PI * 42 * (1 - $progressPercent / 100) ?>"
+                                        class="progress-ring" />
+                                </svg>
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <span class="text-lg font-bold text-cyan-700"><?= $progressPercent ?>%</span>
+                                </div>
+                            </div>
+                            <!-- Stats -->
+                            <div class="flex-1 text-center md:text-left">
+                                <h3 class="text-lg font-bold text-slate-800 mb-1">
+                                    <?= $LANG['overall_progress'] ?? 'Overall Progress' ?>
+                                </h3>
+                                <p class="text-sm text-slate-500 mb-3">
+                                    <?= $completedCount ?>     <?= $LANG['of'] ?? 'of' ?>     <?= $totalForms ?>
+                                    <?= $LANG['forms_completed'] ?? 'forms completed' ?>
+                                </p>
+                                <!-- Progress Bar -->
+                                <div class="w-full bg-slate-100 rounded-full h-3 mb-2">
+                                    <div class="bg-gradient-to-r from-cyan-500 to-cyan-600 h-3 rounded-full transition-all duration-500 ease-out"
+                                        style="width: <?= $progressPercent ?>%"></div>
+                                </div>
+                                <div class="flex items-center gap-4 text-xs text-slate-500">
+                                    <span class="flex items-center gap-1">
+                                        <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                                        <?= $completedCount ?>     <?= $LANG['completed'] ?? 'Completed' ?>
+                                    </span>
+                                    <span class="flex items-center gap-1">
+                                        <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                                        <?= $pendingCount ?>     <?= $LANG['pending'] ?? 'Pending' ?>
+                                    </span>
+                                    <span class="flex items-center gap-1">
+                                        <span class="w-2 h-2 rounded-full bg-slate-300"></span>
+                                        <?= $totalForms ?>     <?= $LANG['total'] ?? 'Total' ?>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Continue Feedback -->
+                    <?php if ($firstUncompletedId): ?>
+                        <div class="bg-gradient-to-r from-cyan-600 to-cyan-700 rounded-2xl p-5 mb-6 text-white shadow-md">
+                            <div class="flex flex-col sm:flex-row items-center gap-4">
+                                <div class="flex items-center gap-3 flex-1">
+                                    <div
+                                        class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                                        <?= iconSvg('clipboard', 'w-6 h-6 text-white') ?>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-semibold opacity-90">
+                                            <?= $LANG['continue_feedback'] ?? 'Continue Feedback' ?>
+                                        </p>
+                                        <p class="text-xs opacity-75">
+                                            <?= $pendingCount ?>         <?= $LANG['forms_remaining'] ?? 'forms remaining' ?>
+                                        </p>
+                                    </div>
+                                </div>
+                                <a href="#form-list"
+                                    class="px-5 py-2.5 bg-white text-cyan-700 font-semibold text-sm rounded-xl hover:bg-cyan-50 transition-all shadow-sm">
+                                    <?= $LANG['view_forms'] ?? 'View Forms' ?> ↓
+                                </a>
+                            </div>
+                        </div>
+                    <?php endif ?>
+
+                    <!-- Forms List -->
+                    <div id="form-list" class="space-y-4">
+                        <?php
+                        $currentModule = '';
+                        $formIndex = 0;
+                        foreach ($allForms as $f):
+                            $formIndex++;
+                            $isSubmitted = (int) $f['submitted'] > 0;
+                            $isActive = $f['status'] === 'Active';
+                            $isExpired = $f['status'] === 'Expired';
+                            $isFirstUncompleted = $f['id'] === $firstUncompletedId;
+                            $isLocked = !$isSubmitted && !$isFirstUncompleted && $firstUncompletedId !== null;
+
+                            // Module header
+                            $moduleKey = $f['module'];
+                            $moduleNames = [
+                                'academic' => $LANG['academic_feedback_section'] ?? 'Academic Feedback',
+                                'student_affairs' => $LANG['student_affairs_section'] ?? 'Student Affairs',
+                                'administration' => $LANG['administration_section'] ?? 'Administration'
+                            ];
+                            $moduleColors = [
+                                'academic' => ['bg' => 'bg-cyan-50', 'text' => 'text-cyan-800', 'border' => 'border-cyan-200', 'dot' => 'bg-cyan-500'],
+                                'student_affairs' => ['bg' => 'bg-purple-50', 'text' => 'text-purple-800', 'border' => 'border-purple-200', 'dot' => 'bg-purple-500'],
+                                'administration' => ['bg' => 'bg-orange-50', 'text' => 'text-orange-800', 'border' => 'border-orange-200', 'dot' => 'bg-orange-500']
+                            ];
+                            $moduleIcons = [
+                                'academic' => 'academic',
+                                'student_affairs' => 'shield',
+                                'administration' => 'office'
+                            ];
+
+                            if ($moduleKey !== $currentModule):
+                                $currentModule = $moduleKey;
+                                $mc = $moduleColors[$moduleKey] ?? ['bg' => 'bg-slate-50', 'text' => 'text-slate-800', 'border' => 'border-slate-200', 'dot' => 'bg-slate-500'];
+                                ?>
+                                <div class="flex items-center gap-2 mt-2 mb-1">
+                                    <span class="w-2 h-2 rounded-full <?= $mc['dot'] ?>"></span>
+                                    <h3 class="text-sm font-bold <?= $mc['text'] ?>"><?= $moduleNames[$moduleKey] ?? $moduleKey ?>
+                                    </h3>
+                                    <div class="flex-1 h-px <?= $mc['border'] ?> border-t border-dashed"></div>
+                                </div>
+                            <?php endif ?>
+
+                            <!-- Form Card -->
+                            <div
+                                class="form-card bg-white rounded-2xl shadow-sm border <?= $isLocked ? 'border-slate-200 locked' : ($isSubmitted ? 'border-green-200' : 'border-slate-100 hover:border-cyan-200 hover:shadow-md') ?> overflow-hidden transition-all duration-300 <?= $isFirstUncompleted ? 'ring-2 ring-cyan-400/40' : '' ?>">
+                                <div class="px-5 py-4 flex items-center gap-4">
+                                    <!-- Step Number -->
+                                    <div
+                                        class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold <?= $isSubmitted ? 'bg-green-100 text-green-700' : ($isLocked ? 'bg-slate-100 text-slate-400' : 'bg-cyan-100 text-cyan-700') ?>">
+                                        <?php if ($isSubmitted): ?>
+                                            <?= iconSvg('check', 'w-5 h-5') ?>
+                                        <?php else: ?>
+                                            <?= $formIndex ?>
+                                        <?php endif ?>
+                                    </div>
+
+                                    <!-- Form Info -->
+                                    <div class="flex-1 min-w-0">
+                                        <p
+                                            class="text-sm font-semibold <?= $isLocked ? 'text-slate-400' : 'text-slate-800' ?> truncate">
+                                            <?= e($f['title']) ?>
+                                        </p>
+                                        <div
+                                            class="flex items-center gap-2 text-xs <?= $isLocked ? 'text-slate-300' : 'text-slate-400' ?> mt-0.5">
+                                            <?= iconSvg($moduleIcons[$moduleKey] ?? 'clipboard', 'w-3 h-3') ?>
+                                            <?php if ($f['module'] === 'academic' && $f['course_name']): ?>
+                                                <span><?= e($f['course_name']) ?> (<?= e($f['course_code']) ?>)</span>
+                                                <span>·</span>
+                                                <span>Sec <?= e($f['section_name']) ?></span>
+                                            <?php else: ?>
+                                                <span><?= $moduleNames[$moduleKey] ?? $moduleKey ?></span>
+                                            <?php endif ?>
+                                            <span>·</span>
+                                            <span>Due <?= formatDateTime($f['end_date']) ?></span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Status / Action -->
+                                    <div class="flex items-center gap-3 flex-shrink-0">
+                                        <?php if ($isSubmitted): ?>
+                                            <span
+                                                class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-xl">
+                                                <?= iconSvg('check', 'w-3.5 h-3.5') ?>
+                                                <?= $LANG['submitted_status'] ?? 'Submitted' ?>
+                                            </span>
+                                        <?php elseif ($isLocked): ?>
+                                            <span
+                                                class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-400 bg-slate-50 border border-slate-200 rounded-xl">
+                                                <?= iconSvg('eye', 'w-3.5 h-3.5') ?>
+                                                <?= $LANG['locked'] ?? 'Locked' ?>
+                                            </span>
+                                        <?php elseif ($isActive): ?>
+                                            <span
+                                                class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-700">
+                                                <?= $LANG['active'] ?? 'Active' ?>
+                                                · <?= getTimeRemaining($f['end_date']) ?>
+                                            </span>
+                                            <?php if ($f['module'] === 'academic'): ?>
+                                                <a href="/studentfeedbackucsh/student/feedback_form.php?form_id=<?= $f['id'] ?>"
+                                                    class="fill-btn inline-flex items-center gap-1 px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all hover:-translate-y-0.5 shadow-sm">
+                                                    <?= iconSvg('clipboard', 'w-3.5 h-3.5') ?>
+                                                    <?= $LANG['fill'] ?? 'Fill' ?>
+                                                </a>
+                                            <?php elseif ($f['module'] === 'student_affairs'): ?>
+                                                <a href="/studentfeedbackucsh/student/sa_feedback_form.php?form_id=<?= $f['id'] ?>"
+                                                    class="fill-btn inline-flex items-center gap-1 px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all hover:-translate-y-0.5 shadow-sm">
+                                                    <?= iconSvg('clipboard', 'w-3.5 h-3.5') ?>
+                                                    <?= $LANG['fill'] ?? 'Fill' ?>
+                                                </a>
+                                            <?php else: ?>
+                                                <a href="/studentfeedbackucsh/student/adm_feedback_form.php?form_id=<?= $f['id'] ?>"
+                                                    class="fill-btn inline-flex items-center gap-1 px-4 py-2 text-xs font-semibold text-white bg-orange-600 hover:bg-orange-700 rounded-xl transition-all hover:-translate-y-0.5 shadow-sm">
+                                                    <?= iconSvg('clipboard', 'w-3.5 h-3.5') ?>
+                                                    <?= $LANG['fill'] ?? 'Fill' ?>
+                                                </a>
+                                            <?php endif ?>
+                                        <?php elseif ($isExpired): ?>
+                                            <span
+                                                class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-slate-500 bg-slate-100 rounded-xl">
+                                                <?= $LANG['expired_status'] ?? 'Expired' ?>
+                                            </span>
+                                        <?php endif ?>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach ?>
+                    </div>
+                <?php endif ?>
+
+            </main>
+        </div>
+    </div>
+    <script>
+        function openSidebar() { document.getElementById('sidebar').classList.remove('-translate-x-full'); document.getElementById('overlay').classList.remove('hidden'); }
+        function closeSidebar() { document.getElementById('sidebar').classList.add('-translate-x-full'); document.getElementById('overlay').classList.add('hidden'); }
+
+        // Animate progress ring on load
+        document.addEventListener('DOMContentLoaded', function () {
+            const ring = document.querySelector('.progress-ring');
+            if (ring) {
+                const target = ring.getAttribute('stroke-dashoffset');
+                ring.style.strokeDashoffset = ring.getAttribute('stroke-dasharray');
+                setTimeout(() => { ring.style.strokeDashoffset = target; }, 100);
+            }
+        });
+    </script>
+</body>
+
+</html>

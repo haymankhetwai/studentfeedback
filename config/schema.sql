@@ -71,21 +71,30 @@ CREATE TABLE IF NOT EXISTS semesters (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS section_master (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    section_name VARCHAR(10) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS sections (
     id INT AUTO_INCREMENT PRIMARY KEY,
     course_id INT NOT NULL,
     teacher_id INT NOT NULL,
     academic_year_id INT DEFAULT NULL,
     semester_id INT DEFAULT NULL,
-    section VARCHAR(20) NOT NULL,
+    section_id INT DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
     FOREIGN KEY (teacher_id) REFERENCES teachers(id) ON DELETE CASCADE,
     FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE SET NULL,
     FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE SET NULL,
+    FOREIGN KEY (section_id) REFERENCES section_master(id) ON DELETE SET NULL,
     INDEX idx_sec_academic_year_id (academic_year_id),
-    INDEX idx_sec_semester_id (semester_id)
+    INDEX idx_sec_semester_id (semester_id),
+    INDEX idx_sections_section_id (section_id)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS section_assignments (
@@ -212,3 +221,5 @@ VALUES (
     '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
     'admin'
 );
+
+INSERT IGNORE INTO section_master (section_name) VALUES ('A'), ('B'), ('C');

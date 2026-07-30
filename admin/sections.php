@@ -40,6 +40,12 @@ $semesterList = $conn->query("
     ORDER BY id ASC
 ")->fetch_all(MYSQLI_ASSOC);
 
+$sectionList = $conn->query("
+    SELECT id, section_name 
+    FROM section_master 
+    ORDER BY section_name ASC
+")->fetch_all(MYSQLI_ASSOC);
+
 
 /* =========================================================
    POST ACTIONS
@@ -58,11 +64,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         $teacher = (int) ($_POST['teacher_id'] ?? 0);
         $academicYearId = (int) ($_POST['academic_year_id'] ?? 0);
         $semesterId = (int) ($_POST['semester_id'] ?? 0);
+        $sectionId = (int) ($_POST['section_id'] ?? 0);
 
-        // Always normalize section value
-        $section = strtoupper(trim(clean($_POST['section'] ?? '')));
+        if ($course && $teacher && $academicYearId && $semesterId && $sectionId) {
 
-        if ($course && $teacher && $academicYearId && $semesterId && $section) {
+            // Check for duplicate section (same AY, semester, course, teacher)
+            $dupCheck = $conn->prepare("SELECT id FROM sections WHERE course_id = ? AND teacher_id = ? AND academic_year_id = ? AND semester_id = ? AND section_id = ?");
+            $dupCheck->bind_param('iiiii', $course, $teacher, $academicYearId, $semesterId, $sectionId);
+            $dupCheck->execute();
+            if ($dupCheck->get_result()->num_rows > 0) {
+                $dupCheck->close();
+                setFlash('error', $LANG['flash_section_duplicate'] ?? 'A section with this name already exists for the same course, teacher, year, and semester.');
+                header('Location: sections.php');
+                exit;
+            }
+            $dupCheck->close();
 
             $stmt = $conn->prepare("
                 INSERT INTO sections
@@ -71,18 +87,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                     teacher_id,
                     academic_year_id,
                     semester_id,
-                    section
+                    section_id
                 )
                 VALUES (?, ?, ?, ?, ?)
             ");
 
             $stmt->bind_param(
-                'iiiis',
+                'iiiii',
                 $course,
                 $teacher,
                 $academicYearId,
                 $semesterId,
-                $section
+                $sectionId
             );
 
             if ($stmt->execute()) {
@@ -118,9 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         $teacher = (int) ($_POST['teacher_id'] ?? 0);
         $academicYearId = (int) ($_POST['academic_year_id'] ?? 0);
         $semesterId = (int) ($_POST['semester_id'] ?? 0);
-
-        // Always normalize section value
-        $sec = strtoupper(trim(clean($_POST['section'] ?? '')));
+        $sectionId = (int) ($_POST['section_id'] ?? 0);
 
         if (
             $id &&
@@ -128,8 +142,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             $teacher &&
             $academicYearId &&
             $semesterId &&
-            $sec
+            $sectionId
         ) {
+
+            // Check for duplicate section (same AY, semester, course, teacher, excluding current)
+            $dupCheck = $conn->prepare("SELECT id FROM sections WHERE course_id = ? AND teacher_id = ? AND academic_year_id = ? AND semester_id = ? AND section_id = ? AND id != ?");
+            $dupCheck->bind_param('iiiiii', $course, $teacher, $academicYearId, $semesterId, $sectionId, $id);
+            $dupCheck->execute();
+            if ($dupCheck->get_result()->num_rows > 0) {
+                $dupCheck->close();
+                setFlash('error', $LANG['flash_section_duplicate'] ?? 'A section with this name already exists for the same course, teacher, year, and semester.');
+                header('Location: sections.php');
+                exit;
+            }
+            $dupCheck->close();
 
             $stmt = $conn->prepare("
                 UPDATE sections 
@@ -138,17 +164,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                     teacher_id = ?,
                     academic_year_id = ?,
                     semester_id = ?,
-                    section = ?
+                    section_id = ?
                 WHERE id = ?
             ");
 
             $stmt->bind_param(
-                'iiiisi',
+                'iiiiii',
                 $course,
                 $teacher,
                 $academicYearId,
                 $semesterId,
-                $sec,
+                $sectionId,
                 $id
             );
 
@@ -249,6 +275,9 @@ $baseJoin = "
     JOIN users u
         ON t.user_id = u.id
 
+    LEFT JOIN section_master sm_sec
+        ON s.section_id = sm_sec.id
+
     LEFT JOIN academic_years ay
         ON s.academic_year_id = ay.id
 
@@ -290,21 +319,22 @@ if ($search) {
     $searchLower = strtolower(trim($search));
 
     /*
-     * If user searches A, B or C,
+     * If search term matches a section name exactly,
      * search ONLY the section column.
-     *
-     * Database stores:
-     * A
-     * B
-     * C
      */
-    if (in_array($search, ['A', 'B', 'C'], true)) {
+    $secMatch = $conn->prepare("SELECT id FROM section_master WHERE LOWER(section_name) = ?");
+    $secMatch->bind_param('s', $searchLower);
+    $secMatch->execute();
+    $isSectionSearch = $secMatch->get_result()->num_rows > 0;
+    $secMatch->close();
+
+    if ($isSectionSearch) {
 
         $conditions[] = "
-            TRIM(s.section) = ?
+            sm_sec.section_name = ?
         ";
 
-        $params[] = $search;
+        $params[] = strtoupper(trim($search));
 
         $types .= 's';
 
@@ -388,7 +418,7 @@ if ($filterSem) {
 if ($filterSec) {
 
     $conditions[] = "
-        LOWER(TRIM(s.section)) = ?
+        LOWER(sm_sec.section_name) = ?
     ";
 
     $params[] = strtolower(trim($filterSec));
@@ -464,6 +494,7 @@ $dataSql = "
         c2.course_name,
         c2.course_code,
         u.name AS teacher_name,
+        sm_sec.section_name AS section_name,
         ay.year_name,
         sm.semester_name
 
@@ -660,12 +691,12 @@ include '../includes/admin_sidebar.php';
                     <?= $LANG['all_sections'] ?? 'All Sections' ?>
                 </option>
 
-                <?php foreach (['A', 'B', 'C'] as $secLetter): ?>
+                <?php foreach ($sectionList as $secRow): ?>
 
-                    <option value="<?= $secLetter ?>" <?= strtoupper($filterSec) === $secLetter ? 'selected' : '' ?>>
+                    <option value="<?= e($secRow['section_name']) ?>" <?= strtoupper($filterSec) === strtoupper($secRow['section_name']) ? 'selected' : '' ?>>
 
                         <?= $LANG['section_label'] ?? 'Section' ?>
-                        <?= $secLetter ?>
+                        <?= e($secRow['section_name']) ?>
 
                     </option>
 
@@ -791,7 +822,7 @@ include '../includes/admin_sidebar.php';
                                 <span
                                     class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-cyan-100 text-cyan-800">
 
-                                    <?= e($row['section']) ?>
+                                    <?= $LANG['section_label'] ?? 'Section' ?> <?= e($row['section_name']) ?>
 
                                 </span>
 
@@ -838,7 +869,7 @@ include '../includes/admin_sidebar.php';
 
 
                                     <button
-                                        onclick="openDelete(<?= $row['id'] ?>,'<?= addslashes(e($row['course_name'] . ' - ' . $row['section'])) ?>')"
+                                        onclick="openDelete(<?= $row['id'] ?>,'<?= addslashes(e($row['course_name'] . ' - ' . ($LANG['section_label'] ?? 'Section') . ' ' . $row['section_name'])) ?>')"
                                         class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg">
 
                                         <?= iconSvg('trash', 'w-3.5 h-3.5') ?>
@@ -1015,22 +1046,22 @@ include '../includes/admin_sidebar.php';
                     </label>
 
 
-                    <select name="section" required
+                    <select name="section_id" required
                         class="w-full px-4 py-2.5 text-sm font-medium border border-slate-200 rounded-xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
 
                         <option value="">
 
-                            <?= $LANG['all_sections'] ?? 'All Sections' ?>
+                            <?= $LANG['select_section'] ?? 'Select Section' ?>
 
                         </option>
 
-                        <?php foreach (['A', 'B', 'C'] as $secLetter): ?>
+                        <?php foreach ($sectionList as $secRow): ?>
 
-                            <option value="<?= $secLetter ?>">
+                            <option value="<?= (int)$secRow['id'] ?>">
 
                                 <?= $LANG['section_label'] ?? 'Section' ?>
 
-                                <?= $secLetter ?>
+                                <?= e($secRow['section_name']) ?>
 
                             </option>
 
@@ -1244,22 +1275,22 @@ include '../includes/admin_sidebar.php';
                     </label>
 
 
-                    <select name="section" id="edit_section" required
+                    <select name="section_id" id="edit_section" required
                         class="w-full px-4 py-2.5 text-sm font-medium border border-slate-200 rounded-xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
 
                         <option value="">
 
-                            <?= $LANG['all_sections'] ?? 'All Sections' ?>
+                            <?= $LANG['select_section'] ?? 'Select Section' ?>
 
                         </option>
 
-                        <?php foreach (['A', 'B', 'C'] as $secLetter): ?>
+                        <?php foreach ($sectionList as $secRow): ?>
 
-                            <option value="<?= $secLetter ?>">
+                            <option value="<?= (int)$secRow['id'] ?>">
 
                                 <?= $LANG['section_label'] ?? 'Section' ?>
 
-                                <?= $secLetter ?>
+                                <?= e($secRow['section_name']) ?>
 
                             </option>
 
@@ -1454,7 +1485,7 @@ include '../includes/admin_sidebar.php';
             row.teacher_id;
 
         document.getElementById('edit_section').value =
-            String(row.section || '').trim().toUpperCase();
+            row.section_id || '';
 
         document.getElementById('edit_academic_year_id').value =
             row.academic_year_id || '';

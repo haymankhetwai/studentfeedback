@@ -56,7 +56,7 @@ if (isset($_GET['ajax_forms']) && $_GET['ajax_forms'] === '1') {
             c.course_code,
             c.course_name,
 
-            sec.section AS section_name
+            sm_sec.section_name AS section_name
 
         FROM feedback_forms ff
 
@@ -68,6 +68,9 @@ if (isset($_GET['ajax_forms']) && $_GET['ajax_forms'] === '1') {
 
         LEFT JOIN sections sec
             ON ff.section_id = sec.id
+
+        LEFT JOIN section_master sm_sec
+            ON sec.section_id = sm_sec.id
 
         LEFT JOIN courses c
             ON sec.course_id = c.id
@@ -581,15 +584,18 @@ $courses =
 
 $sectionsResult = $conn->query("
     SELECT DISTINCT
-        s.section
+        sm_sec.section_name
 
     FROM sections s
 
+    LEFT JOIN section_master sm_sec
+        ON s.section_id = sm_sec.id
+
     WHERE
-        s.section != ''
+        sm_sec.section_name IS NOT NULL
 
     ORDER BY
-        s.section ASC
+        sm_sec.section_name ASC
 ");
 
 $sections =
@@ -649,7 +655,7 @@ $afSql = "
         c.course_code,
         c.course_name,
 
-        sec.section AS section_name,
+        sm_sec.section_name AS section_name,
 
         ay.year_name AS academic_year_name,
         sm.semester_name
@@ -664,6 +670,9 @@ $afSql = "
 
     LEFT JOIN sections sec
         ON ff.section_id = sec.id
+
+    LEFT JOIN section_master sm_sec
+        ON sec.section_id = sm_sec.id
 
     LEFT JOIN courses c
         ON sec.course_id = c.id
@@ -789,7 +798,7 @@ if ($filterCourse > 0) {
 if ($filterSection !== '') {
 
     $whereParts[] =
-        "sec.section = ?";
+        "sm_sec.section_name = ?";
 
     $params[] =
         $filterSection;
@@ -836,6 +845,9 @@ $ratingCountSql = "
     JOIN sections sec
         ON ff.section_id = sec.id
 
+    LEFT JOIN section_master sm_sec
+        ON sec.section_id = sm_sec.id
+
     $whereSql
 ";
 
@@ -867,6 +879,9 @@ $submissionCountSql = "
     JOIN sections sec
         ON ff.section_id = sec.id
 
+    LEFT JOIN section_master sm_sec
+        ON sec.section_id = sm_sec.id
+
     $whereSql
 ";
 
@@ -895,6 +910,9 @@ $formCountSql = "
     JOIN sections sec
         ON ff.section_id = sec.id
 
+    LEFT JOIN section_master sm_sec
+        ON sec.section_id = sm_sec.id
+
     $whereSql
 ";
 
@@ -922,6 +940,9 @@ $teacherCountSql = "
 
     JOIN sections sec
         ON ff.section_id = sec.id
+
+    LEFT JOIN section_master sm_sec
+        ON sec.section_id = sm_sec.id
 
     $whereSql
 ";
@@ -1032,7 +1053,7 @@ if ($hasAcademicFilter) {
     if ($filterSection !== '') {
 
         $teacherPerfParts[] =
-            "sec.section = ?";
+            "sm_sec.section_name = ?";
 
         $teacherPerfTypes .= 's';
 
@@ -1236,6 +1257,11 @@ if ($hasAcademicFilter) {
                 ON ff.section_id = sec.id
 
 
+            LEFT JOIN section_master sm_sec
+
+                ON sec.section_id = sm_sec.id
+
+
             JOIN teachers t
 
                 ON sec.teacher_id = t.id
@@ -1384,7 +1410,7 @@ if ($hasAcademicFilter) {
         if ($filterSection !== '') {
 
             $trParts[] =
-                "sec.section = ?";
+                "sm_sec.section_name = ?";
 
             $trTypes .= 's';
 
@@ -1450,6 +1476,11 @@ if ($hasAcademicFilter) {
             JOIN sections sec
 
                 ON ff.section_id = sec.id
+
+
+            LEFT JOIN section_master sm_sec
+
+                ON sec.section_id = sm_sec.id
 
 
             WHERE
@@ -2495,7 +2526,7 @@ include '../includes/admin_sidebar.php';
 
 <!-- Academic Feedback -->
 
-<div id="academic-feedback" class="mb-2">
+<!-- <div id="academic-feedback" class="mb-2">
 
     <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
 
@@ -2507,19 +2538,19 @@ include '../includes/admin_sidebar.php';
 
     </h3>
 
-</div>
+</div> -->
 
 
 <!-- Academic Filters -->
 
-<div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6">
+<!-- <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6">
 
-    <form method="GET" action="#academic-feedback" class="flex flex-col sm:flex-row gap-4 items-end">
+    <form method="GET" action="#academic-feedback" class="flex flex-col sm:flex-row gap-4 items-end"> -->
 
 
         <!-- Academic Year -->
 
-        <div class="flex-1 min-w-[160px]">
+        <!-- <div class="flex-1 min-w-[160px]">
 
             <label class="block text-xs font-bold text-slate-500 mb-1">
 
@@ -2559,12 +2590,12 @@ include '../includes/admin_sidebar.php';
 
             </select>
 
-        </div>
+        </div> -->
 
 
         <!-- Semester -->
 
-        <div class="flex-1 min-w-[160px]">
+        <!-- <div class="flex-1 min-w-[160px]">
 
             <label class="block text-xs font-bold text-slate-500 mb-1">
 
@@ -2606,12 +2637,12 @@ include '../includes/admin_sidebar.php';
 
             </select>
 
-        </div>
+        </div> -->
 
 
         <!-- Feedback Form -->
 
-        <div class="flex-1 max-w-xl">
+        <!-- <div class="flex-1 max-w-xl">
 
             <label class="block text-xs font-bold text-slate-500 mb-1">
 
@@ -2693,12 +2724,12 @@ include '../includes/admin_sidebar.php';
 
             </select>
 
-        </div>
+        </div> -->
 
 
         <!-- Buttons -->
 
-        <div class="flex gap-2 shrink-0">
+        <!-- <div class="flex gap-2 shrink-0">
 
             <button type="submit"
                 class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-all h-[42px]">
@@ -2721,12 +2752,12 @@ include '../includes/admin_sidebar.php';
 
     </form>
 
-</div>
+</div> -->
 
 
 <!-- Summary Cards -->
 
-<div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
+<!-- <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
 
 
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3">
@@ -2833,7 +2864,7 @@ include '../includes/admin_sidebar.php';
 
     </div>
 
-</div>
+</div> -->
 
 
 <!-- =========================================================
@@ -2849,7 +2880,7 @@ include '../includes/admin_sidebar.php';
 )
 ): ?>
 
-    <div class="mb-6">
+    <!-- <div class="mb-6">
 
         <h3 class="text-sm font-bold text-slate-800 mb-3">
 
@@ -3229,13 +3260,13 @@ include '../includes/admin_sidebar.php';
 
         </div>
 
-    </div>
+    </div> -->
 
 <?php elseif (
     $hasAcademicFilter
 ): ?>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6 text-center">
+    <!-- <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6 text-center">
 
         <p class="text-sm text-slate-500">
 
@@ -3243,19 +3274,19 @@ include '../includes/admin_sidebar.php';
 
         </p>
 
-    </div>
+    </div> -->
 
 <?php endif; ?>
 
 
 <!-- SA & ADMIN -->
 
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 border-t-2 border-slate-200 pt-6 mb-6">
+<!-- <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 border-t-2 border-slate-200 pt-6 mb-6"> -->
 
 
     <!-- SA -->
 
-    <div id="sa-feedback">
+    <!-- <div id="sa-feedback">
 
         <h3 class="text-base font-bold text-slate-800 flex items-center gap-2 mb-3">
 
@@ -3621,12 +3652,12 @@ include '../includes/admin_sidebar.php';
 
         </div>
 
-    </div>
+    </div> -->
 
 
     <!-- Administration -->
 
-    <div id="admin-feedback">
+    <!-- <div id="admin-feedback">
 
         <h3 class="text-base font-bold text-slate-800 flex items-center gap-2 mb-3">
 
@@ -4002,7 +4033,7 @@ include '../includes/admin_sidebar.php';
 
     </div>
 
-</div>
+</div> -->
 
 
 <!-- =========================================================

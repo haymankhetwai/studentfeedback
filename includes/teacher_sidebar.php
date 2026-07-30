@@ -6,7 +6,6 @@ $navItems = $navItems ?? [
     ['label' => $LANG['nav_dashboard'] ?? 'Dashboard', 'href' => '/studentfeedbackucsh/teacher/dashboard.php', 'key' => 'dashboard', 'icon' => 'home'],
     ['label' => $LANG['nav_my_sections'] ?? 'My Sections', 'href' => '/studentfeedbackucsh/teacher/my_sections.php', 'key' => 'sections', 'icon' => 'grid'],
     ['label' => $LANG['nav_feedback_results'] ?? 'Feedback Results', 'href' => '/studentfeedbackucsh/teacher/feedback_results.php', 'key' => 'results', 'icon' => 'chart'],
-    ['label' => $LANG['nav_analytics'] ?? 'Analytics', 'href' => '/studentfeedbackucsh/teacher/analytics.php', 'key' => 'analytics', 'icon' => 'report'],
     ['label' => $LANG['nav_trend_analysis'] ?? 'Trend Analysis', 'href' => '/studentfeedbackucsh/teacher/trend_analysis.php', 'key' => 'trend', 'icon' => 'history'],
     ['label' => $LANG['nav_profile'] ?? 'Profile', 'href' => '/studentfeedbackucsh/teacher/profile.php', 'key' => 'profile', 'icon' => 'user'],
 ];
@@ -17,7 +16,6 @@ $iconColors = [
     'dashboard' => 'text-blue-700',
     'sections' => 'text-emerald-500',
     'results' => 'text-amber-500',
-    'analytics' => 'text-purple-500',
     'trend' => 'text-cyan-700',
     'profile' => 'text-pink-500',
 ];
