@@ -792,22 +792,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             $surveyStmt->execute();
             $surveyStmt->close();
 
-            $ratingsStmt = $conn->prepare(
-                "DELETE FROM feedback_ratings
-                 WHERE form_id = ?"
-            );
-            $ratingsStmt->bind_param('i', $deleteId);
-            $ratingsStmt->execute();
-            $ratingsStmt->close();
-
-            $commentsStmt = $conn->prepare(
-                "DELETE FROM feedback_comments
-                 WHERE form_id = ?"
-            );
-            $commentsStmt->bind_param('i', $deleteId);
-            $commentsStmt->execute();
-            $commentsStmt->close();
-
             $submissionsStmt = $conn->prepare(
                 "DELETE FROM feedback_submissions
                  WHERE form_id = ?"

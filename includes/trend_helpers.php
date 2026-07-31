@@ -13,10 +13,16 @@
  */
 function trendRatingCase(): string
 {
-    return "CASE 
-        WHEN fr.rating IN ('Excellent','Good','good','3') THEN 5 
-        WHEN fr.rating IN ('Fair','fair','Normal','Average','2') THEN 3 
-        WHEN fr.rating IN ('Poor','Bad','bad','1') THEN 1 
+    return "CASE COALESCE(
+        JSON_UNQUOTE(JSON_EXTRACT(
+            fq.options_json,
+            CONCAT('$[', fsa.selected_option_index, '].category')
+        )),
+        CASE fsa.selected_option_index
+            WHEN 0 THEN 'Good' WHEN 1 THEN 'Fair' WHEN 2 THEN 'Bad'
+        END
+    )
+        WHEN 'Good' THEN 5 WHEN 'Fair' THEN 3 WHEN 'Bad' THEN 1
         ELSE 3 END";
 }
 
@@ -34,17 +40,17 @@ function getAcademicRatingTrend(mysqli $conn, int $teacherId, ?int $courseId = n
     $rc = trendRatingCase();
     $sql = "SELECT ay.id AS ay_id, ay.year_name,
                    ROUND(AVG($rc), 2) AS avg_rating,
-                   COUNT(fr.id) AS total_ratings,
-                   SUM(CASE WHEN fr.rating IN ('Excellent','Good','good','3') THEN 1 ELSE 0 END) AS good_count,
-                   SUM(CASE WHEN fr.rating IN ('Fair','fair','Normal','Average','2') THEN 1 ELSE 0 END) AS fair_count,
-                   SUM(CASE WHEN fr.rating IN ('Poor','Bad','bad','1') THEN 1 ELSE 0 END) AS bad_count
-            FROM feedback_ratings fr
-            JOIN feedback_forms ff ON fr.form_id = ff.id
-            JOIN feedback_questions fq ON fr.question_id = fq.id
+                   COUNT(fsa.id) AS total_ratings,
+                   SUM(CASE WHEN ($rc) = 5 THEN 1 ELSE 0 END) AS good_count,
+                   SUM(CASE WHEN ($rc) = 3 THEN 1 ELSE 0 END) AS fair_count,
+                   SUM(CASE WHEN ($rc) = 1 THEN 1 ELSE 0 END) AS bad_count
+            FROM feedback_survey_answers fsa
+            JOIN feedback_submissions fsub ON fsa.submission_id = fsub.id
+            JOIN feedback_forms ff ON fsub.form_id = ff.id
+            JOIN feedback_questions fq ON fsa.question_id = fq.id
             JOIN sections sec ON ff.section_id = sec.id
             JOIN academic_years ay ON ff.academic_year_id = ay.id
             WHERE ff.module = 'academic'
-              AND fq.question_type = 'rating'
               AND sec.teacher_id = ?";
 
     $types = 'i';
@@ -76,13 +82,13 @@ function getAcademicQuestionTrend(mysqli $conn, int $teacherId, ?int $courseId =
     $rc = trendRatingCase();
     $sql = "SELECT ay.year_name, fq.question_no, fq.question_text,
                    ROUND(AVG($rc), 2) AS avg_rating
-            FROM feedback_ratings fr
-            JOIN feedback_forms ff ON fr.form_id = ff.id
-            JOIN feedback_questions fq ON fr.question_id = fq.id
+            FROM feedback_survey_answers fsa
+            JOIN feedback_submissions fsub ON fsa.submission_id = fsub.id
+            JOIN feedback_forms ff ON fsub.form_id = ff.id
+            JOIN feedback_questions fq ON fsa.question_id = fq.id
             JOIN sections sec ON ff.section_id = sec.id
             JOIN academic_years ay ON ff.academic_year_id = ay.id
             WHERE ff.module = 'academic'
-              AND fq.question_type = 'rating'
               AND sec.teacher_id = ?";
 
     $types = 'i';
@@ -122,7 +128,6 @@ function getAcademicSurveyTrend(mysqli $conn, int $teacherId, ?int $courseId = n
             JOIN sections sec ON ff.section_id = sec.id
             JOIN academic_years ay ON ff.academic_year_id = ay.id
             WHERE ff.module = 'academic'
-              AND fq.question_type = 'survey'
               AND sec.teacher_id = ?";
 
     $types = 'i';
@@ -158,16 +163,16 @@ function getModuleRatingTrend(mysqli $conn, string $module, ?int $semId = null):
     $rc = trendRatingCase();
     $sql = "SELECT ay.id AS ay_id, ay.year_name,
                    ROUND(AVG($rc), 2) AS avg_rating,
-                   COUNT(fr.id) AS total_ratings,
-                   SUM(CASE WHEN fr.rating IN ('Excellent','Good','good','3') THEN 1 ELSE 0 END) AS good_count,
-                   SUM(CASE WHEN fr.rating IN ('Fair','fair','Normal','Average','2') THEN 1 ELSE 0 END) AS fair_count,
-                   SUM(CASE WHEN fr.rating IN ('Poor','Bad','bad','1') THEN 1 ELSE 0 END) AS bad_count
-            FROM feedback_ratings fr
-            JOIN feedback_forms ff ON fr.form_id = ff.id
-            JOIN feedback_questions fq ON fr.question_id = fq.id
+                   COUNT(fsa.id) AS total_ratings,
+                   SUM(CASE WHEN ($rc) = 5 THEN 1 ELSE 0 END) AS good_count,
+                   SUM(CASE WHEN ($rc) = 3 THEN 1 ELSE 0 END) AS fair_count,
+                   SUM(CASE WHEN ($rc) = 1 THEN 1 ELSE 0 END) AS bad_count
+            FROM feedback_survey_answers fsa
+            JOIN feedback_submissions fsub ON fsa.submission_id = fsub.id
+            JOIN feedback_forms ff ON fsub.form_id = ff.id
+            JOIN feedback_questions fq ON fsa.question_id = fq.id
             JOIN academic_years ay ON ff.academic_year_id = ay.id
-            WHERE ff.module = ?
-              AND fq.question_type = 'rating'";
+            WHERE ff.module = ?";
 
     $types = 's';
     $params = [$module];
@@ -196,12 +201,12 @@ function getModuleQuestionTrend(mysqli $conn, string $module, ?int $semId = null
     $rc = trendRatingCase();
     $sql = "SELECT ay.year_name, fq.question_no, fq.question_text,
                    ROUND(AVG($rc), 2) AS avg_rating
-            FROM feedback_ratings fr
-            JOIN feedback_forms ff ON fr.form_id = ff.id
-            JOIN feedback_questions fq ON fr.question_id = fq.id
+            FROM feedback_survey_answers fsa
+            JOIN feedback_submissions fsub ON fsa.submission_id = fsub.id
+            JOIN feedback_forms ff ON fsub.form_id = ff.id
+            JOIN feedback_questions fq ON fsa.question_id = fq.id
             JOIN academic_years ay ON ff.academic_year_id = ay.id
-            WHERE ff.module = ?
-              AND fq.question_type = 'rating'";
+            WHERE ff.module = ?";
 
     $types = 's';
     $params = [$module];
@@ -235,8 +240,7 @@ function getModuleSurveyTrend(mysqli $conn, string $module, ?int $semId = null):
             JOIN feedback_forms ff ON fsub.form_id = ff.id
             JOIN feedback_questions fq ON fsa.question_id = fq.id
             JOIN academic_years ay ON ff.academic_year_id = ay.id
-            WHERE ff.module = ?
-              AND fq.question_type = 'survey'";
+            WHERE ff.module = ?";
 
     $types = 's';
     $params = [$module];
@@ -437,12 +441,17 @@ function processSurveyTrend(array $rawData): array
     foreach ($rawData as $row) {
         $qno  = (int) $row['question_no'];
         $year = $row['year_name'];
-        $oidx = (int) $row['selected_option_index'];
+        $selectedIndex = (int) $row['selected_option_index'];
+        $normalizedOptions = normalizeSurveyOptions($row['options_json'] ?? '[]');
+        $category = $normalizedOptions[$selectedIndex]['category'] ?? null;
+        $oidx = array_search($category, ['Good', 'Fair', 'Bad'], true);
+        if ($oidx === false) {
+            continue;
+        }
         $cnt  = (int) $row['cnt'];
 
         $grouped[$qno][$year][$oidx] = $cnt;
         $qTexts[$qno] = $row['question_text'];   // overwritten with latest
-        $qOpts[$qno]  = $row['options_json'];
         $allYears[$year] = true;
     }
 
@@ -452,8 +461,8 @@ function processSurveyTrend(array $rawData): array
     // Step 2: Build structured output with percentages
     $result = [];
     foreach ($grouped as $qno => $yearData) {
-        $options = json_decode($qOpts[$qno] ?? '[]', true) ?: [];
-        $optionCount = count($options);
+        $options = ['Good', 'Fair', 'Bad'];
+        $optionCount = 3;
 
         $data = []; // option_index → [year => pct]
         foreach ($yearData as $year => $optCounts) {

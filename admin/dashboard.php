@@ -4,6 +4,28 @@ require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 requireRole('admin');
 
+/*
+ * Survey-only compatibility for the legacy dashboard.
+ *
+ * Expose categorized Survey answers in a request-scoped reporting dataset.
+ */
+$conn->query("
+        CREATE TEMPORARY TABLE survey_analysis_answers AS
+        SELECT
+            fsa.id,
+            fs.form_id,
+            CASE fsa.selected_option_index
+                WHEN 0 THEN 'Good'
+                WHEN 1 THEN 'Fair'
+                WHEN 2 THEN 'Bad'
+                ELSE 'Bad'
+            END AS rating,
+            fsa.created_at
+        FROM feedback_survey_answers fsa
+        JOIN feedback_submissions fs
+            ON fs.id = fsa.submission_id
+    ");
+
 updateAllFeedbackStatuses($conn);
 
 $pageTitle = $LANG['nav_dashboard'] ?? 'Dashboard';
@@ -837,7 +859,7 @@ $ratingCountSql = "
     SELECT
         COUNT(*) AS cnt
 
-    FROM feedback_ratings fr
+    FROM survey_analysis_answers fr
 
     JOIN feedback_forms ff
         ON fr.form_id = ff.id
@@ -1244,7 +1266,7 @@ if ($hasAcademicFilter) {
                 ) AS bad_count
 
 
-            FROM feedback_ratings fr
+            FROM survey_analysis_answers fr
 
 
             JOIN feedback_forms ff
@@ -1465,7 +1487,7 @@ if ($hasAcademicFilter) {
                 COUNT(*) AS qty
 
 
-            FROM feedback_ratings fr
+            FROM survey_analysis_answers fr
 
 
             JOIN feedback_forms ff
@@ -1931,7 +1953,7 @@ $saTotalRatings =
         SELECT
             COUNT(DISTINCT fr.id) AS cnt
 
-        FROM feedback_ratings fr
+        FROM survey_analysis_answers fr
 
         JOIN feedback_forms ff
             ON fr.form_id = ff.id
@@ -1992,7 +2014,7 @@ $saRatingDist =
 
             COUNT(DISTINCT fr.id) AS qty
 
-        FROM feedback_ratings fr
+        FROM survey_analysis_answers fr
 
         JOIN feedback_forms ff
             ON fr.form_id = ff.id
@@ -2275,7 +2297,7 @@ $admTotalRatings =
         SELECT
             COUNT(DISTINCT fr.id) AS cnt
 
-        FROM feedback_ratings fr
+        FROM survey_analysis_answers fr
 
         JOIN feedback_forms ff
             ON fr.form_id = ff.id
@@ -2336,7 +2358,7 @@ $admRatingDist =
 
             COUNT(DISTINCT fr.id) AS qty
 
-        FROM feedback_ratings fr
+        FROM survey_analysis_answers fr
 
         JOIN feedback_forms ff
             ON fr.form_id = ff.id

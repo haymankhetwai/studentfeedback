@@ -393,6 +393,58 @@ function getMostSelectedSurveyOptions(array $voteCounts): array
     return ['indices' => $indices, 'max_votes' => $maxVotes, 'total' => $total];
 }
 
+/**
+ * Normalize Survey options to [{label, category}, ...].
+ * Legacy string arrays remain compatible by mapping positions 0/1/2 to
+ * Good/Fair/Bad without changing existing answer indexes.
+ */
+function normalizeSurveyOptions(array|string|null $options): array
+{
+    if (is_string($options)) {
+        $options = json_decode($options, true);
+    }
+    if (!is_array($options)) {
+        return [];
+    }
+
+    $categories = ['Good', 'Fair', 'Bad'];
+    $normalized = [];
+    foreach ($options as $index => $option) {
+        if (is_array($option)) {
+            $label = clean((string) ($option['label'] ?? ''));
+            $category = (string) ($option['category'] ?? ($categories[$index] ?? 'Bad'));
+        } else {
+            $label = is_scalar($option) ? clean((string) $option) : '';
+            $category = $categories[$index] ?? 'Bad';
+        }
+
+        if ($label === '' || !in_array($category, $categories, true)) {
+            return [];
+        }
+        $normalized[] = ['label' => $label, 'category' => $category];
+    }
+    return $normalized;
+}
+
+function surveyCategoryCounts(array $options, array $optionCounts): array
+{
+    $counts = ['Good' => 0, 'Fair' => 0, 'Bad' => 0];
+    foreach (normalizeSurveyOptions($options) as $index => $option) {
+        $counts[$option['category']] += (int) ($optionCounts[$index] ?? 0);
+    }
+    return $counts;
+}
+
+function surveyCategoryPercentages(array $categoryCounts): array
+{
+    $total = array_sum($categoryCounts);
+    return [
+        'Good' => $total ? round(($categoryCounts['Good'] ?? 0) * 100 / $total, 1) : 0.0,
+        'Fair' => $total ? round(($categoryCounts['Fair'] ?? 0) * 100 / $total, 1) : 0.0,
+        'Bad' => $total ? round(($categoryCounts['Bad'] ?? 0) * 100 / $total, 1) : 0.0,
+    ];
+}
+
 function moduleBadge(string $module): string
 {
     global $LANG;

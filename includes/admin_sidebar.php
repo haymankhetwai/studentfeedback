@@ -463,7 +463,14 @@ $nav = [
         <div class="ml-auto flex items-center gap-3">
 
             <!-- Language Switcher -->
-            <?php $currentLang = $_SESSION['lang'] ?? 'en'; ?>
+            <?php
+            $currentLang = $_SESSION['lang'] ?? 'en';
+            $adminLanguageUrl = static function (string $language): string {
+                $params = $_GET;
+                $params['lang'] = $language;
+                return '?' . http_build_query($params);
+            };
+            ?>
 
             <div class="
                     flex items-center gap-0.5
@@ -476,7 +483,7 @@ $nav = [
                     shadow-sm
                 ">
 
-                <a href="?lang=en" class="
+                <a href="<?= e($adminLanguageUrl('en')) ?>" class="
                         px-3 py-1
                         rounded-md
                         transition-all
@@ -488,7 +495,7 @@ $nav = [
                     ENG
                 </a>
 
-                <a href="?lang=mm" class="
+                <a href="<?= e($adminLanguageUrl('mm')) ?>" class="
                         px-3 py-1
                         rounded-md
                         transition-all

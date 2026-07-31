@@ -7,6 +7,13 @@
 $currentLang = $_SESSION['lang'] ?? 'en';
 $user      = getCurrentUser();
 $initials  = avatarInitials($user['name']);
+$studentLanguageUrl = static function (string $language): string {
+    $params = $_GET;
+    $params['lang'] = $language;
+    unset($params['ajax'], $params['embed']);
+    $path = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: ($_SERVER['PHP_SELF'] ?? '');
+    return $path . '?' . http_build_query($params);
+};
 ?>
 <header class="bg-white border-b border-slate-200 px-4 lg:px-6 py-3.5 flex items-center gap-4 sticky top-0 z-20 shadow-sm">
     <!-- Hamburger (mobile) -->
@@ -25,12 +32,12 @@ $initials  = avatarInitials($user['name']);
     <div class="ml-auto flex items-center gap-3">
         <!-- Language Switcher -->
         <div class="flex items-center gap-0.5 bg-cyan-50 rounded-lg p-0.5 text-xs font-semibold border border-cyan-100 shadow-sm">
-            <a href="?lang=en"
-               class="px-3 py-1 rounded-md transition-all <?= $currentLang === 'en' ? 'bg-white shadow text-cyan-700 font-bold' : 'text-cyan-400 hover:text-cyan-700' ?>">
+            <a href="<?= e($studentLanguageUrl('en')) ?>" data-language="en"
+               class="student-language-link px-3 py-1 rounded-md transition-all <?= $currentLang === 'en' ? 'bg-white shadow text-cyan-700 font-bold' : 'text-cyan-400 hover:text-cyan-700' ?>">
                 ENG
             </a>
-            <a href="?lang=mm"
-               class="px-3 py-1 rounded-md transition-all <?= $currentLang === 'mm' ? 'bg-white shadow text-cyan-700 font-bold' : 'text-cyan-400 hover:text-cyan-700' ?>">
+            <a href="<?= e($studentLanguageUrl('mm')) ?>" data-language="mm"
+               class="student-language-link px-3 py-1 rounded-md transition-all <?= $currentLang === 'mm' ? 'bg-white shadow text-cyan-700 font-bold' : 'text-cyan-400 hover:text-cyan-700' ?>">
                 မြန်မာ
             </a>
         </div>

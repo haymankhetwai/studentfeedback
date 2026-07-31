@@ -2068,6 +2068,7 @@ $LANG = [
     // ─── Student Module Redesign ────────────────────────────────
     'nav_feedback_forms' => 'Feedback Forms',
     'feedback_forms_desc' => 'Complete all feedback forms in order. Forms are unlocked sequentially.',
+    'back_to_feedback_forms' => 'Back to Feedback Forms',
     'overall_progress' => 'Overall Progress',
     'forms_completed' => 'forms completed',
     'continue_feedback' => 'Continue Feedback',

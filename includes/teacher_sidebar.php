@@ -85,14 +85,21 @@ $iconColors = [
             <h1 class="text-base font-semibold text-slate-800"><?= e($pageTitle) ?></h1>
             <div class="ml-auto flex items-center gap-3">
                 <!-- Language Switcher -->
-                <?php $currentLang = $_SESSION['lang'] ?? 'en'; ?>
+                <?php
+                $currentLang = $_SESSION['lang'] ?? 'en';
+                $languageUrl = static function (string $language): string {
+                    $params = $_GET;
+                    $params['lang'] = $language;
+                    return '?' . http_build_query($params);
+                };
+                ?>
                 <div
                     class="flex items-center gap-0.5 bg-blue-50 rounded-lg p-0.5 text-xs font-semibold border border-blue-100 shadow-sm">
-                    <a href="?lang=en"
+                    <a href="<?= e($languageUrl('en')) ?>"
                         class="px-3 py-1 rounded-md transition-all <?= $currentLang === 'en' ? 'bg-white shadow text-blue-700 font-bold' : 'text-blue-300 hover:text-blue-600' ?>">
                         ENG
                     </a>
-                    <a href="?lang=mm"
+                    <a href="<?= e($languageUrl('mm')) ?>"
                         class="px-3 py-1 rounded-md transition-all <?= $currentLang === 'mm' ? 'bg-white shadow text-blue-700 font-bold' : 'text-blue-300 hover:text-blue-600' ?>">
                         မြန်မာ
                     </a>

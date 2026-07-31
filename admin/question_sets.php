@@ -86,8 +86,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                 }
 
                 $insQ = $conn->prepare(
-                    "INSERT INTO feedback_questions (question_set_id, module, question_no, question_text, question_type, options_json)
-                     SELECT ?, module, question_no, question_text, question_type, options_json
+                    "INSERT INTO feedback_questions (question_set_id, question_no, question_text, options_json)
+                     SELECT ?, question_no, question_text, options_json
                      FROM feedback_questions WHERE question_set_id = ?"
                 );
                 $insQ->bind_param('ii', $newSetId, $prevSetId);
@@ -177,7 +177,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                 throw new Exception("No insert_id returned. Connection error: " . $conn->error);
             }
 
-            $srcQ = $conn->prepare("SELECT question_no, question_text, question_type, options_json FROM feedback_questions WHERE question_set_id=? ORDER BY question_no ASC");
+            $srcQ = $conn->prepare("SELECT question_no, question_text, options_json FROM feedback_questions WHERE question_set_id=? ORDER BY question_no ASC");
             $srcQ->bind_param('i', $sourceId);
             $srcQ->execute();
             $srcQuestions = $srcQ->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -185,9 +185,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
             $copied = 0;
             if ($srcQuestions) {
-                $insQ = $conn->prepare("INSERT INTO feedback_questions (question_set_id, module, question_no, question_text, question_type, options_json) VALUES (?,?,?,?,?,?)");
+                $insQ = $conn->prepare("INSERT INTO feedback_questions (question_set_id, question_no, question_text, options_json) VALUES (?,?,?,?)");
                 foreach ($srcQuestions as $q) {
-                    $insQ->bind_param('isisss', $newSetId, $targetModule, $q['question_no'], $q['question_text'], $q['question_type'], $q['options_json']);
+                    $insQ->bind_param('iiss', $newSetId, $q['question_no'], $q['question_text'], $q['options_json']);
                     if (!$insQ->execute()) {
                         throw new Exception("Question insert failed: " . $insQ->error . " (errno: " . $insQ->errno . ")");
                     }
