@@ -316,7 +316,7 @@ $pageTitle = $form['title'] ?? 'Survey';
                 <div class="flex justify-end">
                     <button type="submit"
                         class="w-full md:w-auto px-8 py-3 rounded-xl bg-violet-600 text-white font-semibold hover:bg-violet-700">
-                        Submit Survey
+                        <?= $LANG['submit_survey'] ?? 'Submit Survey' ?>
                     </button>
                 </div>
             </form>

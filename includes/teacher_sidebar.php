@@ -37,7 +37,7 @@ $iconColors = [
             </div>
             <div>
                 <p class="text-lg font-bold tracking-wide"><?= $LANG['teacher_portal'] ?? 'SFMS Teacher' ?></p>
-                <p class="text-[10px] text-white/70"><?= $LANG['teacher_portal_sub'] ?? 'Faculty Portal' ?></p>
+                <p class="text-sm text-white/70"><?= $LANG['teacher_portal_sub'] ?? 'Faculty Portal' ?></p>
             </div>
             <button onclick="closeSidebar()" class="ml-auto lg:hidden text-white/60 hover:text-white">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
