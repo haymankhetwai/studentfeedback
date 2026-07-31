@@ -284,7 +284,7 @@ if ($loadForm && $formId) {
 
         // Load questions from question_set_id
         if (!empty($form['question_set_id'])) {
-            $q = $conn->prepare("SELECT id, question_no, question_text, question_type, options_json FROM feedback_questions WHERE question_set_id = ? ORDER BY question_no ASC");
+            $q = $conn->prepare("SELECT id, question_no, question_text, options_json FROM feedback_questions WHERE question_set_id = ? ORDER BY question_no ASC");
             $q->bind_param('i', $form['question_set_id']);
             $q->execute();
             $questions = $q->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -341,37 +341,42 @@ if ($loadForm && $formId) {
         }
         $pendingCount = max(0, $totalStudents - $completedCount);
 
-        // Rating stats
-        $statStmt = $conn->prepare("SELECT fq.id AS question_id, fr.rating, COUNT(*) AS qty FROM feedback_ratings fr JOIN feedback_questions fq ON fr.question_id = fq.id WHERE fr.form_id = ? GROUP BY fq.id, fr.rating");
-        $statStmt->bind_param('i', $formId);
-        $statStmt->execute();
-        $rawStats = $statStmt->get_result()->fetch_all(MYSQLI_ASSOC);
-        $statStmt->close();
-        foreach ($rawStats as $row) {
-            $rKey = trim($row['rating']);
-            if ($rKey == '3' || $rKey === 'ကောင်း' || $rKey === 'Good' || $rKey === 'good')
-                $rKey = 'Good';
-            elseif ($rKey == '2' || $rKey === 'သင့်' || $rKey === 'Normal' || $rKey === 'normal' || $rKey === 'Average' || $rKey === 'Fair' || $rKey === 'fair')
-                $rKey = 'Fair';
-            elseif ($rKey == '1' || $rKey === 'ညံ့' || $rKey === 'Bad' || $rKey === 'bad' || $rKey === 'Poor' || $rKey === 'poor')
-                $rKey = 'Bad';
-            if (!isset($ratingStats[$row['question_id']][$rKey]))
-                $ratingStats[$row['question_id']][$rKey] = 0;
-            $ratingStats[$row['question_id']][$rKey] += (int) $row['qty'];
-        }
+        // Rating and Comment storage was removed by the Survey-only migration.
+        // Keep the legacy rendering variables empty without querying deleted tables.
+        if (false) {
+            // Rating stats
+            $statStmt = $conn->prepare("SELECT 1 WHERE 0");
+            $statStmt->bind_param('i', $formId);
+            $statStmt->execute();
+            $rawStats = $statStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+            $statStmt->close();
+            foreach ($rawStats as $row) {
+                $rKey = trim($row['rating']);
+                if ($rKey == '3' || $rKey === 'ကောင်း' || $rKey === 'Good' || $rKey === 'good')
+                    $rKey = 'Good';
+                elseif ($rKey == '2' || $rKey === 'သင့်' || $rKey === 'Normal' || $rKey === 'normal' || $rKey === 'Average' || $rKey === 'Fair' || $rKey === 'fair')
+                    $rKey = 'Fair';
+                elseif ($rKey == '1' || $rKey === 'ညံ့' || $rKey === 'Bad' || $rKey === 'bad' || $rKey === 'Poor' || $rKey === 'poor')
+                    $rKey = 'Bad';
+                if (!isset($ratingStats[$row['question_id']][$rKey]))
+                    $ratingStats[$row['question_id']][$rKey] = 0;
+                $ratingStats[$row['question_id']][$rKey] += (int) $row['qty'];
+            }
 
-        // Comments
-        $cStmt = $conn->prepare("SELECT fq.id AS question_id, fc.comment_text FROM feedback_comments fc JOIN feedback_questions fq ON fc.question_id = fq.id WHERE fc.form_id = ? AND fc.comment_text IS NOT NULL AND fc.comment_text != '' ORDER BY fc.comment_text DESC");
-        $cStmt->bind_param('i', $formId);
-        $cStmt->execute();
-        $rawComments = $cStmt->get_result()->fetch_all(MYSQLI_ASSOC);
-        $cStmt->close();
-        foreach ($rawComments as $row) {
-            $allComments[$row['question_id']][] = $row['comment_text'];
+            // Comments
+            $cStmt = $conn->prepare("SELECT 1 WHERE 0");
+            $cStmt->bind_param('i', $formId);
+            $cStmt->execute();
+            $rawComments = $cStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+            $cStmt->close();
+            foreach ($rawComments as $row) {
+                $allComments[$row['question_id']][] = $row['comment_text'];
+            }
+
         }
 
         // Survey stats
-        $surveyQs = array_filter($questions, fn($q) => $q['question_type'] === 'survey');
+        $surveyQs = $questions;
         if (!empty($surveyQs)) {
             $surveyIds = array_column($surveyQs, 'id');
             $placeholders = implode(',', array_fill(0, count($surveyIds), '?'));
@@ -388,9 +393,16 @@ if ($loadForm && $formId) {
     }
 }
 
-$ratingQuestions = array_filter($questions, fn($q) => $q['question_type'] === 'rating');
-$commentQuestions = array_filter($questions, fn($q) => $q['question_type'] === 'comment');
-$surveyQuestions = array_filter($questions, fn($q) => $q['question_type'] === 'survey');
+$surveyQuestions = $questions;
+$ratingQuestions = $surveyQuestions;
+$commentQuestions = [];
+$ratingStats = [];
+foreach ($surveyQuestions as $question) {
+    $ratingStats[$question['id']] = surveyCategoryCounts(
+        normalizeSurveyOptions($question['options_json'] ?? '[]'),
+        $surveyStats[$question['id']] ?? []
+    );
+}
 
 // Overall rating calculation
 $completedCount = $completedCount ?? 0;
@@ -569,8 +581,139 @@ include '../includes/admin_sidebar.php';
         }
 
         @page {
-            margin: 1.2cm;
+            margin: 10mm 12mm;
             size: A4 portrait;
+        }
+
+        .print-cover-page {
+            min-height: 267mm;
+            display: flex !important;
+            flex-direction: column;
+            break-after: auto;
+            page-break-after: auto;
+            margin-bottom: 0;
+        }
+
+        .print-cover-chart {
+            flex: none;
+            margin-top: 10px;
+            padding: 8px 12px 6px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        .print-cover-chart h3 {
+            margin: 0 0 8px;
+            text-align: center;
+            font-size: 11pt;
+            color: #0f172a;
+        }
+
+        .print-cover-chart-canvas {
+            position: relative;
+            height: 140mm !important;
+            max-height: 140mm !important;
+            overflow: hidden !important;
+        }
+
+        .print-cover-chart-canvas canvas {
+            display: block;
+            width: 100% !important;
+            height: 100% !important;
+            max-height: 140mm !important;
+        }
+
+        .print-percentage-summary {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+            padding: 0 4px;
+            clear: both;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        .print-percentage-item {
+            text-align: center;
+            padding: 6px 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 9pt;
+            color: #475569;
+        }
+
+        .print-percentage-item strong {
+            display: block;
+            margin-top: 2px;
+            font-size: 14pt;
+            color: #0f172a;
+        }
+
+        .print-percentage-item span {
+            display: block;
+            margin-top: 1px;
+            font-size: 8pt;
+            color: #64748b;
+        }
+
+        .print-overall-summary {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 36px;
+            margin-top: 10px;
+            padding: 9px 16px;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            break-inside: avoid;
+        }
+
+        .print-overall-summary > div {
+            text-align: center;
+        }
+
+        .print-overall-summary strong {
+            display: block;
+            font-size: 18pt;
+            color: #0f172a;
+        }
+
+        .print-overall-summary span {
+            font-size: 8pt;
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .print-signatures {
+            display: flex !important;
+            justify-content: space-between;
+            gap: 20px;
+            margin-top: 28px;
+            padding-top: 24px;
+            font-size: 9pt;
+            color: #334155;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        .print-results-page {
+            break-before: page;
+            page-break-before: always;
+            margin: 0 !important;
+            break-inside: auto !important;
+            page-break-inside: auto !important;
+        }
+
+        .print-results-page thead {
+            display: table-header-group;
+        }
+
+        .print-exclude {
+            display: none !important;
         }
 
         .mb-6,
@@ -601,7 +744,7 @@ include '../includes/admin_sidebar.php';
             text-align: center;
             border-bottom: 3px double #1e293b;
             padding-bottom: 12px;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
         }
 
         .print-report-header h1 {
@@ -625,6 +768,13 @@ include '../includes/admin_sidebar.php';
             margin: 2px 0;
         }
 
+        .print-generated-date {
+            margin-top: 5px !important;
+            font-size: 8.5pt !important;
+            font-weight: 600;
+            color: #475569 !important;
+        }
+
         .print-section {
             margin-bottom: 14px;
             break-inside: avoid;
@@ -641,8 +791,8 @@ include '../includes/admin_sidebar.php';
 
         .print-info-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 6px 24px;
+            grid-template-columns: 145px 1fr;
+            gap: 7px 16px;
             font-size: 10pt;
         }
 
@@ -743,7 +893,7 @@ include '../includes/admin_sidebar.php';
     }
 </style>
 
-<div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+<div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 no-print">
     <div>
         <!-- <h2 class="text-xl font-bold text-slate-800"><?= $LANG['all_feedback_results'] ?? "All Feedback Results" ?></h2> -->
         <p class="text-sm text-slate-500 mt-0.5"><?= $LANG['feedback_results_subtitle'] ?? "View results for all modules — Academic, Student Affairs, and
@@ -1010,17 +1160,20 @@ include '../includes/admin_sidebar.php';
                     <div class="text-center p-3 rounded-xl bg-emerald-50 border border-emerald-200">
                         <p class="text-2xl font-bold text-emerald-600"><?= $barPctGood ?>%</p>
                         <p class="text-xs font-semibold text-emerald-700"><?= $LANG['good'] ?? 'Good' ?></p>
-                        <p class="text-[10px] text-slate-500"><?= number_format($totalGood) ?> <?= $LANG['ratings'] ?? 'ratings' ?></p>
+                        <p class="text-[10px] text-slate-500"><?= number_format($totalGood) ?>             <?= $LANG['ratings'] ?? 'ratings' ?>
+                        </p>
                     </div>
                     <div class="text-center p-3 rounded-xl bg-amber-50 border border-amber-200">
                         <p class="text-2xl font-bold text-amber-600"><?= $barPctFair ?>%</p>
                         <p class="text-xs font-semibold text-amber-700"><?= $LANG['fair'] ?? 'Fair' ?></p>
-                        <p class="text-[10px] text-slate-500"><?= number_format($totalFair) ?> <?= $LANG['ratings'] ?? 'ratings' ?></p>
+                        <p class="text-[10px] text-slate-500"><?= number_format($totalFair) ?>             <?= $LANG['ratings'] ?? 'ratings' ?>
+                        </p>
                     </div>
                     <div class="text-center p-3 rounded-xl bg-red-50 border border-red-200">
                         <p class="text-2xl font-bold text-red-600"><?= $barPctBad ?>%</p>
                         <p class="text-xs font-semibold text-red-700"><?= $LANG['bad'] ?? 'Bad' ?></p>
-                        <p class="text-[10px] text-slate-500"><?= number_format($totalBad) ?> <?= $LANG['ratings'] ?? 'ratings' ?></p>
+                        <p class="text-[10px] text-slate-500"><?= number_format($totalBad) ?>             <?= $LANG['ratings'] ?? 'ratings' ?>
+                        </p>
                     </div>
                 </div>
             </div>
@@ -1274,7 +1427,7 @@ include '../includes/admin_sidebar.php';
                     </div>
                 <?php endif ?>
 
-                <?php if (!empty($surveyQuestions)): ?>
+                <!-- <?php if (!empty($surveyQuestions)): ?>
                     <div class="space-y-6 pt-6 border-t-2 border-slate-300">
                         <div class="flex items-center justify-between">
                             <h3 class="text-lg font-bold text-slate-900 uppercase tracking-wider">
@@ -1284,8 +1437,13 @@ include '../includes/admin_sidebar.php';
                                 class="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full font-semibold"><?= $LANG['not_included_overall_rating'] ?? 'Not included in Overall Rating' ?></span>
                         </div>
                         <?php foreach ($surveyQuestions as $q):
-                            $opts = json_decode($q['options_json'] ?? '[]', true) ?: [];
+                            $opts = ['Good', 'Fair', 'Bad'];
                             $qStats = $surveyStats[$q['id']] ?? [];
+                            $qStats = surveyCategoryCounts(
+                                normalizeSurveyOptions($q['options_json'] ?? '[]'),
+                                $qStats
+                            );
+                            $qStats = array_values($qStats);
                             $mostSelected = getMostSelectedSurveyOptions($qStats);
                             $totalVotes = $mostSelected['total'];
                             $doughnutColors = ['#7c3aed', '#2563eb', '#059669', '#d97706', '#dc2626', '#8b5cf6', '#0891b2', '#c026d3'];
@@ -1306,20 +1464,21 @@ include '../includes/admin_sidebar.php';
                                             <h4 class="text-lg font-bold text-slate-800 leading-snug"><?= e($q['question_text']) ?></h4>
                                             <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-[11px] text-slate-400">
                                                 <span><?= $totalVotes > 0 ? $totalVotes . ' ' . ($LANG['responses'] ?? 'responses') : ($LANG['no_responses_yet'] ?? 'No responses yet') ?></span>
-                                                <!-- <?php if ($totalVotes > 0 && !empty($mostSelected['indices'])): ?>
-                                                <span class="inline-flex items-center gap-1 text-violet-700 bg-violet-50 px-2 py-0.5 rounded-md font-semibold">
-                                                    🔥 အများဆုံးရွေးချယ်မှု: 
-                                                    <?php
-                                                    $mostSelectedLabels = [];
-                                                    foreach ($mostSelected['indices'] as $msIndex) {
-                                                        if (isset($opts[$msIndex])) {
-                                                            $mostSelectedLabels[] = $opts[$msIndex];
+                                                <?php if ($totalVotes > 0 && !empty($mostSelected['indices'])): ?>
+                                                    <span
+                                                        class="inline-flex items-center gap-1 text-violet-700 bg-violet-50 px-2 py-0.5 rounded-md font-semibold">
+                                                        🔥 အများဆုံးရွေးချယ်မှု:
+                                                        <?php
+                                                        $mostSelectedLabels = [];
+                                                        foreach ($mostSelected['indices'] as $msIndex) {
+                                                            if (isset($opts[$msIndex])) {
+                                                                $mostSelectedLabels[] = $opts[$msIndex];
+                                                            }
                                                         }
-                                                    }
-                                                    echo e(implode(' / ', $mostSelectedLabels));
-                                                    ?>
-                                                </span>
-                                            <?php endif; ?> -->
+                                                        echo e(implode(' / ', $mostSelectedLabels));
+                                                        ?>
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                         </div>
                                     </div>
@@ -1425,7 +1584,7 @@ include '../includes/admin_sidebar.php';
                             </div>
                         <?php endforeach ?>
                     </div>
-                <?php endif ?>
+                <?php endif ?> -->
 
                 <div class="mt-8 pt-4 border-t border-slate-100 text-center text-[11px] text-blue-500 font-semibold italic">
                     <?= $LANG['automated_report_note'] ?? 'This is an automated anonymous statistical report.' ?>
@@ -1437,15 +1596,79 @@ include '../includes/admin_sidebar.php';
         <!-- PROFESSIONAL PRINTABLE REPORT (print-only, hidden on screen) -->
         <!-- ═══════════════════════════════════════════════════════════════════════ -->
         <div class="print-only myanmar-font" style="max-width: 100%;">
+            <section class="print-cover-page">
+                <div class="print-report-header">
+                    <h1><?= $LANG['student_feedback_report'] ?? 'Student Feedback Evaluation Report' ?></h1>
+                    <p class="print-generated-date">
+                        <?= $LANG['report_generated_date'] ?? 'Report Generated Date' ?>:
+                        <?= date('F d, Y') ?>
+                    </p>
+                </div>
+
+                <div class="print-section">
+                    <dl class="print-info-grid">
+                        <dt><?= $LANG['academic_year'] ?? 'Academic Year' ?>:</dt>
+                        <dd><?= e($formMeta['academic_year'] ?? '') ?></dd>
+                        <dt><?= $LANG['semester_filter'] ?? 'Semester' ?>:</dt>
+                        <dd><?= e(semesterToRoman($formMeta['semester'] ?? '')) ?></dd>
+                        <?php if ($module === 'academic'): ?>
+                            <dt><?= $LANG['section_filter'] ?? 'Section' ?>:</dt>
+                            <dd><?= e($formMeta['section'] ?? '') ?></dd>
+                            <dt><?= $LANG['subject_filter'] ?? 'Subject / Course' ?>:</dt>
+                            <dd><?= e($formMeta['course_code'] ?? '') ?> - <?= e($formMeta['course_name'] ?? '') ?></dd>
+                            <dt><?= $LANG['teacher_label'] ?? 'Teacher' ?>:</dt>
+                            <dd><?= e($formMeta['teacher_name'] ?? '') ?></dd>
+                        <?php endif; ?>
+                    </dl>
+                </div>
+
+                <div class="print-overall-summary">
+                    <div>
+                        <strong><?= $overallPct ?>%</strong>
+                        <span><?= $LANG['overall_rating'] ?? 'Overall Rating' ?></span>
+                    </div>
+                    <div>
+                        <strong><?= e($grade) ?></strong>
+                        <span><?= $LANG['performance_grade'] ?? 'Performance Grade' ?></span>
+                    </div>
+                </div>
+
+                <div class="print-cover-chart">
+                    <h3><?= $LANG['rating_distribution'] ?? 'Survey Results (Good / Fair / Bad)' ?></h3>
+                    <div class="print-cover-chart-canvas">
+                        <canvas id="printRatingBarChart" width="700" height="525"></canvas>
+                    </div>
+                </div>
+
+                <div class="print-percentage-summary">
+                    <div class="print-percentage-item">
+                        <?= $LANG['good'] ?? 'Good' ?>
+                        <strong><?= $aggGoodPct ?>%</strong>
+                        <span><?= number_format($totalGood) ?> <?= $LANG['responses'] ?? 'responses' ?></span>
+                    </div>
+                    <div class="print-percentage-item">
+                        <?= $LANG['fair'] ?? 'Fair' ?>
+                        <strong><?= $aggFairPct ?>%</strong>
+                        <span><?= number_format($totalFair) ?> <?= $LANG['responses'] ?? 'responses' ?></span>
+                    </div>
+                    <div class="print-percentage-item">
+                        <?= $LANG['bad'] ?? 'Bad' ?>
+                        <strong><?= $aggBadPct ?>%</strong>
+                        <span><?= number_format($totalBad) ?> <?= $LANG['responses'] ?? 'responses' ?></span>
+                    </div>
+                </div>
+
+            </section>
+
             <!-- University Header -->
-            <div class="print-report-header">
+            <div class="print-report-header print-exclude">
                 <h1>University of Computer Studies(Hinthada)</h1>
                 <h2><?= $LANG['student_feedback_report'] ?? 'Student Feedback Evaluation Report' ?></h2>
                 <p><?= $LANG['confidential_note'] ?? 'Confidential — For Internal Academic Use Only' ?></p>
             </div>
 
             <!-- Teacher & Subject Information -->
-            <div class="print-section">
+            <div class="print-section print-exclude">
                 <div class="print-section-title">
                     <?= ($module === 'academic') ? (($LANG['teacher_label'] ?? 'Teacher') . ' & ' . ($LANG['subject_filter'] ?? 'Subject')) : ($LANG['form'] ?? 'Form') ?>
                     <?= $LANG['form_information'] ?? 'Information' ?>
@@ -1487,7 +1710,7 @@ include '../includes/admin_sidebar.php';
 
             <!-- Overall Teacher Rating Summary -->
             <?php if (!empty($ratingQuestions) && $completedCount > 0): ?>
-                <div class="print-section">
+                <div class="print-section print-exclude">
                     <div class="print-section-title"><?= $LANG['overall_teacher_rating'] ?? 'Overall Teacher Rating' ?> — Total
                     </div>
                     <div class="print-rating-summary">
@@ -1517,7 +1740,7 @@ include '../includes/admin_sidebar.php';
 
             <!-- Rating Questions Result Table -->
             <?php if (!empty($ratingQuestions)): ?>
-                <div class="print-section">
+                <div class="print-section print-results-page">
                     <div class="print-section-title"><?= $LANG['rating_questions'] ?? 'Rating Questions' ?> —
                         <?= $LANG['detailed_results'] ?? 'Detailed Results' ?>
                     </div>
@@ -1568,7 +1791,7 @@ include '../includes/admin_sidebar.php';
             <?php endif ?>
 
             <!-- Survey Results with Doughnut Charts -->
-            <?php if (!empty($surveyQuestions)): ?>
+            <!-- <?php if (!empty($surveyQuestions)): ?>
                 <div class="print-section">
                     <div class="print-section-title"><?= $LANG['survey_results'] ?? 'Survey Results' ?></div>
                     <div style="font-size:8pt; color:#64748b; margin-bottom:10px;">
@@ -1576,8 +1799,12 @@ include '../includes/admin_sidebar.php';
                     </div>
 
                     <?php foreach ($surveyQuestions as $q):
-                        $opts = json_decode($q['options_json'] ?? '[]', true) ?: [];
+                        $opts = ['Good', 'Fair', 'Bad'];
                         $qStats = $surveyStats[$q['id']] ?? [];
+                        $qStats = array_values(surveyCategoryCounts(
+                            normalizeSurveyOptions($q['options_json'] ?? '[]'),
+                            $qStats
+                        ));
                         $mostSelected = getMostSelectedSurveyOptions($qStats);
                         $totalVotes = $mostSelected['total'];
                         $doughnutColors = ['#7c3aed', '#2563eb', '#059669', '#d97706', '#dc2626', '#8b5cf6', '#0891b2', '#c026d3'];
@@ -1630,7 +1857,7 @@ include '../includes/admin_sidebar.php';
                         </div>
                     <?php endforeach ?>
                 </div>
-            <?php endif ?>
+            <?php endif ?> -->
 
             <!-- Student Comments -->
             <?php if (!empty($commentQuestions)): ?>
@@ -1643,7 +1870,7 @@ include '../includes/admin_sidebar.php';
                     }
                 }
                 ?>
-                <div class="print-section">
+                <div class="print-section print-exclude">
                     <div class="print-section-title"><?= $LANG['comments_suggestions'] ?? 'Student Comments' ?></div>
                     <?php if ($hasAnyComments): ?>
                         <?php foreach ($commentQuestions as $cq):
@@ -1676,7 +1903,7 @@ include '../includes/admin_sidebar.php';
             <?php endif ?>
 
             <!-- Conclusion / Recommendation -->
-            <div class="print-section">
+            <div class="print-section print-exclude">
                 <div class="print-section-title"><?= $LANG['conclusion_label'] ?? 'Conclusion' ?> &
                     <?= $LANG['recommendation_label'] ?? 'Recommendation' ?>
                 </div>
@@ -1687,9 +1914,9 @@ include '../includes/admin_sidebar.php';
             </div>
 
             <!-- Signature Lines -->
-            <div style="display:flex; justify-content:space-between; margin-top:40px; font-size:9pt; color:#334155;">
+            <div class="print-signatures">
                 <div style="text-align:center; width:200px;">
-                    <div style="border-top:1px solid #334155; padding-top:4px;"><?= $LANG['prepared_by'] ?? 'Prepared By' ?>
+                    <div style="border-top:1px solid #334155; padding-top:4px;"><?= $LANG['department'] ?? 'Department' ?>
                     </div>
                 </div>
                 <div style="text-align:center; width:200px;">
@@ -1707,7 +1934,7 @@ include '../includes/admin_sidebar.php';
             </div>
 
             <!-- Footer -->
-            <div class="print-footer">
+            <div class="print-footer print-exclude">
                 Generated by Student Feedback Management System (SFMS) — University of Computer Studies(Hinthada) —
                 <?= date('F d, Y') ?>
             </div>
@@ -2049,6 +2276,52 @@ include '../includes/admin_sidebar.php';
                     }
                 });
             }
+
+            var printBarCanvas = document.getElementById('printRatingBarChart');
+            if (printBarCanvas) {
+                new Chart(printBarCanvas, {
+                    type: 'bar',
+                    data: {
+                        labels: <?= json_encode([$LANG['good'] ?? 'Good', $LANG['fair'] ?? 'Fair', $LANG['bad'] ?? 'Bad']) ?>,
+                        datasets: [{
+                            label: <?= json_encode($LANG['responses'] ?? 'Responses') ?>,
+                            data: [<?= (int) $totalGood ?>, <?= (int) $totalFair ?>, <?= (int) $totalBad ?>],
+                            backgroundColor: ['#22c55e', '#f59e0b', '#ef4444'],
+                            borderColor: ['#15803d', '#b45309', '#b91c1c'],
+                            borderWidth: 1,
+                            borderRadius: 6,
+                            barPercentage: 0.78,
+                            categoryPercentage: 0.82,
+                            maxBarThickness: 110
+                        }]
+                    },
+                    options: {
+                        responsive: false,
+                        animation: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { enabled: false },
+                            datalabels: { display: false }
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false },
+                                ticks: { font: { family: 'Inter', size: 16, weight: '600' } }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: '#e2e8f0' },
+                                ticks: { precision: 0, font: { family: 'Inter', size: 13 } },
+                                title: {
+                                    display: true,
+                                    text: <?= json_encode($LANG['responses'] ?? 'Responses') ?>,
+                                    font: { family: 'Inter', size: 14, weight: '600' }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
         <?php endif; ?>
 
         // ===========================
@@ -2057,8 +2330,12 @@ include '../includes/admin_sidebar.php';
         <?php
         $surveyChartData = [];
         foreach ($surveyQuestions as $q) {
-            $options = json_decode($q['options_json'] ?? '[]', true) ?: [];
+            $options = ['Good', 'Fair', 'Bad'];
             $stats = $surveyStats[$q['id']] ?? [];
+            $stats = array_values(surveyCategoryCounts(
+                normalizeSurveyOptions($q['options_json'] ?? '[]'),
+                $stats
+            ));
             $colors = ["#7c3aed", "#2563eb", "#059669", "#d97706", "#dc2626", "#0891b2", "#8b5cf6", "#ec4899"];
             $labels = [];
             $data = [];

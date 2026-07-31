@@ -130,7 +130,7 @@ $initials = avatarInitials($user['name']);
                         </h2> -->
                     </div>
                     <p class="text-sm text-slate-500">
-                        <?= $LANG['sa_feedback_subtitle'] ?? 'Rate and review the Student Affairs office services' ?>
+            <?= $LANG['sa_feedback_subtitle'] ?? 'Complete Surveys about Student Affairs services' ?>
                     </p>
                 </div>
                 <?php renderFlash() ?>

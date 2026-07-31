@@ -13,6 +13,37 @@ requireRole('teacher');
 
 updateAllFeedbackStatuses($conn);
 
+/*
+ * Request-scoped Survey analysis dataset for the restored report UI.
+ * Student-visible labels remain in options_json; reporting uses only the
+ * internal Good/Fair/Bad category associated with the selected option.
+ */
+$conn->query("
+    CREATE TEMPORARY TABLE survey_analysis_answers AS
+    SELECT
+        fsa.id,
+        fsa.question_id,
+        fsub.form_id,
+        COALESCE(
+            JSON_UNQUOTE(
+                JSON_EXTRACT(
+                    fq.options_json,
+                    CONCAT('$[', fsa.selected_option_index, '].category')
+                )
+            ),
+            CASE fsa.selected_option_index
+                WHEN 0 THEN 'Good'
+                WHEN 1 THEN 'Fair'
+                ELSE 'Bad'
+            END
+        ) AS rating
+    FROM feedback_survey_answers fsa
+    JOIN feedback_submissions fsub
+        ON fsub.id = fsa.submission_id
+    JOIN feedback_questions fq
+        ON fq.id = fsa.question_id
+");
+
 $user = getCurrentUser();
 $stmt = $conn->prepare("SELECT t.id FROM teachers t WHERE t.user_id=?");
 $stmt->bind_param('i', $user['id']);
@@ -200,7 +231,7 @@ if ($formId && $teacherId) {
 
     if ($form) {
         if (!empty($form['question_set_id'])) {
-            $q = $conn->prepare("SELECT * FROM feedback_questions WHERE question_set_id=? ORDER BY question_no ASC");
+            $q = $conn->prepare("SELECT fq.*, 'rating' AS question_type FROM feedback_questions fq WHERE question_set_id=? ORDER BY question_no ASC");
             $q->bind_param('i', $form['question_set_id']);
             $q->execute();
             $questions = $q->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -223,7 +254,7 @@ if ($formId && $teacherId) {
 
         foreach ($questions as $quest) {
             if ($quest['question_type'] === 'rating') {
-                $rs = $conn->prepare("SELECT rating, COUNT(*) AS cnt FROM feedback_ratings WHERE question_id=? AND form_id=? GROUP BY rating");
+                $rs = $conn->prepare("SELECT rating, COUNT(*) AS cnt FROM survey_analysis_answers WHERE question_id=? AND form_id=? GROUP BY rating");
                 $rs->bind_param('ii', $quest['id'], $formId);
                 $rs->execute();
                 $rawR = $rs->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -248,7 +279,7 @@ if ($formId && $teacherId) {
                 }
                 $ratingResults[$quest['id']] = ['breakdown' => $bd, 'total' => $tot];
             } else {
-                $cs = $conn->prepare("SELECT comment_text FROM feedback_comments WHERE question_id=? AND form_id=?  ORDER BY id DESC");
+                $cs = $conn->prepare("SELECT NULL AS comment_text WHERE ? = ? AND 1=0");
                 $cs->bind_param('ii', $quest['id'], $formId);
                 $cs->execute();
                 $comments[$quest['id']] = $cs->get_result()->fetch_all(MYSQLI_ASSOC);

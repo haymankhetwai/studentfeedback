@@ -28,6 +28,7 @@ if (!$studentId) {
 }
 
 $now = date('Y-m-d H:i:s');
+$nowTimestamp = strtotime($now);
 
 // ─── Load ALL available forms across all modules ─────────────────────
 $allForms = [];
@@ -59,9 +60,7 @@ if ($studentId) {
     $acadRows = $acadStmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $acadStmt->close();
     foreach ($acadRows as $r) {
-        if ($r['status'] === 'Active' || (int) $r['submitted'] > 0) {
-            $allForms[] = $r;
-        }
+        $allForms[] = $r;
     }
 }
 
@@ -91,9 +90,7 @@ if ($studentId && !empty($studentYearIds) && !empty($studentSemIds)) {
     $saRows = $saStmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $saStmt->close();
     foreach ($saRows as $r) {
-        if ($r['status'] === 'Active' || (int) $r['submitted'] > 0) {
-            $allForms[] = $r;
-        }
+        $allForms[] = $r;
     }
 }
 
@@ -123,9 +120,7 @@ if ($studentId && !empty($studentYearIds) && !empty($studentSemIds)) {
     $admRows = $admStmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $admStmt->close();
     foreach ($admRows as $r) {
-        if ($r['status'] === 'Active' || (int) $r['submitted'] > 0) {
-            $allForms[] = $r;
-        }
+        $allForms[] = $r;
     }
 }
 
@@ -148,7 +143,7 @@ usort($allForms, function ($a, $b) use ($moduleOrder) {
 // ─── Find the first uncompleted form (for enforcement) ────────────────
 $firstUncompletedId = null;
 foreach ($allForms as $f) {
-    if ((int) $f['submitted'] === 0 && $f['status'] === 'Active') {
+    if ((int) $f['submitted'] === 0 && strtotime($f['end_date']) >= $nowTimestamp) {
         $firstUncompletedId = $f['id'];
         break;
     }
@@ -163,7 +158,7 @@ if ($requestedFormId && $firstUncompletedId && $requestedFormId !== $firstUncomp
     foreach ($allForms as $f) {
         if ($f['id'] === $requestedFormId) {
             $requestedSubmitted = (int) $f['submitted'] > 0;
-            $requestedActive = $f['status'] === 'Active';
+            $requestedActive = strtotime($f['end_date']) >= $nowTimestamp;
             break;
         }
     }
@@ -188,6 +183,40 @@ foreach ($allForms as $f) {
 $progressPercent = $totalForms > 0 ? round(($completedCount / $totalForms) * 100) : 0;
 $allCompleted = $totalForms > 0 && $pendingCount === 0;
 
+// Current state for the inline, sequential Survey workflow.
+if (isset($_GET['ajax']) && $_GET['ajax'] === 'workflow') {
+    $nextForm = null;
+    if ($firstUncompletedId !== null) {
+        foreach ($allForms as $candidate) {
+            if ((int) $candidate['id'] === (int) $firstUncompletedId) {
+                $nextForm = $candidate;
+                break;
+            }
+        }
+    }
+
+    $formPages = [
+        'academic' => 'feedback_form.php',
+        'student_affairs' => 'sa_feedback_form.php',
+        'administration' => 'adm_feedback_form.php',
+    ];
+    $nextUrl = $nextForm
+        ? ($formPages[$nextForm['module']] ?? 'feedback_form.php') . '?form_id=' . (int) $nextForm['id']
+        : null;
+
+    header('Content-Type: application/json');
+    echo json_encode([
+        'next_url' => $nextUrl,
+        'next_form_id' => $nextForm ? (int) $nextForm['id'] : null,
+        'all_completed' => $nextForm === null,
+        'completed' => $completedCount,
+        'pending' => $pendingCount,
+        'total' => $totalForms,
+        'progress' => $progressPercent,
+    ]);
+    exit;
+}
+
 // ─── AJAX: Get form status ───────────────────────────────────────────
 if (isset($_GET['ajax']) && $_GET['ajax'] === 'status' && isset($_GET['fid'])) {
     header('Content-Type: application/json');
@@ -199,6 +228,22 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'status' && isset($_GET['fid'])) {
     $st->close();
     echo json_encode(['submitted' => $submitted]);
     exit;
+}
+
+$initialInlineUrl = '';
+if ($requestedFormId) {
+    $formPages = [
+        'academic' => 'feedback_form.php',
+        'student_affairs' => 'sa_feedback_form.php',
+        'administration' => 'adm_feedback_form.php',
+    ];
+    foreach ($allForms as $candidate) {
+        if ((int) $candidate['id'] === $requestedFormId) {
+            $initialInlineUrl = ($formPages[$candidate['module']] ?? 'feedback_form.php')
+                . '?form_id=' . $requestedFormId;
+            break;
+        }
+    }
 }
 
 $pageTitle = $LANG['nav_feedback_forms'] ?? 'Feedback Forms';
@@ -232,6 +277,10 @@ $initials = avatarInitials($user['name']);
 
         .progress-ring {
             transition: stroke-dashoffset 0.6s ease;
+        }
+
+        #feedback-workflow[aria-busy="true"] {
+            min-height: 180px;
         }
     </style>
 </head>
@@ -324,9 +373,10 @@ $initials = avatarInitials($user['name']);
                             <?= $LANG['return_to_dashboard'] ?? 'Return to Dashboard' ?>
                         </a>
                     </div>
-                <?php else: ?>
+                <?php endif; ?>
+                <?php if (!empty($allForms)): ?>
                     <!-- Overall Progress Card -->
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
+                    <div id="overall-progress-section" class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
                         <div class="flex flex-col md:flex-row items-center gap-6">
                             <!-- Progress Ring -->
                             <div class="relative flex-shrink-0">
@@ -338,7 +388,7 @@ $initials = avatarInitials($user['name']);
                                         class="progress-ring" />
                                 </svg>
                                 <div class="absolute inset-0 flex items-center justify-center">
-                                    <span class="text-lg font-bold text-cyan-700"><?= $progressPercent ?>%</span>
+                                    <span id="workflow-progress-percent" class="text-lg font-bold text-cyan-700"><?= $progressPercent ?>%</span>
                                 </div>
                             </div>
                             <!-- Stats -->
@@ -346,23 +396,23 @@ $initials = avatarInitials($user['name']);
                                 <h3 class="text-lg font-bold text-slate-800 mb-1">
                                     <?= $LANG['overall_progress'] ?? 'Overall Progress' ?>
                                 </h3>
-                                <p class="text-sm text-slate-500 mb-3">
+                                <p id="workflow-progress-text" class="text-sm text-slate-500 mb-3">
                                     <?= $completedCount ?>     <?= $LANG['of'] ?? 'of' ?>     <?= $totalForms ?>
                                     <?= $LANG['forms_completed'] ?? 'forms completed' ?>
                                 </p>
                                 <!-- Progress Bar -->
                                 <div class="w-full bg-slate-100 rounded-full h-3 mb-2">
-                                    <div class="bg-gradient-to-r from-cyan-500 to-cyan-600 h-3 rounded-full transition-all duration-500 ease-out"
+                                    <div id="workflow-progress-bar" class="bg-gradient-to-r from-cyan-500 to-cyan-600 h-3 rounded-full transition-all duration-500 ease-out"
                                         style="width: <?= $progressPercent ?>%"></div>
                                 </div>
                                 <div class="flex items-center gap-4 text-xs text-slate-500">
                                     <span class="flex items-center gap-1">
                                         <span class="w-2 h-2 rounded-full bg-green-500"></span>
-                                        <?= $completedCount ?>     <?= $LANG['completed'] ?? 'Completed' ?>
+                                        <span id="workflow-completed-count"><?= $completedCount ?></span> <?= $LANG['completed'] ?? 'Completed' ?>
                                     </span>
                                     <span class="flex items-center gap-1">
                                         <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-                                        <?= $pendingCount ?>     <?= $LANG['pending'] ?? 'Pending' ?>
+                                        <span id="workflow-pending-count"><?= $pendingCount ?></span> <?= $LANG['pending'] ?? 'Pending' ?>
                                     </span>
                                     <span class="flex items-center gap-1">
                                         <span class="w-2 h-2 rounded-full bg-slate-300"></span>
@@ -391,13 +441,32 @@ $initials = avatarInitials($user['name']);
                                         </p>
                                     </div>
                                 </div>
-                                <a href="#form-list"
+                                <a href="#form-list" id="continue-feedback-link"
                                     class="px-5 py-2.5 bg-white text-cyan-700 font-semibold text-sm rounded-xl hover:bg-cyan-50 transition-all shadow-sm">
                                     <?= $LANG['view_forms'] ?? 'View Forms' ?> ↓
                                 </a>
                             </div>
                         </div>
                     <?php endif ?>
+
+                    <section id="feedback-workflow" class="hidden mb-6" aria-live="polite"></section>
+
+                    <template id="all-feedback-completed-template">
+                        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 md:p-12 text-center">
+                            <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-green-100 flex items-center justify-center">
+                                <?= iconSvg('check', 'w-10 h-10 text-green-600') ?>
+                            </div>
+                            <h3 class="text-2xl font-bold text-slate-800 mb-3"><?= $LANG['all_done'] ?? 'All Done!' ?></h3>
+                            <p class="text-lg text-slate-600 mb-8">
+                                <?= $LANG['all_forms_completed'] ?? 'You have completed all feedback forms. Thank you!' ?>
+                            </p>
+                            <a href="/studentfeedbackucsh/student/dashboard.php"
+                                class="inline-flex items-center gap-2 px-6 py-3 bg-cyan-600 text-white font-semibold rounded-xl hover:bg-cyan-700 transition-all hover:-translate-y-0.5 shadow-md">
+                                <?= iconSvg('home', 'w-5 h-5') ?>
+                                <?= $LANG['return_to_dashboard'] ?? 'Return to Dashboard' ?>
+                            </a>
+                        </div>
+                    </template>
 
                     <!-- Forms List -->
                     <div id="form-list" class="space-y-4">
@@ -407,10 +476,10 @@ $initials = avatarInitials($user['name']);
                         foreach ($allForms as $f):
                             $formIndex++;
                             $isSubmitted = (int) $f['submitted'] > 0;
-                            $isActive = $f['status'] === 'Active';
-                            $isExpired = $f['status'] === 'Expired';
+                            $isExpired = !$isSubmitted && strtotime($f['end_date']) < $nowTimestamp;
+                            $isAvailable = !$isSubmitted && !$isExpired;
                             $isFirstUncompleted = $f['id'] === $firstUncompletedId;
-                            $isLocked = !$isSubmitted && !$isFirstUncompleted && $firstUncompletedId !== null;
+                            $isLocked = $isAvailable && !$isFirstUncompleted && $firstUncompletedId !== null;
 
                             // Module header
                             $moduleKey = $f['module'];
@@ -443,7 +512,7 @@ $initials = avatarInitials($user['name']);
                             <?php endif ?>
 
                             <!-- Form Card -->
-                            <div
+                            <div data-form-id="<?= (int) $f['id'] ?>"
                                 class="form-card bg-white rounded-2xl shadow-sm border <?= $isLocked ? 'border-slate-200 locked' : ($isSubmitted ? 'border-green-200' : 'border-slate-100 hover:border-cyan-200 hover:shadow-md') ?> overflow-hidden transition-all duration-300 <?= $isFirstUncompleted ? 'ring-2 ring-cyan-400/40' : '' ?>">
                                 <div class="px-5 py-4 flex items-center gap-4">
                                     <!-- Step Number -->
@@ -491,7 +560,7 @@ $initials = avatarInitials($user['name']);
                                                 <?= iconSvg('eye', 'w-3.5 h-3.5') ?>
                                                 <?= $LANG['locked'] ?? 'Locked' ?>
                                             </span>
-                                        <?php elseif ($isActive): ?>
+                                        <?php elseif ($isAvailable): ?>
                                             <span
                                                 class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-700">
                                                 <?= $LANG['active'] ?? 'Active' ?>
@@ -499,19 +568,19 @@ $initials = avatarInitials($user['name']);
                                             </span>
                                             <?php if ($f['module'] === 'academic'): ?>
                                                 <a href="/studentfeedbackucsh/student/feedback_form.php?form_id=<?= $f['id'] ?>"
-                                                    class="fill-btn inline-flex items-center gap-1 px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all hover:-translate-y-0.5 shadow-sm">
+                                                    class="fill-btn js-inline-survey inline-flex items-center gap-1 px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all hover:-translate-y-0.5 shadow-sm">
                                                     <?= iconSvg('clipboard', 'w-3.5 h-3.5') ?>
                                                     <?= $LANG['fill'] ?? 'Fill' ?>
                                                 </a>
                                             <?php elseif ($f['module'] === 'student_affairs'): ?>
                                                 <a href="/studentfeedbackucsh/student/sa_feedback_form.php?form_id=<?= $f['id'] ?>"
-                                                    class="fill-btn inline-flex items-center gap-1 px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all hover:-translate-y-0.5 shadow-sm">
+                                                    class="fill-btn js-inline-survey inline-flex items-center gap-1 px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all hover:-translate-y-0.5 shadow-sm">
                                                     <?= iconSvg('clipboard', 'w-3.5 h-3.5') ?>
                                                     <?= $LANG['fill'] ?? 'Fill' ?>
                                                 </a>
                                             <?php else: ?>
                                                 <a href="/studentfeedbackucsh/student/adm_feedback_form.php?form_id=<?= $f['id'] ?>"
-                                                    class="fill-btn inline-flex items-center gap-1 px-4 py-2 text-xs font-semibold text-white bg-orange-600 hover:bg-orange-700 rounded-xl transition-all hover:-translate-y-0.5 shadow-sm">
+                                                    class="fill-btn js-inline-survey inline-flex items-center gap-1 px-4 py-2 text-xs font-semibold text-white bg-orange-600 hover:bg-orange-700 rounded-xl transition-all hover:-translate-y-0.5 shadow-sm">
                                                     <?= iconSvg('clipboard', 'w-3.5 h-3.5') ?>
                                                     <?= $LANG['fill'] ?? 'Fill' ?>
                                                 </a>
@@ -543,6 +612,231 @@ $initials = avatarInitials($user['name']);
                 const target = ring.getAttribute('stroke-dashoffset');
                 ring.style.strokeDashoffset = ring.getAttribute('stroke-dasharray');
                 setTimeout(() => { ring.style.strokeDashoffset = target; }, 100);
+            }
+
+            const workflow = document.getElementById('feedback-workflow');
+            const formList = document.getElementById('form-list');
+            const overallProgress = document.getElementById('overall-progress-section');
+            const completionTemplate = document.getElementById('all-feedback-completed-template');
+            const continueLink = document.getElementById('continue-feedback-link');
+            const continuePanel = continueLink ? continueLink.closest('.bg-gradient-to-r') : null;
+            const initialInlineUrl = <?= json_encode($initialInlineUrl) ?>;
+            const labels = {
+                loading: <?= json_encode($LANG['loading'] ?? 'Loading...') ?>,
+                loadError: <?= json_encode($LANG['failed_to_load'] ?? 'Unable to load the feedback form.') ?>,
+                submitError: <?= json_encode($LANG['survey_submission_failed'] ?? 'Survey submission failed.') ?>,
+                submitting: <?= json_encode($LANG['submitting'] ?? 'Submitting...') ?>,
+                completed: <?= json_encode($LANG['completed'] ?? 'Completed') ?>,
+                of: <?= json_encode($LANG['of'] ?? 'of') ?>,
+                formsCompleted: <?= json_encode($LANG['forms_completed'] ?? 'forms completed') ?>
+            };
+
+            function inlineUrl(sourceUrl) {
+                const url = new URL(sourceUrl, window.location.href);
+                url.searchParams.set('embed', '1');
+                return url;
+            }
+
+            function updateAddress(formId) {
+                const url = new URL(window.location.href);
+                if (formId) url.searchParams.set('form_id', formId);
+                else url.searchParams.delete('form_id');
+                url.searchParams.delete('ajax');
+                window.history.replaceState({}, '', url);
+
+                document.querySelectorAll('.student-language-link').forEach(function (link) {
+                    const languageUrl = new URL(url);
+                    languageUrl.searchParams.set('lang', link.dataset.language || 'en');
+                    link.href = languageUrl.toString();
+                });
+            }
+
+            function showWorkflowError(message) {
+                workflow.classList.remove('hidden');
+                workflow.setAttribute('aria-busy', 'false');
+                workflow.innerHTML = '<div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"></div>';
+                workflow.firstElementChild.textContent = message;
+                if (formList) formList.classList.remove('hidden');
+                if (continuePanel) continuePanel.classList.remove('hidden');
+                if (overallProgress) overallProgress.classList.remove('hidden');
+            }
+
+            function activeFormId() {
+                const content = workflow.querySelector('.survey-inline-content');
+                return content ? content.dataset.formId : '';
+            }
+
+            function draftKey(formId) {
+                return 'sfms-survey-draft-' + formId;
+            }
+
+            function saveCurrentDraft() {
+                const form = workflow.querySelector('#survey-form');
+                const formId = activeFormId();
+                if (!form || !formId) return;
+
+                const answers = {};
+                form.querySelectorAll('input[type="radio"]:checked').forEach(function (input) {
+                    answers[input.name] = input.value;
+                });
+                sessionStorage.setItem(draftKey(formId), JSON.stringify(answers));
+            }
+
+            function restoreCurrentDraft(form) {
+                const formId = activeFormId();
+                if (!formId) return;
+                try {
+                    const answers = JSON.parse(sessionStorage.getItem(draftKey(formId)) || '{}');
+                    Object.keys(answers).forEach(function (name) {
+                        form.querySelectorAll('input[type="radio"]').forEach(function (input) {
+                            if (input.name === name && input.value === String(answers[name])) input.checked = true;
+                        });
+                    });
+                } catch (error) {
+                    sessionStorage.removeItem(draftKey(formId));
+                }
+            }
+
+            function bindInlineSubmission() {
+                const form = workflow.querySelector('#survey-form');
+                if (!form) return;
+
+                restoreCurrentDraft(form);
+                form.addEventListener('change', saveCurrentDraft);
+
+                form.addEventListener('submit', async function (event) {
+                    event.preventDefault();
+                    if (!form.reportValidity()) return;
+
+                    const button = form.querySelector('button[type="submit"]');
+                    const originalText = button ? button.textContent : '';
+                    if (button) {
+                        button.disabled = true;
+                        button.textContent = labels.submitting;
+                        button.classList.add('opacity-60', 'cursor-not-allowed');
+                    }
+
+                    try {
+                        const response = await fetch(form.action, {
+                            method: 'POST',
+                            body: new FormData(form),
+                            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+                        const result = await response.json();
+                        if (!response.ok || !result.success) {
+                            throw new Error(result.message || labels.submitError);
+                        }
+
+                        sessionStorage.removeItem(draftKey(result.form_id));
+                        markFormCompleted(result.form_id);
+                        const stateResponse = await fetch('feedback_forms.php?ajax=workflow', {
+                            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+                        if (!stateResponse.ok) throw new Error(labels.loadError);
+                        const state = await stateResponse.json();
+                        updateProgress(state);
+
+                        if (state.next_url) {
+                            await loadInlineForm(state.next_url, true);
+                        } else {
+                            showAllCompleted();
+                        }
+                    } catch (error) {
+                        const existing = form.querySelector('.inline-submit-error');
+                        if (existing) existing.remove();
+                        const errorBox = document.createElement('div');
+                        errorBox.className = 'inline-submit-error rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700';
+                        errorBox.textContent = error.message || labels.submitError;
+                        form.prepend(errorBox);
+                        if (button) {
+                            button.disabled = false;
+                            button.textContent = originalText;
+                            button.classList.remove('opacity-60', 'cursor-not-allowed');
+                        }
+                    }
+                });
+            }
+
+            async function loadInlineForm(sourceUrl, updateHistory) {
+                if (formList) formList.classList.add('hidden');
+                if (continuePanel) continuePanel.classList.add('hidden');
+                if (overallProgress) overallProgress.classList.add('hidden');
+                workflow.classList.remove('hidden');
+                workflow.setAttribute('aria-busy', 'true');
+                workflow.innerHTML = '<div class="bg-white rounded-2xl border border-slate-100 p-10 text-center text-slate-500 shadow-sm"></div>';
+                workflow.firstElementChild.textContent = labels.loading;
+                workflow.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+                try {
+                    const response = await fetch(inlineUrl(sourceUrl), {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    if (!response.ok) throw new Error(labels.loadError);
+                    workflow.innerHTML = await response.text();
+                    workflow.setAttribute('aria-busy', 'false');
+                    bindInlineSubmission();
+
+                    const content = workflow.querySelector('.survey-inline-content');
+                    if (updateHistory && content) updateAddress(content.dataset.formId);
+                } catch (error) {
+                    showWorkflowError(error.message || labels.loadError);
+                }
+            }
+
+            function markFormCompleted(formId) {
+                const card = document.querySelector('.form-card[data-form-id="' + formId + '"]');
+                if (!card) return;
+                card.classList.remove('locked', 'ring-2', 'ring-cyan-400/40');
+                card.classList.add('border-green-200');
+                const action = card.querySelector('.flex.items-center.gap-3.flex-shrink-0');
+                if (action) {
+                    action.innerHTML = '<span class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-xl"></span>';
+                    action.firstElementChild.textContent = labels.completed;
+                }
+            }
+
+            function updateProgress(state) {
+                const percent = Number(state.progress || 0);
+                const percentLabel = document.getElementById('workflow-progress-percent');
+                const progressBar = document.getElementById('workflow-progress-bar');
+                const progressText = document.getElementById('workflow-progress-text');
+                const completed = document.getElementById('workflow-completed-count');
+                const pending = document.getElementById('workflow-pending-count');
+                if (percentLabel) percentLabel.textContent = percent + '%';
+                if (progressBar) progressBar.style.width = percent + '%';
+                if (progressText) progressText.textContent = state.completed + ' ' + labels.of + ' ' + state.total + ' ' + labels.formsCompleted;
+                if (completed) completed.textContent = state.completed;
+                if (pending) pending.textContent = state.pending;
+                if (ring) {
+                    const circumference = 2 * Math.PI * 42;
+                    ring.style.strokeDashoffset = circumference * (1 - percent / 100);
+                }
+            }
+
+            function showAllCompleted() {
+                workflow.classList.remove('hidden');
+                workflow.setAttribute('aria-busy', 'false');
+                workflow.replaceChildren(completionTemplate.content.cloneNode(true));
+                if (formList) formList.classList.add('hidden');
+                if (continuePanel) continuePanel.classList.add('hidden');
+                if (overallProgress) overallProgress.classList.add('hidden');
+                updateAddress(null);
+                workflow.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            document.querySelectorAll('.js-inline-survey').forEach(function (link) {
+                link.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    loadInlineForm(link.href, true);
+                });
+            });
+
+            document.querySelectorAll('.student-language-link').forEach(function (link) {
+                link.addEventListener('click', saveCurrentDraft);
+            });
+
+            if (initialInlineUrl) {
+                loadInlineForm(initialInlineUrl, false);
             }
         });
     </script>
