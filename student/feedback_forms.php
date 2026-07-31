@@ -29,6 +29,16 @@ if (!$studentId) {
 
 $now = date('Y-m-d H:i:s');
 $nowTimestamp = strtotime($now);
+$isFormCurrentlyActive = static function (array $form) use ($nowTimestamp): bool {
+    $startTimestamp = !empty($form['start_date']) ? strtotime($form['start_date']) : null;
+    $endTimestamp = !empty($form['end_date']) ? strtotime($form['end_date']) : null;
+    return ($form['status'] ?? '') === 'Active'
+        && ($startTimestamp === null || $startTimestamp <= $nowTimestamp)
+        && ($endTimestamp === null || $endTimestamp >= $nowTimestamp);
+};
+$isFormExpired = static function (array $form) use ($nowTimestamp): bool {
+    return !empty($form['end_date']) && strtotime($form['end_date']) < $nowTimestamp;
+};
 
 // ─── Load ALL available forms across all modules ─────────────────────
 $allForms = [];
@@ -143,7 +153,7 @@ usort($allForms, function ($a, $b) use ($moduleOrder) {
 // ─── Find the first uncompleted form (for enforcement) ────────────────
 $firstUncompletedId = null;
 foreach ($allForms as $f) {
-    if ((int) $f['submitted'] === 0 && strtotime($f['end_date']) >= $nowTimestamp) {
+    if ((int) $f['submitted'] === 0 && $isFormCurrentlyActive($f)) {
         $firstUncompletedId = $f['id'];
         break;
     }
@@ -173,14 +183,18 @@ if ($requestedFormId && $firstUncompletedId && $requestedFormId !== $firstUncomp
 $totalForms = count($allForms);
 $completedCount = 0;
 $pendingCount = 0;
+$expiredCount = 0;
 foreach ($allForms as $f) {
     if ((int) $f['submitted'] > 0) {
         $completedCount++;
-    } else {
+    } elseif ($isFormCurrentlyActive($f)) {
         $pendingCount++;
+    } elseif ($isFormExpired($f)) {
+        $expiredCount++;
     }
 }
-$progressPercent = $totalForms > 0 ? round(($completedCount / $totalForms) * 100) : 0;
+$progressEligibleTotal = $completedCount + $pendingCount;
+$progressPercent = $progressEligibleTotal > 0 ? round(($completedCount / $progressEligibleTotal) * 100) : 0;
 $allCompleted = $totalForms > 0 && $pendingCount === 0;
 
 // Current state for the inline, sequential Survey workflow.
@@ -211,7 +225,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'workflow') {
         'all_completed' => $nextForm === null,
         'completed' => $completedCount,
         'pending' => $pendingCount,
-        'total' => $totalForms,
+        'total' => $progressEligibleTotal,
         'progress' => $progressPercent,
     ]);
     exit;
@@ -397,7 +411,7 @@ $initials = avatarInitials($user['name']);
                                     <?= $LANG['overall_progress'] ?? 'Overall Progress' ?>
                                 </h3>
                                 <p id="workflow-progress-text" class="text-sm text-slate-500 mb-3">
-                                    <?= $completedCount ?>     <?= $LANG['of'] ?? 'of' ?>     <?= $totalForms ?>
+                                    <?= $completedCount ?>     <?= $LANG['of'] ?? 'of' ?>     <?= $progressEligibleTotal ?>
                                     <?= $LANG['forms_completed'] ?? 'forms completed' ?>
                                 </p>
                                 <!-- Progress Bar -->
@@ -476,10 +490,11 @@ $initials = avatarInitials($user['name']);
                         foreach ($allForms as $f):
                             $formIndex++;
                             $isSubmitted = (int) $f['submitted'] > 0;
-                            $isExpired = !$isSubmitted && strtotime($f['end_date']) < $nowTimestamp;
-                            $isAvailable = !$isSubmitted && !$isExpired;
+                            $isExpired = !$isSubmitted && $isFormExpired($f);
+                            $isAvailable = !$isSubmitted && $isFormCurrentlyActive($f);
                             $isFirstUncompleted = $f['id'] === $firstUncompletedId;
-                            $isLocked = $isAvailable && !$isFirstUncompleted && $firstUncompletedId !== null;
+                            $isLocked = !$isSubmitted && !$isExpired
+                                && (!$isAvailable || (!$isFirstUncompleted && $firstUncompletedId !== null));
 
                             // Module header
                             $moduleKey = $f['module'];

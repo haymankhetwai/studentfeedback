@@ -820,6 +820,7 @@ $LANG = [
     'comment_placeholder' => 'Write here (optional)...',
     'thank_you_participating' => 'Thank you for participating in this survey.',
     'submit_form' => 'Submit Form',
+    'submit_survey' =>'Submit Survey',
     'not_yet_available' => 'Not Yet Available',
     'form_closed' => 'Form Closed',
     'submissions_locked' => 'Submissions Locked',

@@ -70,7 +70,7 @@ if ($teacherId) {
         <span class="text-xs text-blue-400"><?= $total ?> section<?= $total!==1?'s':'' ?></span>
     </div>
     <div class="overflow-x-auto">
-        <table>
+        <table class="w-full">
             <thead class="bg-blue-200 border-b border-blue-200/50"><tr>
                 <th class="text-left px-5 py-3 text-blue-500 text-sm font-semibold uppercase tracking-wider">#</th>
                 <th class="text-left px-5 py-3 text-blue-500 text-sm font-semibold uppercase tracking-wider"><?= $LANG['col_course'] ?? 'Course' ?></th>
