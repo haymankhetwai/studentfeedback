@@ -314,7 +314,7 @@ function getTrendSemesters(mysqli $conn, string $module): array
          JOIN feedback_forms ff ON ff.semester_id = sm.id
          WHERE ff.module = ?
            AND ff.academic_year_id IS NOT NULL
-         ORDER BY sm.semester_name ASC"
+         ORDER BY sm.id ASC"
     );
     $stmt->bind_param('s', $module);
     $stmt->execute();

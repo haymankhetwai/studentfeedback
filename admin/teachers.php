@@ -121,7 +121,7 @@ include '../includes/admin_sidebar.php';
             <?= $total !== 1 ? ($LANG['records'] ?? 'records') : ($LANG['record'] ?? 'record') ?></span>
     </div>
     <div class="overflow-x-auto">
-        <table>
+        <table  class="w-full">
             <thead class="bg-slate-200 border-b border-slate-200">
                 <tr>
                     <th class="text-left px-5 py-3 text-slate-500 w-12 text-sm font-semibold">#</th>

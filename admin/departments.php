@@ -124,14 +124,16 @@ include '../includes/admin_sidebar.php';
             <?= $total !== 1 ? ($LANG['records'] ?? 'records') : ($LANG['record'] ?? 'record') ?></span>
     </div>
     <div class="overflow-x-auto">
-        <table>
+        <table class="w-full">
             <thead class="bg-slate-200 border-b border-slate-200">
                 <tr>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">#</th>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
-                        <?= $LANG['col_dept_name'] ?? 'Department Name' ?></th>
+                        <?= $LANG['col_dept_name'] ?? 'Department Name' ?>
+                    </th>
                     <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">
-                        <?= $LANG['col_actions'] ?? 'Actions' ?></th>
+                        <?= $LANG['col_actions'] ?? 'Actions' ?>
+                    </th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -252,7 +254,8 @@ include '../includes/admin_sidebar.php';
 </div>
 <script>
     const existingDepts = <?= json_encode(array_map(function ($r) {
-        return strtolower(trim($r['department_name'])); }, $rows)) ?>;
+        return strtolower(trim($r['department_name']));
+    }, $rows)) ?>;
     function checkDeptDuplicate(input, excludeName) {
         const val = input.value.trim().toLowerCase();
         if (!val) { input.setCustomValidity(''); return; }

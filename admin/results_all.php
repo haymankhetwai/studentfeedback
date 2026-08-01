@@ -304,6 +304,7 @@ if ($loadForm && $formId) {
             ];
         } elseif ($module === 'student_affairs' || $module === 'administration') {
             $formMeta = [
+                'title' => $form['title'] ?? '',
                 'university_name' => $form['university_name'] ?? '',
                 'university_campus' => $form['university_campus'] ?? '',
                 'academic_year' => $form['academic_year_name'] ?? '',
@@ -1611,6 +1612,10 @@ include '../includes/admin_sidebar.php';
                         <dd><?= e($formMeta['academic_year'] ?? '') ?></dd>
                         <dt><?= $LANG['semester_filter'] ?? 'Semester' ?>:</dt>
                         <dd><?= e(semesterToRoman($formMeta['semester'] ?? '')) ?></dd>
+                        <?php if ($module === 'student_affairs' || $module === 'administration'): ?>
+                            <dt><?= $LANG['form_title'] ?? 'Form Title' ?>:</dt>
+                            <dd><?= e($formMeta['title'] ?? '') ?></dd>
+                        <?php endif; ?>
                         <?php if ($module === 'academic'): ?>
                             <dt><?= $LANG['section_filter'] ?? 'Section' ?>:</dt>
                             <dd><?= e($formMeta['section'] ?? '') ?></dd>

@@ -237,14 +237,14 @@ $activeMenu = 'trend';
         <!-- Charts Row: Line + Bar -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             <!-- Overall Rating Trend (Line Chart) -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-6">
+            <!-- <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-6">
                 <h3 class="text-base font-semibold text-slate-800 mb-4">
                     <?= $LANG['overall_rating_trend'] ?? 'Overall Rating Trend' ?>
                 </h3>
                 <div class="relative" style="height: 300px;">
                     <canvas id="trendOverallLineChart"></canvas>
                 </div>
-            </div>
+            </div> -->
             <!-- Rating Comparison (Bar Chart) -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-6">
                 <h3 class="text-base font-semibold text-slate-800 mb-4">

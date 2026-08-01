@@ -749,7 +749,7 @@ include '../includes/admin_sidebar.php';
 
     <div class="overflow-x-auto">
 
-        <table>
+        <table  class="w-full">
 
             <thead class="bg-slate-200 border-b border-slate-200">
 

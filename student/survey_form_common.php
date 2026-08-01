@@ -234,7 +234,7 @@ $pageTitle = $form['title'] ?? 'Survey';
             </a>
         </div>
 <?php endif; ?>
-        <section class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-6">
+        <section class="w-full bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-6">
             <div class="flex flex-wrap items-start justify-between gap-4">
                 <div>
                     <p class="text-xs font-bold uppercase tracking-wider text-violet-600">Survey</p>
@@ -266,12 +266,50 @@ $pageTitle = $form['title'] ?? 'Survey';
                                 <span class="text-slate-500"><?= e($form['teacher_name'] ?? '-') ?></span>
                             </div>
                         <?php endif; ?>
+                        
                     </div>
                 </div>
                 <?= badgeStatus($form['status']) ?>
             </div>
-        </section>
+        </section> 
+       <!-- <section class="w-full bg-white rounded-2xl border border-slate-200 shadow-sm p-4 mb-4">
+    <div class="flex flex-wrap items-start justify-between gap-4">
+        <div class="flex-1">
+            <p class="text-xs font-bold uppercase tracking-wider text-violet-600">Survey</p>
+            <h1 class="text-xl font-bold text-slate-900 mt-0.5"><?= e($form['title']) ?></h1>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2 mt-3 text-sm">
+                <div>
+                    <span class="font-semibold text-slate-700"><?= e($LANG['academic_year'] ?? 'Academic Year') ?>:</span>
+                    <span class="text-slate-500"><?= e($form['year_name'] ?? '-') ?></span>
+                </div>
+                <div>
+                    <span class="font-semibold text-slate-700"><?= e($LANG['semester'] ?? 'Semester') ?>:</span>
+                    <span class="text-slate-500"><?= e($form['semester_name'] ?? '-') ?></span>
+                </div>
 
+                <?php if (($form['module'] ?? $module) === 'academic'): ?>
+                    <div>
+                        <span class="font-semibold text-slate-700"><?= e($LANG['section'] ?? 'Section') ?>:</span>
+                        <span class="text-slate-500"><?= e($form['section_name'] ?? '-') ?></span>
+                    </div>
+                    <div class="md:col-span-2">
+                        <span class="font-semibold text-slate-700"><?= e($LANG['course'] ?? 'Course') ?>:</span>
+                        <span class="text-slate-500">
+                            <?= e(trim(($form['course_code'] ?? '') . ' ' . ($form['course_name'] ?? '')) ?: '-') ?>
+                        </span>
+                    </div>
+                    <div>
+                        <span class="font-semibold text-slate-700"><?= e($LANG['teacher'] ?? 'Teacher') ?>:</span>
+                        <span class="text-slate-500"><?= e($form['teacher_name'] ?? '-') ?></span>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+        <div>
+            <?= badgeStatus($form['status']) ?>
+        </div>
+    </div>
+</section> -->
         <?php if ($alreadySubmitted): ?>
             <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800">
                 You have already submitted this Survey.

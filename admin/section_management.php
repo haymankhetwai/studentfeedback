@@ -192,8 +192,7 @@ include '../includes/admin_sidebar.php';
                         <tr class="hover:bg-slate-50 transition-colors">
                             <td class="px-5 py-3 text-sm text-slate-400"><?= $pg['offset'] + $i + 1 ?></td>
                             <td class="px-5 py-3">
-                                <span
-                                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-cyan-100 text-cyan-800">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-md">
                                     <?= $LANG['section_label'] ?? 'Section' ?>         <?= e($row['section_name']) ?>
                                 </span>
                             </td>

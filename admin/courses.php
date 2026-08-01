@@ -110,7 +110,7 @@ include '../includes/admin_sidebar.php';
             <?= $total !== 1 ? ($LANG['records'] ?? 'records') : ($LANG['record'] ?? 'record') ?></span>
     </div>
     <div class="overflow-x-auto">
-        <table>
+        <table  class="w-full">
             <thead class="bg-slate-200 border-b border-slate-200">
                 <tr>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">#</th>
@@ -120,7 +120,7 @@ include '../includes/admin_sidebar.php';
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
                         <?= $LANG['course_name'] ?? 'Course' ?>
                     </th>
-                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">
+                    <th class="text-right px-5 py-3 text-slate-500 text-sm font-semibold">
                         <?= $LANG['col_actions'] ?? 'Actions' ?>
                     </th>
                 </tr>
@@ -135,7 +135,7 @@ include '../includes/admin_sidebar.php';
                             </td>
                             <td class="px-5 py-3 text-sm font-medium text-slate-800"><?= e($row['course_name']) ?></td>
                             <td class="px-5 py-3 text-right">
-                                <div class="flex items-center justify-center gap-2">
+                                <div class="flex items-center justify-end gap-2">
                                     <button
                                         onclick="openEdit(<?= $row['id'] ?>,'<?= addslashes(e($row['course_code'])) ?>','<?= addslashes(e($row['course_name'])) ?>')"
                                         class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 rounded-lg">
