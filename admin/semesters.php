@@ -144,7 +144,8 @@ include '../includes/admin_sidebar.php';
             <h2 class="text-xl font-bold text-slate-800"><?= $LANG["semesters_title"] ?? "Semesters" ?></h2>
         </div> -->
         <p class="text-sm text-slate-500 mt-0.5">
-            <?= $LANG["semesters_subtitle"] ?? "Manage semester master list used across the system." ?></p>
+            <?= $LANG["semesters_subtitle"] ?? "Manage semester master list used across the system." ?>
+        </p>
     </div>
     <button onclick="openModal('addModal')"
         class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm shadow-indigo-600/20 transition-all hover:-translate-y-0.5">
@@ -172,18 +173,21 @@ include '../includes/admin_sidebar.php';
             <?= $total !== 1 ? ($LANG['records'] ?? 'records') : ($LANG['record'] ?? 'record') ?></span>
     </div>
     <div class="overflow-x-auto">
-        <table>
+        <table class="w-full">
             <thead class="bg-slate-200 border-b border-slate-200">
                 <tr>
                     <th class="text-left px-5 py-3 text-slate-500 w-12 text-sm font-semibold">#</th>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
-                        <?= $LANG['semester_name_col'] ?? 'Semester Name' ?></th>
+                        <?= $LANG['semester_name_col'] ?? 'Semester Name' ?>
+                    </th>
                     <!-- <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">
                         <?= $LANG["sections"] ?? "Sections" ?></th> -->
                     <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">
-                        <?= $LANG["forms"] ?? "Forms" ?></th>
+                        <?= $LANG["forms"] ?? "Forms" ?>
+                    </th>
                     <th class="text-right px-5 py-3 text-slate-500 text-sm font-semibold">
-                        <?= $LANG["col_actions"] ?? "Actions" ?></th>
+                        <?= $LANG["col_actions"] ?? "Actions" ?>
+                    </th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -204,10 +208,10 @@ include '../includes/admin_sidebar.php';
                                 <div class="flex items-center justify-end gap-2">
                                     <button onclick="openEdit(<?= htmlspecialchars(json_encode($row), ENT_QUOTES) ?>)"
                                         class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 rounded-lg">
-                                        <?= iconSvg('edit', 'w-3.5 h-3.5') ?>        <?= $LANG["edit"] ?? "Edit" ?></button>
+                                        <?= iconSvg('edit', 'w-3.5 h-3.5') ?>         <?= $LANG["edit"] ?? "Edit" ?></button>
                                     <button onclick="openDelete(<?= $row['id'] ?>, '<?= e($row['semester_name']) ?>')"
                                         class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg">
-                                        <?= iconSvg('trash', 'w-3.5 h-3.5') ?>        <?= $LANG["delete"] ?? "Delete" ?></button>
+                                        <?= iconSvg('trash', 'w-3.5 h-3.5') ?>         <?= $LANG["delete"] ?? "Delete" ?></button>
                                 </div>
                             </td>
                         </tr>
@@ -241,7 +245,8 @@ include '../includes/admin_sidebar.php';
                         class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG["semester_name_label"] ?? "Semester Name" ?>
                         <span class="text-red-500">*</span></label>
                     <input type="text" name="semester_name" id="add_semester_name" required
-                        placeholder="e.g. Semester I" pattern="^Semester\s+(I{1,3}|IV|V|VI{0,3}|IX|X{1,3}(?:I{1,3}|IV|V|VI{0,3}|IX)?)$"
+                        placeholder="e.g. Semester I"
+                        pattern="^Semester\s+(I{1,3}|IV|V|VI{0,3}|IX|X{1,3}(?:I{1,3}|IV|V|VI{0,3}|IX)?)$"
                         title="Use Roman numeral format: Semester I, Semester II, Semester III, etc."
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none">
                     <p class="mt-1 text-xs text-slate-400">Use Roman numeral format (e.g. Semester I, Semester II, ...)
@@ -297,7 +302,8 @@ include '../includes/admin_sidebar.php';
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm modal-box">
         <div class="px-6 py-6 text-center">
             <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
-                <?= iconSvg('trash', 'w-7 h-7 text-red-600') ?></div>
+                <?= iconSvg('trash', 'w-7 h-7 text-red-600') ?>
+            </div>
             <h3 class="text-lg font-semibold text-slate-800"><?= $LANG["delete_semester"] ?? "Delete Semester" ?></h3>
             <p class="text-sm text-slate-500 mt-2">Delete <strong id="delete_name" class="text-slate-700"></strong>?</p>
         </div>

@@ -21,13 +21,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     if ($action === 'add_by_roll_range') {
         $roll_from = clean($_POST['roll_from'] ?? '');
         $roll_to = clean($_POST['roll_to'] ?? '');
+        $academicYearId = (int) ($_POST['academic_year_id'] ?? 0);
+        $semesterId = (int) ($_POST['semester_id'] ?? 0);
+        $classSection = clean($_POST['class_section'] ?? '');
         $sectionIds = $_POST['section_ids'] ?? []; // array from checkboxes
 
         if (!is_array($sectionIds))
             $sectionIds = [];
         $sectionIds = array_map('intval', array_filter($sectionIds));
 
-        if ($roll_from && $roll_to && count($sectionIds) > 0) {
+        if ($academicYearId && $semesterId && $classSection && $roll_from && $roll_to && count($sectionIds) > 0) {
             // Parse prefix and numeric suffix from both roll numbers
             $fromParts = explode('-', $roll_from, 2);
             $toParts = explode('-', $roll_to, 2);
@@ -82,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                 setFlash('error', 'ရိုက်ထည့်ထားသော Roll နံပါတ် အပိုင်းအခြားအတွင်း မည်သည့်ကျောင်းသားမှ မရှိပါ။');
             }
         } else {
-            setFlash('error', 'Roll နံပါတ်များနှင့် ဘာသာရပ် အနည်းဆုံးတစ်ခုကို ပြည့်စုံစွာ ဖြည့်စွက်/ရွေးချယ်ပေးပါ။');
+            setFlash('error', $LANG['assignment_required_fields'] ?? 'Academic Year, Semester, Class Section, roll number range, and at least one course are required.');
         }
     }
 
@@ -133,6 +136,11 @@ if (isset($_GET['ajax_filter']) && $_GET['ajax_filter'] == '1') {
     $af_sem = (int) ($_GET['semester_id'] ?? 0);
     $af_sec = clean($_GET['section_id'] ?? '');
     $af_year = (int) ($_GET['academic_year_id'] ?? 0);
+
+    if (!$af_year || !$af_sem || !$af_sec) {
+        echo json_encode(['html' => '', 'count' => 0]);
+        exit;
+    }
 
     $q = "SELECT s.id, c.course_name, c.course_code, sm_sec.section_name, COALESCE(ay.year_name, '') AS academic_year, COALESCE(sm.semester_name, '') AS semester_name 
           FROM sections s JOIN courses c ON s.course_id=c.id LEFT JOIN section_master sm_sec ON s.section_id=sm_sec.id LEFT JOIN academic_years ay ON s.academic_year_id=ay.id LEFT JOIN semesters sm ON s.semester_id=sm.id";
@@ -579,55 +587,53 @@ include '../includes/admin_sidebar.php';
                 <div>
                     <label
                         class="block text-sm font-semibold text-slate-700 mb-1"><?= $LANG['select_courses_sections'] ?? 'Select Courses / Sections (၎င်း Range အတွက် တစ်ခါတည်းအပ်မည့် ဘာသာရပ်များ)' ?></label>
-                    <div class="flex items-center gap-2 mb-3">
-                        <select id="addFilterSemester" onchange="filterAddSections()"
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
+                        <select id="addFilterYear" name="academic_year_id" required onchange="filterAddSections()"
+                            class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
+                            <option value=""><?= $LANG['select_academic_year'] ?? 'Select Academic Year' ?> *</option>
+                            <?php foreach ($allAcademicYears as $ay): ?>
+                                <option value="<?= $ay['id'] ?>"><?= e($ay['year_name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <select id="addFilterSemester" name="semester_id" required onchange="filterAddSections()"
                             class="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
-                            <option value=""><?= $LANG['all_semesters'] ?? 'All Semesters' ?></option>
+                            <option value=""><?= $LANG['select_semester'] ?? 'Select Semester' ?> *</option>
                             <?php foreach ($semesterList as $sm): ?>
                                 <option value="<?= $sm['id'] ?>"><?= e(semesterToRoman($sm['semester_name'])) ?></option>
                             <?php endforeach; ?>
                         </select>
-                        <select id="addFilterSection" onchange="filterAddSections()"
+                        <select id="addFilterSection" name="class_section" required onchange="filterAddSections()"
                             class="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
-                            <option value=""><?= $LANG['all_sections'] ?? 'All Sections' ?></option>
+                            <option value=""><?= $LANG['select_class_section'] ?? 'Select Class Section' ?> *</option>
                             <?php foreach ($sectionMasterList as $smSec): ?>
                                 <option value="<?= e($smSec['section_name']) ?>"><?= $LANG["section_label"] ?? "Section" ?> <?= e($smSec['section_name']) ?></option>
                             <?php endforeach ?>
                         </select>
                     </div>
+                    <p id="addRequiredMessage" class="mb-3 text-xs font-medium text-amber-600">
+                        <?= $LANG['select_assignment_filters'] ?? 'Select Academic Year, Semester, and Class Section to load Teaching Assignments.' ?>
+                    </p>
                     <div class="flex items-center justify-between mb-2">
                         <label class="flex items-center gap-2 text-xs text-slate-500 cursor-pointer select-none">
-                            <input type="checkbox" id="addSelectAllVisible"
+                            <input type="checkbox" id="addSelectAllVisible" disabled
                                 class="w-3.5 h-3.5 rounded border-slate-300 text-cyan-600 accent-cyan-600">
                             <?= $LANG['select_all_visible'] ?? 'Select All Visible' ?>
                         </label>
                         <span id="addVisibleCount" class="text-xs text-slate-400"></span>
                     </div>
-                    <div id="addSectionList"
-                        class="border border-slate-200 rounded-xl overflow-y-auto max-h-56 divide-y divide-slate-100 p-2 bg-slate-50/50">
-                        <?php foreach ($sectionList as $sec): ?>
-                            <label data-semester="<?= e($sec['semester_name']) ?>" data-section="<?= e($sec['section_name']) ?>"
-                                class="add-section-item flex items-center gap-3 px-3 py-1.5 hover:bg-white cursor-pointer rounded-lg transition-colors">
-                                <input type="checkbox" name="section_ids[]" value="<?= $sec['id'] ?>"
-                                    class="add-section-cb w-4 h-4 rounded border-slate-300 text-cyan-600 accent-cyan-600">
-                                <div class="text-xs">
-                                    <span class="font-semibold text-slate-800"><?= e($sec['course_name']) ?></span>
-                                    <span
-                                        class="font-bold text-cyan-600 bg-cyan-50 border border-cyan-200 px-1 rounded ml-1">Sec
-                                        <?= e($sec['section_name']) ?></span>
-                                    <span
-                                        class="text-slate-400 ml-2">(<?= e(semesterToRoman($sec['semester_name'])) ?>)</span>
-                                </div>
-                            </label>
-                        <?php endforeach; ?>
+                    <div id="addSectionList" aria-disabled="true"
+                        class="border border-slate-200 rounded-xl overflow-y-auto max-h-56 divide-y divide-slate-100 p-2 bg-slate-50/50 opacity-60 pointer-events-none">
+                        <div class="text-center text-xs text-slate-400 py-4">
+                            <?= $LANG['select_assignment_filters'] ?? 'Select Academic Year, Semester, and Class Section to load Teaching Assignments.' ?>
+                        </div>
                     </div>
                 </div>
             </div>
             <div class="flex gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50">
                 <button type="button" onclick="closeModal('addModal')"
                     class="flex-1 px-4 py-2.5 text-sm font-semibold bg-slate-500 text-white hover:bg-slate-600 rounded-xl transition-colors"><?= $LANG['cancel'] ?? 'Cancel' ?></button>
-                <button type="submit"
-                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm"><?= $LANG['assign_range_process'] ?? 'Assign Range Process' ?></button>
+                <button type="submit" id="assignRangeButton" disabled
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-indigo-600"><?= $LANG['assign_range_process'] ?? 'Assign Range Process' ?></button>
             </div>
         </form>
     </div>
@@ -750,6 +756,9 @@ include '../includes/admin_sidebar.php';
 <script>
     var LANG = <?= json_encode([
         'loading' => $LANG['loading'] ?? 'Loading...',
+        'selectAssignmentFilters' => $LANG['select_assignment_filters'] ?? 'Select Academic Year, Semester, and Class Section to load Teaching Assignments.',
+        'noMatchingSections' => $LANG['no_matching_teaching_assignments'] ?? 'No matching Teaching Assignments.',
+        'loadSectionsFailed' => $LANG['load_teaching_assignments_failed'] ?? 'Failed to load Teaching Assignments.',
     ]) ?>;
     function openEdit(id, currentSectionId, studentName) {
         document.getElementById('edit_id').value = id;
@@ -802,24 +811,48 @@ include '../includes/admin_sidebar.php';
     function filterAddSections() {
         const sem = document.getElementById('addFilterSemester').value;
         const sec = document.getElementById('addFilterSection').value;
-        const year = document.getElementById('addFilterYear') ? document.getElementById('addFilterYear').value : '';
+        const year = document.getElementById('addFilterYear').value;
         const list = document.getElementById('addSectionList');
+        const requiredMessage = document.getElementById('addRequiredMessage');
+        const submitButton = document.getElementById('assignRangeButton');
+        const selectAll = document.getElementById('addSelectAllVisible');
+        const visibleCount = document.getElementById('addVisibleCount');
+        const filtersComplete = Boolean(year && sem && sec);
+
+        submitButton.disabled = !filtersComplete;
+        selectAll.disabled = !filtersComplete;
+        selectAll.checked = false;
+        requiredMessage.classList.toggle('hidden', filtersComplete);
+        list.classList.toggle('opacity-60', !filtersComplete);
+        list.classList.toggle('pointer-events-none', !filtersComplete);
+        list.setAttribute('aria-disabled', filtersComplete ? 'false' : 'true');
+
+        if (!filtersComplete) {
+            visibleCount.textContent = '';
+            list.innerHTML = '<div class="text-center text-xs text-slate-400 py-4"></div>';
+            list.firstElementChild.textContent = LANG.selectAssignmentFilters;
+            return;
+        }
+
         const params = new URLSearchParams({ ajax_filter: 1 });
-        if (sem) params.set('semester_id', sem);
-        if (sec) params.set('section_id', sec);
-        if (year) params.set('academic_year_id', year);
+        params.set('semester_id', sem);
+        params.set('section_id', sec);
+        params.set('academic_year_id', year);
         list.innerHTML = '<div class="text-center text-xs text-slate-400 py-4">' + LANG.loading + '</div>';
 
         fetch('section_assignments.php?' + params.toString())
             .then(r => r.json())
             .then(data => {
-                list.innerHTML = data.html || '<div class="text-center text-xs text-slate-400 py-4">No matching sections.</div>';
+                list.innerHTML = data.html || '<div class="text-center text-xs text-slate-400 py-4"></div>';
+                if (!data.html) list.firstElementChild.textContent = LANG.noMatchingSections;
                 document.getElementById('addVisibleCount').textContent = data.count + ' item' + (data.count !== 1 ? 's' : '');
                 list.querySelectorAll('.add-section-cb').forEach(cb => cb.addEventListener('change', updateSelectAllVisibleState));
                 updateSelectAllVisibleState();
             })
             .catch(() => {
-                list.innerHTML = '<div class="text-center text-xs text-red-400 py-4">Failed to load sections.</div>';
+                list.innerHTML = '<div class="text-center text-xs text-red-400 py-4"></div>';
+                list.firstElementChild.textContent = LANG.loadSectionsFailed;
+                visibleCount.textContent = '';
             });
     }
 
@@ -839,6 +872,16 @@ include '../includes/admin_sidebar.php';
 
     document.querySelectorAll('.add-section-cb').forEach(cb => {
         cb.addEventListener('change', updateSelectAllVisibleState);
+    });
+
+    document.getElementById('rangeTab').addEventListener('submit', function (event) {
+        const filtersComplete = document.getElementById('addFilterYear').value
+            && document.getElementById('addFilterSemester').value
+            && document.getElementById('addFilterSection').value;
+        if (!filtersComplete) {
+            event.preventDefault();
+            document.getElementById('addRequiredMessage').classList.remove('hidden');
+        }
     });
 
 </script>

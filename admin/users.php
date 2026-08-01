@@ -610,7 +610,7 @@ include '../includes/admin_sidebar.php';
     </div>
 
     <div class="overflow-x-auto">
-        <table>
+        <table class="w-full">
             <thead class="bg-slate-200 border-b border-slate-200">
                 <tr>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">#</th>
@@ -629,7 +629,7 @@ include '../includes/admin_sidebar.php';
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
                         <?= $LANG['col_created'] ?? 'Created' ?>
                     </th>
-                    <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">
+                    <th class="text-center px-5 py-3 text-slate-500 text-sm font-semibold">
                         <?= $LANG['col_actions'] ?? 'Actions' ?>
                     </th>
                 </tr>

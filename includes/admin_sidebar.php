@@ -75,7 +75,7 @@ $nav = [
     ],
 
     [
-        'label' => $LANG['nav_section_management'] ?? 'Section Management',
+        'label' => $LANG['nav_section_management'] ?? 'Class Sections',
         'href' => '/studentfeedbackucsh/admin/section_management.php',
         'key' => 'section_management',
         'icon' => 'grid',
@@ -125,7 +125,7 @@ $nav = [
     ],
 
     [
-        'label' => $LANG['nav_sections'] ?? 'Sections',
+        'label' => $LANG['nav_sections'] ?? 'Teaching Assignments',
         'href' => '/studentfeedbackucsh/admin/sections.php',
         'key' => 'sections',
         'icon' => 'grid',
@@ -135,7 +135,7 @@ $nav = [
     ],
 
     [
-        'label' => $LANG['nav_assignments'] ?? 'Assignments',
+        'label' => $LANG['nav_assignments'] ?? 'Student Assignments',
         'href' => '/studentfeedbackucsh/admin/section_assignments.php',
         'key' => 'assignments',
         'icon' => 'link',
