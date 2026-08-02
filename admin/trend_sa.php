@@ -150,8 +150,8 @@ include '../includes/admin_sidebar.php';
                 <p class="text-xs text-purple-600 mt-1"><?= $LANG['average_rating'] ?? 'Average Rating' ?> (1–5)</p>
             </div>
             <div class="bg-emerald-50 rounded-xl p-4 text-center">
-                <p class="text-2xl font-bold text-emerald-700"><?= (int) $trendData[0]['good_count'] ?></p>
-                <p class="text-xs text-emerald-600 mt-1"><?= $LANG['good_ratings'] ?? 'Good Ratings' ?></p>
+                <p class="text-2xl font-bold text-emerald-700"><?= (int) $trendData[0]['strongly_agree_count'] ?></p>
+                <p class="text-xs text-emerald-600 mt-1"><?= $LANG['likert_strongly_agree'] ?? 'Strongly Agree' ?></p>
             </div>
             <div class="bg-slate-50 rounded-xl p-4 text-center">
                 <p class="text-2xl font-bold text-slate-700"><?= (int) $trendData[0]['total_ratings'] ?></p>
@@ -237,9 +237,7 @@ include '../includes/admin_sidebar.php';
                     <tr class="border-b border-slate-200">
                         <th class="text-left py-3 px-4 text-slate-500"><?= $LANG['academic_year'] ?? 'Academic Year' ?></th>
                         <th class="text-center py-3 px-4 text-slate-500"><?= $LANG['average_rating'] ?? 'Avg Rating' ?></th>
-                        <th class="text-center py-3 px-4 text-slate-500"><?= $LANG['good'] ?? 'Good' ?></th>
-                        <th class="text-center py-3 px-4 text-slate-500"><?= $LANG['fair'] ?? 'Fair' ?></th>
-                        <th class="text-center py-3 px-4 text-slate-500"><?= $LANG['bad'] ?? 'Bad' ?></th>
+                        <?php foreach(normalizeSurveyOptions(null) as $option):?><th class="text-center py-3 px-4 text-slate-500"><?=e($option['label'])?></th><?php endforeach;?>
                         <th class="text-center py-3 px-4 text-slate-500"><?= $LANG['total'] ?? 'Total' ?></th>
                         <th class="text-center py-3 px-4 text-slate-500"><?= $LANG['change'] ?? 'Change' ?></th>
                         <th class="text-center py-3 px-4 text-slate-500"><?= $LANG['status'] ?? 'Status' ?></th>
@@ -252,9 +250,7 @@ include '../includes/admin_sidebar.php';
                             <td class="py-3 px-4 text-center">
                                 <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-50 text-purple-700 font-bold text-sm"><?= $row['avg_rating'] ?></span>
                             </td>
-                            <td class="py-3 px-4 text-center text-emerald-600 font-medium"><?= (int) $row['good_count'] ?></td>
-                            <td class="py-3 px-4 text-center text-amber-600 font-medium"><?= (int) $row['fair_count'] ?></td>
-                            <td class="py-3 px-4 text-center text-red-600 font-medium"><?= (int) $row['bad_count'] ?></td>
+                            <td class="py-3 px-4 text-center font-medium"><?=(int)$row['strongly_agree_count']?></td><td class="py-3 px-4 text-center font-medium"><?=(int)$row['agree_count']?></td><td class="py-3 px-4 text-center font-medium"><?=(int)$row['neutral_count']?></td><td class="py-3 px-4 text-center font-medium"><?=(int)$row['disagree_count']?></td><td class="py-3 px-4 text-center font-medium"><?=(int)$row['strongly_disagree_count']?></td>
                             <td class="py-3 px-4 text-center text-slate-600"><?= (int) $row['total_ratings'] ?></td>
                             <td class="py-3 px-4 text-center">
                                 <?php if ($ayImprovements[$i] === null): ?>

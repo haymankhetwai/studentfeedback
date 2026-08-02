@@ -1,9 +1,9 @@
-<?php
+﻿<?php
 require_once '../config/db.php';
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 
-// Prevent direct URL access — must come through index.php portal flow
+// Section annotation
 if (!isset($_SESSION['entry_allowed']) || $_SESSION['selected_role'] !== 'teacher') {
     header('Location: /studentfeedbackucsh/index.php');
     exit;
@@ -15,8 +15,8 @@ updateAllFeedbackStatuses($conn);
 
 /*
  * Request-scoped Survey analysis dataset for the restored report UI.
- * Student-visible labels remain in options_json; reporting uses only the
- * internal Good/Fair/Bad category associated with the selected option.
+ * Fixed Likert ratings are categorized only for compatibility with the
+ * existing report cards; the stored value remains the canonical 1-5 score.
  */
 $conn->query("
     CREATE TEMPORARY TABLE survey_analysis_answers AS
@@ -24,19 +24,7 @@ $conn->query("
         fsa.id,
         fsa.question_id,
         fsub.form_id,
-        COALESCE(
-            JSON_UNQUOTE(
-                JSON_EXTRACT(
-                    fq.options_json,
-                    CONCAT('$[', fsa.selected_option_index, '].category')
-                )
-            ),
-            CASE fsa.selected_option_index
-                WHEN 0 THEN 'Good'
-                WHEN 1 THEN 'Fair'
-                ELSE 'Bad'
-            END
-        ) AS rating
+        fsa.rating
     FROM feedback_survey_answers fsa
     JOIN feedback_submissions fsub
         ON fsub.id = fsa.submission_id
@@ -231,11 +219,17 @@ if ($formId && $teacherId) {
 
     if ($form) {
         if (!empty($form['question_set_id'])) {
-            $q = $conn->prepare("SELECT fq.*, 'rating' AS question_type FROM feedback_questions fq WHERE question_set_id=? ORDER BY question_no ASC");
+$q = $conn->prepare("SELECT fq.*, sg.group_name_en, sg.group_name_mm, 'rating' AS question_type FROM feedback_questions fq JOIN survey_groups sg ON sg.id=fq.survey_group_id WHERE fq.question_set_id=? ORDER BY sg.id,LENGTH(fq.question_code),fq.question_code,fq.id");
             $q->bind_param('i', $form['question_set_id']);
             $q->execute();
             $questions = $q->get_result()->fetch_all(MYSQLI_ASSOC);
             $q->close();
+            if (($_SESSION['lang'] ?? 'en') === 'mm') {
+                foreach ($questions as &$localizedQuestion) {
+                    $localizedQuestion['question_text_en'] = $localizedQuestion['question_text_mm'];
+                }
+                unset($localizedQuestion);
+            }
         }
 
         $totalStudentsStmt = $conn->prepare("SELECT COUNT(DISTINCT st.id) AS cnt FROM students st JOIN section_assignments sa ON sa.student_id = st.id WHERE sa.section_id = ?");
@@ -260,20 +254,14 @@ if ($formId && $teacherId) {
                 $rawR = $rs->get_result()->fetch_all(MYSQLI_ASSOC);
                 $rs->close();
 
-                $bd = ['Good' => 0, 'Fair' => 0, 'Bad' => 0];
+                $bd = array_fill_keys(array_column(normalizeSurveyOptions(null),'label'),0);
+                $surveyResults[$quest['id']] = [];
                 $tot = 0;
                 foreach ($rawR as $rr) {
-                    $rKey = trim($rr['rating']);
-                    if ($rKey == '3' || $rKey === 'ကောင်း' || $rKey === 'Good' || $rKey === 'good') {
-                        $rKey = 'Good';
-                    } elseif ($rKey == '2' || $rKey === 'သင့်' || $rKey === 'Normal' || $rKey === 'normal' || $rKey === 'Average' || $rKey === 'Fair' || $rKey === 'fair') {
-                        $rKey = 'Fair';
-                    } elseif ($rKey == '1' || $rKey === 'ညံ့' || $rKey === 'Bad' || $rKey === 'bad') {
-                        $rKey = 'Bad';
-                    }
-
-                    if (array_key_exists($rKey, $bd)) {
-                        $bd[$rKey] += (int) $rr['cnt'];
+                    $rating=(int)$rr['rating']; $option=normalizeSurveyOptions(null)[5-$rating]??null;
+                    if($rating>=1&&$rating<=5)$surveyResults[$quest['id']][$rating]=(int)$rr['cnt'];
+                    if ($option && array_key_exists($option['label'], $bd)) {
+                        $bd[$option['label']] += (int) $rr['cnt'];
                         $tot += $rr['cnt'];
                     }
                 }
@@ -290,11 +278,11 @@ if ($formId && $teacherId) {
         foreach ($questions as $quest) {
             if ($quest['question_type'] === 'survey') {
                 $ss = $conn->prepare("
-                    SELECT fsa.selected_option_index, COUNT(*) AS cnt
+                    SELECT fsa.rating, COUNT(*) AS cnt
                     FROM feedback_survey_answers fsa
                     JOIN feedback_submissions fsub ON fsa.submission_id = fsub.id
                     WHERE fsub.form_id = ? AND fsa.question_id = ?
-                    GROUP BY fsa.selected_option_index
+                    GROUP BY fsa.rating
                 ");
                 $ss->bind_param('ii', $formId, $quest['id']);
                 $ss->execute();
@@ -302,11 +290,19 @@ if ($formId && $teacherId) {
                 $ss->close();
                 $surveyResults[$quest['id']] = [];
                 foreach ($rawS as $sr) {
-                    $surveyResults[$quest['id']][(int) $sr['selected_option_index']] = (int) $sr['cnt'];
+                    $surveyResults[$quest['id']][(int) $sr['rating']] = (int) $sr['cnt'];
                 }
             }
         }
     }
+}
+
+$surveyGroupRatings=[];$surveyOverallAverage=0.0;
+if($formId>0&&!empty($form['question_set_id'])){
+$groupStmt=$conn->prepare("SELECT sg.group_name_en,sg.group_name_mm,COUNT(DISTINCT fq.id) question_count,ROUND(AVG(CASE WHEN fs.form_id=? THEN fsa.rating END),2) average FROM survey_groups sg JOIN feedback_questions fq ON fq.survey_group_id=sg.id LEFT JOIN feedback_survey_answers fsa ON fsa.question_id=fq.id LEFT JOIN feedback_submissions fs ON fs.id=fsa.submission_id WHERE sg.question_set_id=? GROUP BY sg.id,sg.group_name_en,sg.group_name_mm ORDER BY sg.id");
+    $questionSetId=(int)$form['question_set_id'];$groupStmt->bind_param('ii',$formId,$questionSetId);$groupStmt->execute();$rows=$groupStmt->get_result()->fetch_all(MYSQLI_ASSOC);$groupStmt->close();
+    foreach($rows as $row)$surveyGroupRatings[]=['name_en'=>$row['group_name_en'],'name_mm'=>$row['group_name_mm'],'question_count'=>(int)$row['question_count'],'average'=>$row['average']===null?null:(float)$row['average']];
+    $overallStmt=$conn->prepare("SELECT ROUND(AVG(fsa.rating),2) average FROM feedback_survey_answers fsa JOIN feedback_submissions fs ON fs.id=fsa.submission_id WHERE fs.form_id=?");$overallStmt->bind_param('i',$formId);$overallStmt->execute();$overallRow=$overallStmt->get_result()->fetch_assoc();$overallStmt->close();$surveyOverallAverage=$overallRow['average']===null?0.0:(float)$overallRow['average'];
 }
 
 $ratingQuestions = [];
@@ -322,44 +318,39 @@ foreach ($questions as $q) {
     }
 }
 
-$totalGood = $totalFair = $totalBad = 0;
+$likertTotals=array_fill_keys(array_column(normalizeSurveyOptions(null),'label'),0);
 foreach ($ratingResults as $qId => $res) {
-    $totalGood += $res['breakdown']['Good'] ?? 0;
-    $totalFair += $res['breakdown']['Fair'] ?? 0;
-    $totalBad += $res['breakdown']['Bad'] ?? 0;
+    foreach($likertTotals as $label=>$_)$likertTotals[$label]+=$res['breakdown'][$label]??0;
 }
-$totalRatingResponses = $totalGood + $totalFair + $totalBad;
+$totalRatingResponses=array_sum($likertTotals);
 $numRatingQuestions = count($ratingQuestions);
 $completedCount = $completedCount ?? 0;
-$earnedScore = ($totalGood * 5) + ($totalFair * 3) + ($totalBad * 1);
+$earnedScore=0; foreach(normalizeSurveyOptions(null) as $option)$earnedScore+=$likertTotals[$option['label']]*$option['value'];
 $maxScore = $completedCount * $numRatingQuestions * 5;
 $overallPct = $maxScore > 0 ? round(($earnedScore / $maxScore) * 100, 1) : 0;
 
 if ($overallPct >= 90) {
     $grade = 'Excellent';
     $gradeColor = 'emerald';
-    $gradeIcon = '🏆';
+    $gradeIcon = iconSvg('star','w-6 h-6');
 } elseif ($overallPct >= 80) {
-    $grade = 'Very Good';
+    $grade = 'High';
     $gradeColor = 'blue';
-    $gradeIcon = '⭐';
+    $gradeIcon = iconSvg('star','w-6 h-6');
 } elseif ($overallPct >= 70) {
-    $grade = 'Good';
+    $grade = 'Positive';
     $gradeColor = 'cyan';
-    $gradeIcon = '👍';
+    $gradeIcon = iconSvg('check','w-6 h-6');
 } elseif ($overallPct >= 60) {
-    $grade = 'Fair';
+    $grade = 'Moderate';
     $gradeColor = 'amber';
-    $gradeIcon = '📋';
+    $gradeIcon = iconSvg('clipboard','w-6 h-6');
 } else {
     $grade = 'Needs Improvement';
     $gradeColor = 'red';
-    $gradeIcon = '⚠️';
+    $gradeIcon = iconSvg('question','w-6 h-6');
 }
 
-$aggGoodPct = $totalRatingResponses > 0 ? round(($totalGood / $totalRatingResponses) * 100, 1) : 0;
-$aggFairPct = $totalRatingResponses > 0 ? round(($totalFair / $totalRatingResponses) * 100, 1) : 0;
-$aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponses) * 100, 1) : 0;
 
 ?>
 <!DOCTYPE html>
@@ -407,6 +398,8 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
             animation: gradePulse 2s ease-in-out infinite;
         }
 
+        .print-only { display: none; }
+
         @keyframes gradePulse {
 
             0%,
@@ -428,6 +421,8 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
             body {
                 background: white !important;
             }
+
+            .print-only { display: block !important; }
 
             .no-print,
             nav,
@@ -563,7 +558,7 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                                     </div>
                                     <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
                                         <div class="md:col-span-3 flex flex-col items-center justify-center">
-                                            <!-- 🌟 ခြုံငုံတွက်ချက်ထားသည့် ရမှတ်ပြည့် ရာခိုင်နှုန်းကိုပြသမည့် ခြုံငုံ Pie Chart -->
+                                            <!-- Section annotation -->
                                             <div class="relative" style="width:160px;height:160px;">
                                                 <canvas id="overallRatingPieChart" data-type="overall" width="160"
                                                     height="160"></canvas>
@@ -601,7 +596,7 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="md:col-span-5 space-y-3">
+                                        <div class="md:col-span-5 space-y-3 hidden">
                                             <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
                                                 <?= $LANG['rating_distribution'] ?? 'Rating Distribution' ?>
                                             </p>
@@ -609,39 +604,33 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                                                 <div class="flex items-center justify-between text-xs">
                                                     <span class="font-semibold text-emerald-300 flex items-center gap-1.5"><span
                                                             class="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
-                                                        <?= $LANG['good'] ?? 'Good' ?></span>
-                                                    <span class="text-slate-300 font-bold"><?= $totalGood ?> <span
-                                                            class="text-slate-500 font-normal">(<?= $aggGoodPct ?>%)</span></span>
+                                                        <?= $LANG['likert_strongly_agree'] ?? 'Strongly Agree' ?></span><span class="text-slate-300 font-bold">0 <span class="text-slate-500 font-normal">(0%)</span></span>
                                                 </div>
                                                 <div class="w-full bg-white/10 rounded-full h-2.5 overflow-hidden">
                                                     <div class="progress-bar-fill bg-gradient-to-r from-emerald-500 to-emerald-400 h-full rounded-full"
-                                                        style="width: 0%" data-target-width="<?= $aggGoodPct ?>%"></div>
+                                                        style="width:0%"></div>
                                                 </div>
                                             </div>
                                             <div class="space-y-1">
                                                 <div class="flex items-center justify-between text-xs">
                                                     <span class="font-semibold text-amber-300 flex items-center gap-1.5"><span
                                                             class="w-2 h-2 rounded-full bg-amber-400 inline-block"></span>
-                                                        <?= $LANG['fair'] ?? 'Fair' ?></span>
-                                                    <span class="text-slate-300 font-bold"><?= $totalFair ?> <span
-                                                            class="text-slate-500 font-normal">(<?= $aggFairPct ?>%)</span></span>
+                                                        <?= $LANG['likert_neutral'] ?? 'Neutral' ?></span><span class="text-slate-300 font-bold">0 <span class="text-slate-500 font-normal">(0%)</span></span>
                                                 </div>
                                                 <div class="w-full bg-white/10 rounded-full h-2.5 overflow-hidden">
                                                     <div class="progress-bar-fill bg-gradient-to-r from-amber-500 to-amber-400 h-full rounded-full"
-                                                        style="width: 0%" data-target-width="<?= $aggFairPct ?>%"></div>
+                                                        style="width:0%"></div>
                                                 </div>
                                             </div>
                                             <div class="space-y-1">
                                                 <div class="flex items-center justify-between text-xs">
                                                     <span class="font-semibold text-red-300 flex items-center gap-1.5"><span
                                                             class="w-2 h-2 rounded-full bg-red-400 inline-block"></span>
-                                                        <?= $LANG['bad'] ?? 'Bad' ?></span>
-                                                    <span class="text-slate-300 font-bold"><?= $totalBad ?> <span
-                                                            class="text-slate-500 font-normal">(<?= $aggBadPct ?>%)</span></span>
+                                                        <?= $LANG['likert_strongly_disagree'] ?? 'Strongly Disagree' ?></span><span class="text-slate-300 font-bold">0 <span class="text-slate-500 font-normal">(0%)</span></span>
                                                 </div>
                                                 <div class="w-full bg-white/10 rounded-full h-2.5 overflow-hidden">
                                                     <div class="progress-bar-fill bg-gradient-to-r from-red-500 to-red-400 h-full rounded-full"
-                                                        style="width: 0%" data-target-width="<?= $aggBadPct ?>%"></div>
+                                                        style="width:0%"></div>
                                                 </div>
                                             </div>
                                         </div>
@@ -651,46 +640,53 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                         </div>
                     <?php endif ?>
 
+                    <?php if(!empty($surveyGroupRatings)):$groupLang=($_SESSION['lang']??'en')==='mm'?'mm':'en';?>
+                    <section class="mb-6 bg-white border border-slate-200 rounded-2xl shadow-sm p-6 no-print">
+                        <div class="flex items-center justify-between gap-3 mb-4"><div><h3 class="text-lg font-bold text-slate-900"><?=e($LANG['survey_group_ratings']??'Survey Group Ratings')?></h3><p class="text-xs text-slate-500"><?=e($LANG['survey_group_ratings_help']??'Average of all question ratings in each Survey Group.')?></p></div><span class="text-xs font-semibold text-violet-700 bg-violet-50 px-3 py-1.5 rounded-full"><?=number_format($surveyOverallAverage,2)?> / 5 <?=e($LANG['overall_rating']??'Overall Rating')?></span></div>
+                        <div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-4"><?php foreach($surveyGroupRatings as $group):$percentage=$group['average']===null?null:round($group['average']*20,1);?><article class="rounded-xl border border-slate-200 p-4"><h4 class="font-bold text-slate-800"><?=e($group['name_'.$groupLang])?></h4><div class="flex items-end justify-between gap-3 mt-3"><div><p class="text-xs text-slate-500"><?=e($LANG['questions']??'Questions')?></p><p class="font-semibold text-slate-700"><?=(int)$group['question_count']?></p></div><div class="text-right"><p class="text-2xl font-black text-violet-700"><?=$group['average']===null?'—':number_format($group['average'],2).' / 5'?></p><?php if($percentage!==null):?><p class="text-xs text-slate-500"><?=$percentage?>%</p><?php endif;?></div></div></article><?php endforeach;?></div>
+                    </section>
+                    <?php endif;?>
+
                     <?php if (!empty($ratingQuestions)): ?>
                         <!-- Rating Distribution Bar Chart -->
                         <div class="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-blue-100/50 p-6 mb-6">
                             <h3 class="text-sm font-bold text-slate-800 mb-4">
-                                <?= $LANG['rating_distribution'] ?? 'Rating Distribution (Good / Fair / Bad)' ?>
+                                <?= $LANG['rating_distribution'] ?? '5-Point Likert Rating Distribution' ?>
                             </h3>
                             <div class="relative" style="height:280px;">
                                 <canvas id="ratingBarChart"></canvas>
                             </div>
+                            <?php $likertPercentages=surveyCategoryPercentages($likertTotals);?>
+                            <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mt-4"><?php foreach(normalizeSurveyOptions(null) as $option):?><div class="text-center p-3 rounded-xl bg-violet-50 border border-violet-100"><p class="text-xl font-bold text-violet-700"><?=number_format($likertPercentages[$option['label']]??0,1)?>%</p><p class="text-xs font-semibold"><?=e($option['label'])?></p><p class="text-[10px] text-slate-500"><?=number_format($likertTotals[$option['label']]??0)?> <?=e($LANG['ratings']??'ratings')?></p></div><?php endforeach;?></div>
                             <?php
-                            $barTotal = $totalGood + $totalFair + $totalBad;
-                            $barPctGood = $barTotal > 0 ? round(($totalGood / $barTotal) * 100) : 0;
-                            $barPctFair = $barTotal > 0 ? round(($totalFair / $barTotal) * 100) : 0;
-                            $barPctBad = $barTotal > 0 ? round(($totalBad / $barTotal) * 100) : 0;
+                            $barTotal=$totalRatingResponses;
                             ?>
-                            <div class="grid grid-cols-3 gap-3 mt-4">
+                            <div class="hidden grid-cols-3 gap-3 mt-4">
                                 <div class="text-center p-3 rounded-xl bg-emerald-50 border border-emerald-200">
-                                    <p class="text-2xl font-bold text-emerald-600"><?= $barPctGood ?>%</p>
-                                    <p class="text-xs font-semibold text-emerald-700"><?= $LANG['good'] ?? 'Good' ?></p>
-                                    <p class="text-[10px] text-slate-500"><?= number_format($totalGood) ?>
+                                    <p class="text-2xl font-bold text-emerald-600">0%</p>
+                                    <p class="text-xs font-semibold text-emerald-700"><?= $LANG['likert_strongly_agree'] ?? 'Strongly Agree' ?></p><p class="text-[10px] text-slate-500">0
                                         <?= $LANG['ratings'] ?? 'ratings' ?>
                                     </p>
                                 </div>
                                 <div class="text-center p-3 rounded-xl bg-amber-50 border border-amber-200">
-                                    <p class="text-2xl font-bold text-amber-600"><?= $barPctFair ?>%</p>
-                                    <p class="text-xs font-semibold text-amber-700"><?= $LANG['fair'] ?? 'Fair' ?></p>
-                                    <p class="text-[10px] text-slate-500"><?= number_format($totalFair) ?>
+                                    <p class="text-2xl font-bold text-amber-600">0%</p>
+                                    <p class="text-xs font-semibold text-amber-700"><?= $LANG['likert_neutral'] ?? 'Neutral' ?></p><p class="text-[10px] text-slate-500">0
                                         <?= $LANG['ratings'] ?? 'ratings' ?>
                                     </p>
                                 </div>
                                 <div class="text-center p-3 rounded-xl bg-red-50 border border-red-200">
-                                    <p class="text-2xl font-bold text-red-600"><?= $barPctBad ?>%</p>
-                                    <p class="text-xs font-semibold text-red-700"><?= $LANG['bad'] ?? 'Bad' ?></p>
-                                    <p class="text-[10px] text-slate-500"><?= number_format($totalBad) ?>
+                                    <p class="text-2xl font-bold text-red-600">0%</p>
+                                    <p class="text-xs font-semibold text-red-700"><?= $LANG['likert_strongly_disagree'] ?? 'Strongly Disagree' ?></p><p class="text-[10px] text-slate-500">0
                                         <?= $LANG['ratings'] ?? 'ratings' ?>
                                     </p>
                                 </div>
                             </div>
                         </div>
                     <?php endif ?>
+
+                    <?php if(!empty($surveyGroupRatings)):$groupLang=($_SESSION['lang']??'en')==='mm'?'mm':'en';?>
+                    <section class="print-only mb-6" style="page-break-inside:avoid"><h3 style="font-size:14pt;font-weight:700;margin-bottom:10px"><?=e($LANG['survey_group_ratings']??'Survey Group Ratings')?></h3><table style="width:100%;border-collapse:collapse"><thead><tr><th style="text-align:left;border:1px solid #cbd5e1;padding:7px"><?=e($LANG['survey_group']??'Survey Group')?></th><th style="border:1px solid #cbd5e1;padding:7px"><?=e($LANG['questions']??'Questions')?></th><th style="border:1px solid #cbd5e1;padding:7px"><?=e($LANG['average_rating']??'Average Rating')?></th><th style="border:1px solid #cbd5e1;padding:7px"><?=e($LANG['percentage']??'Percentage')?></th></tr></thead><tbody><?php foreach($surveyGroupRatings as $group):$percentage=$group['average']===null?null:round($group['average']*20,1);?><tr><td style="border:1px solid #cbd5e1;padding:7px"><?=e($group['name_'.$groupLang])?></td><td style="text-align:center;border:1px solid #cbd5e1;padding:7px"><?=(int)$group['question_count']?></td><td style="text-align:center;border:1px solid #cbd5e1;padding:7px;font-weight:700"><?=$group['average']===null?'—':number_format($group['average'],2).' / 5'?></td><td style="text-align:center;border:1px solid #cbd5e1;padding:7px"><?=$percentage===null?'—':$percentage.'%'?></td></tr><?php endforeach;?></tbody></table></section>
+                    <?php endif;?>
 
                     <div class="bg-white/90 backdrop-blur-sm shadow-md rounded-xl border border-blue-100/50 p-6 md:p-8">
                         <div class="text-center border-b-2 border-slate-800 pb-4 mb-5">
@@ -764,95 +760,25 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                                 <div class="overflow-x-auto border border-blue-200/50 rounded-lg">
                                     <table class="w-full text-left border-collapse min-w-[850px] text-xs">
                                         <thead>
-                                            <tr class=" text-white font-bold">
-                                                <th class="p-3 w-12 text-center bg-blue-300 text-lg"><?= $LANG['col_no'] ?? 'စဉ်' ?>
+                                            <tr class="text-white font-bold [&>th]:px-4 [&>th]:py-3.5 [&>th]:align-middle [&>th]:transition-colors [&>th]:duration-200 [&>th:first-child]:rounded-tl-lg [&>th:last-child]:rounded-tr-lg [&>th:nth-child(3)]:bg-emerald-600 [&>th:nth-child(3):hover]:bg-emerald-700 [&>th:nth-child(4)]:bg-blue-600 [&>th:nth-child(4):hover]:bg-blue-700 [&>th:nth-child(5)]:bg-amber-500 [&>th:nth-child(5):hover]:bg-amber-600 [&>th:nth-child(6)]:bg-orange-500 [&>th:nth-child(6):hover]:bg-orange-600 [&>th:nth-child(7)]:bg-red-600 [&>th:nth-child(7):hover]:bg-red-700">
+                                                <th class="p-3 w-12 text-center bg-blue-300 text-lg"><?= $LANG['col_no'] ?? 'No.' ?>
                                                 </th>
                                                 <th class="p-3 bg-blue-500/80 text-lg">
                                                     <?= $LANG['eval_questions_header'] ?? 'Evaluation Questions' ?>
                                                 </th>
-                                                <th class="p-3 w-28 text-center bg-emerald-700/80">
-                                                    <div class="text-lg"><?= $LANG['good'] ?? 'Good' ?></div>
-                                                    <div class="text-[10px] font-normal"><?= $LANG['count_pct'] ?? 'COUNT / %' ?>
-                                                    </div>
-                                                </th>
-                                                <th class="p-3 w-28 text-center bg-amber-600/80">
-                                                    <div class="text-lg"><?= $LANG['fair'] ?? 'Fair' ?></div>
-                                                    <div class="text-[10px] font-normal"><?= $LANG['count_pct'] ?? 'COUNT / %' ?>
-                                                    </div>
-                                                </th>
-                                                <th class="p-3 w-28 text-center bg-red-700/70">
-                                                    <div class="text-lg"><?= $LANG['bad'] ?? 'Bad' ?></div>
-                                                    <div class="text-[10px] font-normal"><?= $LANG['count_pct'] ?? 'COUNT / %' ?>
-                                                    </div>
-                                                </th>
+                                                <?php foreach(normalizeSurveyOptions(null) as $option):?><th class="w-28 text-center shadow-sm"><div class="text-sm font-semibold leading-tight"><?=e($option['label'])?></div><div class="mt-1 text-[10px] font-medium text-white/90 tracking-wide"><?=e($LANG['count_pct']??'COUNT / %')?></div></th><?php endforeach;?>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-blue-200/40 text-slate-800 font-medium">
                                             <?php foreach ($ratingQuestions as $q):
-                                                $res = $ratingResults[$q['id']] ?? ['breakdown' => ['Good' => 0, 'Fair' => 0, 'Bad' => 0], 'total' => 0];
-                                                $goodCount = $res['breakdown']['Good'] ?? 0;
-                                                $normalCount = $res['breakdown']['Fair'] ?? 0;
-                                                $badCount = $res['breakdown']['Bad'] ?? 0;
-                                                $totalVotes = $goodCount + $normalCount + $badCount;
-                                                $goodPerc = $totalVotes > 0 ? round(($goodCount / $totalVotes) * 100) : 0;
-                                                $normalPerc = $totalVotes > 0 ? round(($normalCount / $totalVotes) * 100) : 0;
-                                                $badPerc = $totalVotes > 0 ? round(($badCount / $totalVotes) * 100) : 0;
+                                                $res=$ratingResults[$q['id']]??['breakdown'=>[],'total'=>0]; $totalVotes=array_sum($res['breakdown']);
                                                 ?>
                                                 <tr class="hover:bg-blue-50/30 transition-colors">
                                                     <td class="p-3 text-center font-bold border-r text-lg">
-                                                        <?= e(displayQuestionNumber($q['question_no'], $_SESSION['lang'] ?? 'en')) ?>
+<?= e($q['question_code']) ?>
                                                     </td>
-                                                    <td class="p-3 border-r leading-relaxed text-lg"><?= e($q['question_text']) ?></td>
-                                                    <!-- <td class="p-3 text-center border-r bg-emerald-50/30"><span
-                                                            class="text-emerald-700 font-bold block text-sm"><?= $goodCount ?>
-                                                            <?= $LANG['persons'] ?? 'persons' ?></span><span
-                                                            class="text-[10px] text-slate-500">(<?= $goodPerc ?>%)</span></td>
-                                                    <td class="p-3 text-center border-r bg-amber-50/30"><span
-                                                            class="text-amber-700 font-bold block text-sm"><?= $normalCount ?>
-                                                            <?= $LANG['persons'] ?? 'persons' ?></span><span
-                                                            class="text-[10px] text-slate-500">(<?= $normalPerc ?>%)</span></td>
-                                                    <td class="p-3 text-center bg-red-50/30"><span
-                                                            class="text-red-700 font-bold block text-sm"><?= $badCount ?>
-                                                            <?= $LANG['persons'] ?? 'persons' ?></span><span
-                                                            class="text-[10px] text-slate-500">(<?= $badPerc ?>%)</span></td> -->
-
-
-                                                    <td class="p-3 text-center border-r bg-amber-50/30">
-                                                        <span class="text-emerald-700 font-bold block text-sm">
-                                                            <?= $goodCount ?>
-                                                            <?= $goodCount <= 1
-                                                                ? ($LANG['student'] ?? 'student')
-                                                                : ($LANG['students'] ?? 'students') ?>
-                                                        </span>
-                                                        <span class="text-[10px] text-slate-500">(<?= $goodPerc ?>%)</span>
-                                                    </td>
-
-                                                    <!-- <td class="p-3 text-center border-r bg-amber-50/30"><span
-                                                    class="text-amber-700 font-bold block text-sm"><?= $fc ?>
-                                                    <?= $LANG['persons'] ?? 'persons' ?></span><span
-                                                    class="text-[10px] text-slate-500">(<?= $fp ?>%)</span></td> -->
-                                                    <td class="p-3 text-center border-r bg-amber-50/30">
-                                                        <span class="text-amber-700 font-bold block text-sm">
-                                                            <?= $normalCount ?>
-                                                            <?= $normalCount <= 1
-                                                                ? ($LANG['student'] ?? 'student')
-                                                                : ($LANG['students'] ?? 'students') ?>
-                                                        </span>
-                                                        <span class="text-[10px] text-slate-500">(<?= $normalPerc ?>%)</span>
-                                                    </td>
-                                                    <!-- <td class="p-3 text-center bg-red-50/30"><span
-                                                    class="text-red-700 font-bold block text-sm"><?= $bc ?>
-                                                    <?= $LANG['persons'] ?? 'persons' ?></span><span
-                                                    class="text-[10px] text-slate-500">(<?= $bp ?>%)</span></td> -->
-                                                    <td class="p-3 text-center border-r bg-amber-50/30">
-                                                        <span class="text-red-700 font-bold block text-sm">
-                                                            <?= $badCount ?>
-                                                            <?= $badCount <= 1
-                                                                ? ($LANG['student'] ?? 'student')
-                                                                : ($LANG['students'] ?? 'students') ?>
-                                                        </span>
-                                                        <span class="text-[10px] text-slate-500">(<?= $badPerc ?>%)</span>
-                                                    </td>
+                                                    <td class="p-3 border-r leading-relaxed text-lg"><?= e($q['question_text_en']) ?></td>
+                                                    <?php foreach(normalizeSurveyOptions(null) as $option): $count=$res['breakdown'][$option['label']]??0; $pct=$totalVotes?round($count*100/$totalVotes):0;?><td class="p-3 text-center border-r bg-violet-50/30"><span class="text-violet-700 font-bold block text-sm"><?=$count?></span><span class="text-[10px] text-slate-500">(<?=$pct?>%)</span></td><?php endforeach;?>
                                                 </tr>
                                             <?php endforeach ?>
                                         </tbody>
@@ -870,8 +796,8 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                                     $commentsForThisQuestion = $comments[$q['id']] ?? []; ?>
                                     <div class="space-y-2 text-xs">
                                         <label class="block font-bold text-slate-700 text-lg">
-                                            <?= displayQuestionNumber($q['question_no'], $_SESSION['lang'] ?? 'en') ?>
-                                            <?= e($q['question_text']) ?>
+<?= e($q['question_code']) ?>
+                                            <?= e($q['question_text_en']) ?>
                                             <span
                                                 class="text-slate-400 font-normal text-xs">(<?= $LANG['total_comments'] ?? 'Total comments' ?>
                                                 - <?= count($commentsForThisQuestion) ?>
@@ -910,7 +836,7 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                                         class="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full font-semibold"><?= $LANG['not_included_overall_rating'] ?? 'Not included in Overall Rating' ?></span>
                                 </div>
                                 <?php foreach ($surveyQuestions as $q):
-                                    $opts = json_decode($q['options_json'] ?? '[]', true) ?: [];
+                                    $opts = json_decode($q['question_text_en'] ?? '[]', true) ?: [];
                                     $qStats = $surveyResults[$q['id']] ?? [];
                                     $mostSelected = getMostSelectedSurveyOptions($qStats);
                                     $totalVotes = $mostSelected['total'];
@@ -927,10 +853,10 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                                         <div class="px-6 pt-5 pb-3 border-b border-slate-100">
                                             <div class="flex items-start gap-3">
                                                 <span
-                                                    class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.5 shrink-0"><?= e(displayQuestionNumber($q['question_no'], $_SESSION['lang'] ?? 'en')) ?></span>
+class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.5 shrink-0"><?= e($q['question_code']) ?></span>
                                                 <div class="flex-1 min-w-0">
                                                     <h4 class="text-lg font-bold text-slate-800 leading-snug">
-                                                        <?= e($q['question_text']) ?>
+                                                        <?= e($q['question_text_en']) ?>
                                                     </h4>
                                                     <div
                                                         class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-[11px] text-slate-400">
@@ -950,11 +876,11 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                                                         </div>
                                                     </div>
                                                     <div class="w-full md:w-2/3 space-y-4">
-                                                        <!-- 🌟 အများဆုံးရွေးချယ်ထားသော အဖြေစာသား (Most Selected Option) ထုတ်ပြမည့်နေရာ -->
+                                                        <!-- Section annotation -->
                                                         <!-- <?php if ($totalVotes > 0 && !empty($mostSelected['indices'])): ?>
                                                             <span
                                                                 class="inline-flex items-center gap-1 text-violet-700 bg-violet-50 px-2 py-0.5 rounded-md font-semibold">
-                                                                🔥 အများဆုံးရွေးချယ်မှု:
+                                                                <?=iconSvg('star','w-3.5 h-3.5')?> <?=e($LANG['most_selected_answer']??'Most Selected Answer')?>:
                                                                 <?php
                                                                 $mostSelectedLabels = [];
                                                                 foreach ($mostSelected['indices'] as $msIndex) {
@@ -1014,14 +940,14 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                                                         $msPct = $totalVotes > 0 ? round(($msCount / $totalVotes) * 100, 1) : 0;
                                                         ?>
                                                         <div class="flex items-center gap-3 mb-2 last:mb-0">
-                                                            <span class="text-lg">⭐</span>
+                                                            <?=iconSvg('star','w-5 h-5 text-amber-500')?>
                                                             <div>
                                                                 <p class="text-sm font-bold text-slate-800"><?= e($msLabel) ?></p>
                                                                 <p class="text-xs text-slate-500">
-                                                                    <span class="inline-flex items-center gap-1">👥 <?= $msCount ?>
+                                                                    <span class="inline-flex items-center gap-1"><?=iconSvg('users','w-4 h-4')?> <?= $msCount ?>
                                                                         <?= $LANG['students_label'] ?? 'Students' ?></span>
                                                                     <span class="mx-1.5">·</span>
-                                                                    <span class="inline-flex items-center gap-1">📊 <?= $msPct ?>%</span>
+                                                                    <span class="inline-flex items-center gap-1"><?=iconSvg('chart','w-4 h-4')?> <?= $msPct ?>%</span>
                                                                 </p>
                                                             </div>
                                                         </div>
@@ -1068,7 +994,7 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
             <?php elseif ($semesterFilter && empty($mySections)): ?>
                 <div
                     class="bg-white/90 backdrop-blur-sm rounded-2xl border border-blue-100/50 text-center py-20 text-slate-400">
-                    <span class="text-2xl block mb-2">🔍</span>
+                    <?=iconSvg('search','w-7 h-7 mx-auto mb-2')?>
                     <p class="text-sm font-semibold">
                         <?= $LANG['no_feedback_semester'] ?? 'No feedback available for the selected semester.' ?>
                     </p>
@@ -1079,7 +1005,7 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
             <?php elseif ($sectionId): ?>
                 <div
                     class="bg-white/90 backdrop-blur-sm rounded-2xl border border-blue-100/50 text-center py-20 text-slate-400">
-                    <span class="text-2xl block mb-2">📄</span>
+                    <?=iconSvg('document','w-7 h-7 mx-auto mb-2')?>
                     <p class="text-sm font-semibold">
                         <?= $LANG['no_feedback_forms_for_section'] ?? 'No feedback forms for this section.' ?>
                     </p>
@@ -1087,7 +1013,7 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
             <?php else: ?>
                 <div
                     class="bg-white/90 backdrop-blur-sm rounded-2xl border border-blue-100/50 text-center py-20 text-slate-400 mt-4">
-                    <span class="text-2xl block mb-2">📊</span>
+                    <?=iconSvg('chart','w-7 h-7 mx-auto mb-2')?>
                     <p class="text-sm font-semibold">
                         <?= $LANG['select_section_first'] ?? 'Select a section to view results.' ?>
                     </p>
@@ -1266,7 +1192,7 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
             }
 
             // ==========================================
-            // 🏆 Overall Score ခြုံငုံသုံးသပ်ချက် ဝိုင်းကွင်း
+            // Section annotation
             // ==========================================
             <?php if (!empty($ratingQuestions)): ?>
                 const scorePct = <?= (float) $overallPct ?>;
@@ -1291,11 +1217,11 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                     new Chart(barCanvas, {
                         type: 'bar',
                         data: {
-                            labels: <?= json_encode([$LANG['good'] ?? 'Good', $LANG['fair'] ?? 'Fair', $LANG['bad'] ?? 'Bad']) ?>,
+                            labels: <?= json_encode(array_column(normalizeSurveyOptions(null),'label')) ?>,
                             datasets: [{
                                 label: <?= json_encode($LANG['ratings'] ?? 'Ratings') ?>,
-                                data: [<?= (int) $totalGood ?>, <?= (int) $totalFair ?>, <?= (int) $totalBad ?>],
-                                backgroundColor: ['#22c55e', '#f59e0b', '#ef4444'],
+                                data: <?=json_encode(array_values($likertTotals))?>,
+                                backgroundColor: ['#16a34a','#65a30d','#f59e0b','#f97316','#dc2626'],
                                 borderWidth: 0,
                                 borderRadius: 8,
                                 barPercentage: 0.55
@@ -1338,7 +1264,7 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
             <?php
             $surveyChartData = [];
             foreach ($surveyQuestions as $q) {
-                $options = json_decode($q['options_json'] ?? '[]', true) ?: [];
+                $options = array_column(normalizeSurveyOptions(null),'label');
                 $stats = $surveyResults[$q['id']] ?? [];
                 $colors = ["#7c3aed", "#2563eb", "#059669", "#d97706", "#dc2626", "#0891b2", "#8b5cf6", "#ec4899"];
 
@@ -1347,7 +1273,7 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
                 $bg = [];
                 foreach ($options as $i => $option) {
                     $labels[] = $option;
-                    $values[] = (int) ($stats[$i] ?? 0);
+                    $values[] = (int) ($stats[5-$i] ?? 0);
                     $bg[] = $colors[$i % count($colors)];
                 }
                 $surveyChartData[$q['id']] = [
@@ -1457,3 +1383,4 @@ $aggBadPct = $totalRatingResponses > 0 ? round(($totalBad / $totalRatingResponse
 </body>
 
 </html>
+

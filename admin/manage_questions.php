@@ -4,444 +4,342 @@ require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 requireRole('admin');
 
-$rawSetId = $_SERVER['REQUEST_METHOD'] === 'POST'
-    ? ($_POST['set_id'] ?? null)
-    : ($_GET['set_id'] ?? null);
-
-if ($rawSetId === null || $rawSetId === '') {
+$setId = filter_var($_REQUEST['set_id'] ?? 0, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+if (!$setId) {
     header('Location: question_sets.php');
     exit;
 }
-
-$validatedSetId = filter_var(
-    $rawSetId,
-    FILTER_VALIDATE_INT,
-    ['options' => ['min_range' => 1]]
-);
-if ($validatedSetId === false) {
-    setFlash('error', 'Invalid Question Set selection.');
-    header('Location: question_sets.php');
-    exit;
-}
-$setId = (int) $validatedSetId;
-
-$setStmt = $conn->prepare(
-    "SELECT fqs.*, COALESCE(ay.year_name, '') AS year_name
-     FROM feedback_question_sets fqs
-     LEFT JOIN academic_years ay ON ay.id = fqs.academic_year_id
-     WHERE fqs.id = ?"
-);
-$setStmt->bind_param('i', $setId);
-$setStmt->execute();
-$questionSet = $setStmt->get_result()->fetch_assoc();
-$setStmt->close();
+$stmt = $conn->prepare("SELECT fqs.*, COALESCE(ay.year_name,'') year_name FROM feedback_question_sets fqs LEFT JOIN academic_years ay ON ay.id=fqs.academic_year_id WHERE fqs.id=?");
+$stmt->bind_param('i', $setId);
+$stmt->execute();
+$questionSet = $stmt->get_result()->fetch_assoc();
+$stmt->close();
 if (!$questionSet) {
-    setFlash('error', 'This Question Set was deleted or is no longer available.');
+    setFlash('error', 'Question Set not found.');
     header('Location: question_sets.php');
     exit;
 }
 
-function surveyOptionsFromPost(): ?string
+function surveyAdminText(string $key, string $fallback): string
 {
-    $postedOptions = $_POST['options'] ?? [];
-    if (!is_array($postedOptions)) {
-        return null;
+    global $LANG;
+    return $LANG[$key] ?? $fallback;
+}
+function nextQuestionCode(mysqli $conn, int $groupId, int $setId): string
+{
+    $group = $conn->prepare("SELECT group_code FROM survey_groups WHERE id=? AND question_set_id=? FOR UPDATE");
+    $group->bind_param('ii', $groupId, $setId);
+    $group->execute();
+    $row = $group->get_result()->fetch_assoc();
+    $group->close();
+    if (!$row)
+        throw new RuntimeException(surveyAdminText('invalid_survey_group', 'Invalid Survey Group.'));
+    $prefix = strtoupper(trim($row['group_code']));
+    $codes = $conn->prepare("SELECT question_code FROM feedback_questions WHERE survey_group_id=?");
+    $codes->bind_param('i', $groupId);
+    $codes->execute();
+    $result = $codes->get_result();
+    $used = [];
+    while ($codeRow = $result->fetch_assoc()) {
+        if (preg_match('/^' . preg_quote($prefix, '/') . '([1-9][0-9]*)$/i', $codeRow['question_code'], $match))
+            $used[(int) $match[1]] = true;
     }
-
-    if (count($postedOptions) !== 3) {
-        return null;
-    }
-
-    $labels = [];
-    foreach ($postedOptions as $value) {
-        if (!is_scalar($value)) {
-            return null;
-        }
-        $option = clean((string) $value);
-        if ($option === '') {
-            return null;
-        }
-        $labels[] = $option;
-    }
-
-    $normalizedOptions = array_map(
-        static fn($value) => function_exists('mb_strtolower')
-        ? mb_strtolower($value, 'UTF-8')
-        : strtolower($value),
-        $labels
-    );
-
-    if (count(array_unique($normalizedOptions)) !== 3) {
-        return null;
-    }
-
-    $categories = ['Good', 'Fair', 'Bad'];
-    $options = array_map(
-        static fn($label, $index) => [
-            'label' => $label,
-            'category' => $categories[$index],
-        ],
-        $labels,
-        array_keys($labels)
-    );
-    return json_encode($options, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    $codes->close();
+    $number = 1;
+    while (isset($used[$number]))
+        $number++;
+    return $prefix . $number;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCsrf()) {
-        setFlash('error', 'Invalid request token.');
-        header("Location: manage_questions.php?set_id=$setId");
-        exit;
-    }
-
-    $action = $_POST['action'] ?? '';
-    if ($action === 'add' || $action === 'edit') {
-        $id = (int) ($_POST['id'] ?? 0);
-        $questionNo = (int) ($_POST['question_no'] ?? 0);
-        $questionText = clean($_POST['question_text'] ?? '');
-        $optionsJson = surveyOptionsFromPost();
-
-        if ($action === 'edit' && $id < 1) {
-            setFlash('error', 'Invalid Survey question.');
-        } elseif ($questionNo < 1 || $questionText === '' || $optionsJson === null) {
-            setFlash('error', 'Enter a question number, question text, and exactly three distinct Survey options.');
-        } else {
-            if ($action === 'edit') {
-                $owned = $conn->prepare(
-                    "SELECT id FROM feedback_questions WHERE id = ? AND question_set_id = ?"
-                );
-                $owned->bind_param('ii', $id, $setId);
-                $owned->execute();
-                $isOwned = $owned->get_result()->num_rows === 1;
-                $owned->close();
-
-                if (!$isOwned) {
-                    setFlash('error', 'Survey question not found in this question set.');
-                    header("Location: manage_questions.php?set_id=$setId");
-                    exit;
-                }
-
-                $legacyAnswer = $conn->prepare(
-                    "SELECT 1 FROM feedback_survey_answers
-                     WHERE question_id = ? AND selected_option_index >= 3
-                     LIMIT 1"
-                );
-                $legacyAnswer->bind_param('i', $id);
-                $legacyAnswer->execute();
-                $hasLegacyFourthOptionAnswer =
-                    $legacyAnswer->get_result()->num_rows > 0;
-                $legacyAnswer->close();
-                if ($hasLegacyFourthOptionAnswer) {
-                    setFlash(
-                        'error',
-                        'This historical question has answers for an additional option and cannot be reduced to three options.'
-                    );
-                    header("Location: manage_questions.php?set_id=$setId");
-                    exit;
-                }
-            }
-
-            $duplicate = $conn->prepare(
-                "SELECT id FROM feedback_questions
-                 WHERE question_set_id = ? AND question_no = ? AND id <> ?"
-            );
-            $duplicate->bind_param('iii', $setId, $questionNo, $id);
-            $duplicate->execute();
-            $exists = $duplicate->get_result()->num_rows > 0;
-            $duplicate->close();
-
-            if ($exists) {
-                setFlash('error', 'That question number already exists in this set.');
-            } elseif ($action === 'add') {
-                $stmt = $conn->prepare(
-                    "INSERT INTO feedback_questions
-                     (question_set_id, question_no, question_text, options_json)
-                     VALUES (?,?,?,?)"
-                );
-                $stmt->bind_param(
-                    'iiss',
-                    $setId,
-                    $questionNo,
-                    $questionText,
-                    $optionsJson
-                );
-                $saved = $stmt->execute();
-                $stmt->close();
-                setFlash($saved ? 'success' : 'error', $saved ? 'Survey question added.' : 'Unable to add Survey question.');
-            } else {
-                $stmt = $conn->prepare(
-                    "UPDATE feedback_questions
-                     SET question_no = ?, question_text = ?, options_json = ?
-                     WHERE id = ? AND question_set_id = ?"
-                );
-                $stmt->bind_param('issii', $questionNo, $questionText, $optionsJson, $id, $setId);
-                $saved = $stmt->execute();
-                $stmt->close();
-                setFlash($saved ? 'success' : 'error', $saved ? 'Survey question updated.' : 'Unable to update Survey question.');
-            }
-        }
-    } elseif ($action === 'delete') {
-        $id = (int) ($_POST['id'] ?? 0);
-        if ($id < 1) {
-            setFlash('error', 'Invalid Survey question.');
-        } else {
-            $stmt = $conn->prepare(
-                "DELETE FROM feedback_questions WHERE id = ? AND question_set_id = ?"
-            );
-            $stmt->bind_param('ii', $id, $setId);
-            $deleted = $stmt->execute() && $stmt->affected_rows === 1;
-            $stmt->close();
-            setFlash($deleted ? 'success' : 'error', $deleted ? 'Survey question deleted.' : 'Survey question not found.');
-        }
+        setFlash('error', surveyAdminText('invalid_request_token', 'Invalid request token.'));
     } else {
-        setFlash('error', 'Unsupported question action.');
+        $action = $_POST['action'] ?? '';
+        $questionTransaction = false;
+        try {
+            if (in_array($action, ['add_group', 'edit_group'], true)) {
+                $id = (int) ($_POST['id'] ?? 0);
+                $code = strtoupper(clean($_POST['group_code'] ?? ''));
+                $en = clean($_POST['group_name_en'] ?? '');
+                $mm = clean($_POST['group_name_mm'] ?? '');
+                $ien = clean($_POST['instruction_en'] ?? '');
+                $imm = clean($_POST['instruction_mm'] ?? '');
+                if ($code === '' || $en === '' || $mm === '')
+                    throw new RuntimeException(surveyAdminText('survey_group_required', 'Code and both group names are required.'));
+                if ($action === 'add_group') {
+                    $s = $conn->prepare("INSERT INTO survey_groups(question_set_id,group_code,group_name_en,group_name_mm,instruction_en,instruction_mm) VALUES(?,?,?,?,?,?)");
+                    $s->bind_param('isssss', $setId, $code, $en, $mm, $ien, $imm);
+                } else {
+                    $s = $conn->prepare("UPDATE survey_groups SET group_code=?,group_name_en=?,group_name_mm=?,instruction_en=?,instruction_mm=? WHERE id=? AND question_set_id=?");
+                    $s->bind_param('sssssii', $code, $en, $mm, $ien, $imm, $id, $setId);
+                }
+                $s->execute();
+                $s->close();
+                setFlash('success', surveyAdminText('survey_group_saved', 'Survey Group saved.'));
+            } elseif ($action === 'delete_group') {
+                $id = (int) ($_POST['id'] ?? 0);
+                $s = $conn->prepare("DELETE FROM survey_groups WHERE id=? AND question_set_id=?");
+                $s->bind_param('ii', $id, $setId);
+                $s->execute();
+                $s->close();
+                setFlash('success', surveyAdminText('survey_group_deleted', 'Survey Group deleted.'));
+            } elseif (in_array($action, ['add_question', 'edit_question'], true)) {
+                $id = (int) ($_POST['id'] ?? 0);
+                $groupId = (int) ($_POST['survey_group_id'] ?? 0);
+                $en = clean($_POST['question_text_en'] ?? '');
+                $mm = clean($_POST['question_text_mm'] ?? '');
+                $own = $conn->prepare("SELECT id FROM survey_groups WHERE id=? AND question_set_id=?");
+                $own->bind_param('ii', $groupId, $setId);
+                $own->execute();
+                $valid = $own->get_result()->num_rows === 1;
+                $own->close();
+                if (!$valid || $en === '' || $mm === '')
+                    throw new RuntimeException(surveyAdminText('survey_question_required', 'Group and both question texts are required.'));
+                $conn->begin_transaction();
+                $questionTransaction = true;
+                if ($action === 'add_question') {
+                    $code = nextQuestionCode($conn, $groupId, $setId);
+                    $s = $conn->prepare("INSERT INTO feedback_questions(question_set_id,survey_group_id,question_code,question_text_en,question_text_mm) VALUES(?,?,?,?,?)");
+                    $s->bind_param('iisss', $setId, $groupId, $code, $en, $mm);
+                } else {
+                    $current = $conn->prepare("SELECT survey_group_id,question_code FROM feedback_questions WHERE id=? AND question_set_id=? FOR UPDATE");
+                    $current->bind_param('ii', $id, $setId);
+                    $current->execute();
+                    $currentRow = $current->get_result()->fetch_assoc();
+                    $current->close();
+                    if (!$currentRow)
+                        throw new RuntimeException(surveyAdminText('survey_question_not_found', 'Survey Question not found.'));
+                    $code = (int) $currentRow['survey_group_id'] === $groupId ? $currentRow['question_code'] : nextQuestionCode($conn, $groupId, $setId);
+                    $s = $conn->prepare("UPDATE feedback_questions SET survey_group_id=?,question_code=?,question_text_en=?,question_text_mm=? WHERE id=? AND question_set_id=?");
+                    $s->bind_param('isssii', $groupId, $code, $en, $mm, $id, $setId);
+                }
+                $s->execute();
+                $s->close();
+                $conn->commit();
+                $questionTransaction = false;
+                setFlash('success', surveyAdminText('survey_question_saved', 'Survey Question saved.'));
+            } elseif ($action === 'delete_question') {
+                $id = (int) ($_POST['id'] ?? 0);
+                $s = $conn->prepare("DELETE FROM feedback_questions WHERE id=? AND question_set_id=?");
+                $s->bind_param('ii', $id, $setId);
+                $s->execute();
+                $s->close();
+                setFlash('success', surveyAdminText('survey_question_deleted', 'Survey Question deleted.'));
+            }
+        } catch (Throwable $e) {
+            if ($questionTransaction)
+                $conn->rollback();
+            $dbMessage = in_array($action, ['add_question', 'edit_question'], true) ? surveyAdminText('duplicate_question_code', 'Unable to generate a unique Question Code.') : surveyAdminText('duplicate_group_code', 'Group Code is already in use.');
+            setFlash('error', $e instanceof mysqli_sql_exception ? $dbMessage : $e->getMessage());
+        }
     }
     header("Location: manage_questions.php?set_id=$setId");
     exit;
 }
 
-$page = max(1, (int) ($_GET['page'] ?? 1));
-$perPage = (int) ($_GET['per_page'] ?? 10);
-if (!in_array($perPage, [10, 25, 50, 100], true)) {
-    $perPage = 10;
-}
-
-$countStmt = $conn->prepare(
-    "SELECT COUNT(*) AS total
-     FROM feedback_questions
-     WHERE question_set_id = ?"
-);
-$countStmt->bind_param('i', $setId);
-$countStmt->execute();
-$totalQuestions = (int) $countStmt->get_result()->fetch_assoc()['total'];
-$countStmt->close();
-
-$pg = paginate($totalQuestions, $perPage, $page);
-$page = $pg['current'];
-$offset = $pg['offset'];
-
-$questionsStmt = $conn->prepare(
-    "SELECT id, question_no, question_text, options_json
-     FROM feedback_questions
-     WHERE question_set_id = ?
-     ORDER BY question_no
-     LIMIT ? OFFSET ?"
-);
-$questionsStmt->bind_param('iii', $setId, $perPage, $offset);
-$questionsStmt->execute();
-$questions = $questionsStmt->get_result()->fetch_all(MYSQLI_ASSOC);
-$questionsStmt->close();
-
-$nextStmt = $conn->prepare(
-    "SELECT COALESCE(MAX(question_no), 0) + 1 AS next_no
-     FROM feedback_questions
-     WHERE question_set_id = ?"
-);
-$nextStmt->bind_param('i', $setId);
-$nextStmt->execute();
-$nextNo = (int) $nextStmt->get_result()->fetch_assoc()['next_no'];
-$nextStmt->close();
-
-$paginationParams = $_GET;
-$paginationParams['set_id'] = $setId;
-unset($paginationParams['page'], $paginationParams['per_page']);
-$paginationUrl = 'manage_questions.php?' . http_build_query($paginationParams);
-
-$pageTitle = 'Survey Questions';
+$s = $conn->prepare("SELECT * FROM survey_groups WHERE question_set_id=? ORDER BY id");
+$s->bind_param('i', $setId);
+$s->execute();
+$groups = $s->get_result()->fetch_all(MYSQLI_ASSOC);
+$s->close();
+$s = $conn->prepare("SELECT fq.* FROM feedback_questions fq WHERE fq.question_set_id=? ORDER BY fq.survey_group_id,LENGTH(fq.question_code),fq.question_code,fq.id");
+$s->bind_param('i', $setId);
+$s->execute();
+$questions = $s->get_result()->fetch_all(MYSQLI_ASSOC);
+$s->close();
+$byGroup = [];
+foreach ($questions as $q)
+    $byGroup[$q['survey_group_id']][] = $q;
+$pageTitle = surveyAdminText('survey_architecture', 'Survey Groups & Questions');
 include '../includes/admin_header.php';
 include '../includes/admin_sidebar.php';
 ?>
 <main class="flex-1 overflow-y-auto p-4 md:p-8">
     <div class="max-w-6xl mx-auto">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-            <div>
-                <a href="question_sets.php" class="text-md font-bold text-indigo-600 hover:underline">← Question Sets</a>
-                <h1 class="text-2xl font-bold text-slate-900 mt-2"><?= e($questionSet['title']) ?></h1>
-                <p class="text-sm text-slate-500">
-                    <?= e($questionSet['year_name']) ?> · <?= moduleBadge($questionSet['module']) ?>
-                    · Survey questions only
+        <div class="flex flex-wrap justify-between gap-4 mb-6">
+            <div><a href="question_sets.php" class="font-bold text-indigo-600">←
+                    <?= e(surveyAdminText('question_sets', 'Question Sets')) ?></a>
+                <h1 class="text-2xl font-bold mt-2"><?= e($questionSet['title']) ?></h1>
+                <p class="text-slate-500"><?= e($questionSet['year_name']) ?> ·
+                    <?= moduleBadge($questionSet['module']) ?>
                 </p>
             </div>
-            <button type="button" onclick="openModal('addModal')"
-                class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm shadow-indigo-600/20 transition-all hover:-translate-y-0.5">
-                <?= iconSvg('plus', 'w-4 h-4') ?>
-                Add Survey Question
-            </button>
+            <button onclick="modal('groupModal')"
+                class="inline-flex items-center self-end px-4 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold"><?= iconSvg('plus', 'w-4 h-4') ?>
+                <?= e(surveyAdminText('add_survey_group', 'Add Survey Group')) ?></button>
         </div>
-
         <?php renderFlash(); ?>
+        <div class="space-y-6">
+            <?php foreach ($groups as $g): ?>
+                <section class="bg-white border rounded-2xl shadow-sm overflow-hidden">
+                    <header class="p-5 bg-slate-50 flex flex-wrap justify-between gap-3">
+                        <div>
+                            <div class="flex items-center gap-2"><span
+                                    class="font-mono text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded"><?= e($g['group_code']) ?></span>
+                                <h2 class="font-bold text-lg"><?= e($g['group_name_en']) ?> / <?= e($g['group_name_mm']) ?>
+                                </h2>
+                            </div>
+                            <p class="text-sm text-slate-500 mt-2">
+                                <?= e($g['instruction_en']) ?><br><?= e($g['instruction_mm']) ?>
+                            </p>
 
-        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-            <table class="w-full text-sm">
-                <thead class="bg-slate-50 text-slate-600">
-                    <tr>
-                        <th class="text-left px-5 py-3 w-24">No.</th>
-                        <th class="text-left px-5 py-3">Question and options</th>
-                        <th class="text-right px-5 py-3 w-40">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                    <?php foreach ($questions as $question):
-                        $options = normalizeSurveyOptions($question['options_json']);
-                        ?>
-                        <tr>
-                            <td class="px-5 py-4 font-semibold"><?= (int) $question['question_no'] ?></td>
-                            <td class="px-5 py-4">
-                                <p class="font-medium text-slate-900"><?= e($question['question_text']) ?></p>
-                                <div class="flex flex-wrap gap-2 mt-2">
-                                    <?php foreach ($options as $option): ?>
-                                        <span
-                                            class="px-2.5 py-1 rounded-full bg-violet-50 text-violet-700 text-xs"><?= e($option['label']) ?></span>
-                                    <?php endforeach; ?>
-                                </div>
-                            </td>
-                            <td class="px-5 py-4 text-right">
-                                <div class="flex items-center justify-end gap-1.5">
-                                    <button type="button"
-                                        data-question="<?= e(json_encode($question, JSON_UNESCAPED_UNICODE)) ?>"
-                                        onclick="openEdit(this)"
-                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 rounded-lg">
-                                        <?= iconSvg('edit', 'w-3.5 h-3.5') ?>
-                                        <?= $LANG["edit"] ?? "Edit" ?>
-                                    </button>
+                        </div>
+                        <div class="flex items-center justify-end gap-2"><button type="button"
+                                data-row='<?= e(json_encode($g, JSON_UNESCAPED_UNICODE)) ?>' onclick="editGroup(this)"
+                                class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 rounded-lg transition-colors"><?= iconSvg('edit', 'w-3.5 h-3.5') ?>
+                                <?= e($LANG['edit'] ?? 'Edit') ?></button><button type="button"
+                                onclick="deleteItem('delete_group',<?= (int) $g['id'] ?>)"
+                                class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"><?= iconSvg('trash', 'w-3.5 h-3.5') ?>
+                                <?= e($LANG['delete'] ?? 'Delete') ?></button></div>
+                    </header>
+                    <div class="divide-y"><?php foreach ($byGroup[$g['id']] ?? [] as $q): ?>
+                            <div class="p-5 flex justify-between gap-4">
+                                <!-- <div><span class="font-mono font-bold text-violet-600"><?= e($q['question_code']) ?></span>
+                                    <span class="mt-1"><?= e($q['question_text_en']) ?></span>
+                                    <p class="text-slate-500"><?= e($q['question_text_mm']) ?></p>
+                                </div> -->
+                                <div class="flex items-start gap-2">
+                                    <!-- Question Code -->
+                                    <span class="font-mono font-bold text-violet-600 shrink-0">
+                                        <?= e($q['question_code']) ?>
+                                    </span>
 
-                                    <button type="button" onclick="openDelete(<?= (int) $question['id'] ?>)"
-                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg">
-                                        <?= iconSvg('trash', 'w-3.5 h-3.5') ?>
-                                        <?= $LANG["delete"] ?? "Delete" ?>
-                                    </button>
+                                    <!-- Question Texts -->
+                                    <div class="flex flex-col gap-1">
+                                        <span class="text-slate-900">
+                                            <?= e($q['question_text_en']) ?>
+                                        </span>
+                                        <p class="text-slate-500">
+                                            <?= e($q['question_text_mm']) ?>
+                                        </p>
+                                    </div>
                                 </div>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                    <?php if (!$questions): ?>
-                        <tr>
-                            <td colspan="3" class="px-5 py-12 text-center text-slate-500">No Survey questions yet.</td>
-                        </tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
+
+                                <div class="shrink-0 flex items-center justify-end gap-2"><button type="button"
+                                        data-row='<?= e(json_encode($q, JSON_UNESCAPED_UNICODE)) ?>'
+                                        onclick="editQuestion(this)"
+                                        class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 rounded-lg transition-colors"><?= iconSvg('edit', 'w-3.5 h-3.5') ?>
+                                        <?= e($LANG['edit'] ?? 'Edit') ?></button><button type="button"
+                                        onclick="deleteItem('delete_question',<?= (int) $q['id'] ?>)"
+                                        class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"><?= iconSvg('trash', 'w-3.5 h-3.5') ?>
+                                        <?= e($LANG['delete'] ?? 'Delete') ?></button></div>
+                            </div><?php endforeach; ?>
+                        <?php if (empty($byGroup[$g['id']])): ?>
+                            <p class="p-5 text-slate-400">
+                                <?= e(surveyAdminText('no_questions_in_group', 'No questions in this group.')) ?>
+                            </p>
+                        <?php endif; ?>
+                        <div class="flex justify-end"><button onclick="addQuestion(<?= (int) $g['id'] ?>)"
+                                class="inline-flex items-center m-5 px-4 py-2 rounded-lg bg-violet-600 text-white "><?= iconSvg('plus', 'w-4 h-4') ?><?= e(surveyAdminText('add_survey_question', 'Add Survey Question')) ?></button>
+                        </div>
+                </section><?php endforeach; ?>
+
+
+            <?php if (!$groups): ?>
+                <div class="bg-white border rounded-2xl p-10 text-center text-slate-500">
+                    <?= e(surveyAdminText('no_survey_groups', 'Create a Survey Group before adding questions.')) ?>
+                </div>
+            <?php endif; ?>
         </div>
-        <?= paginationLinks($pg, $paginationUrl, $perPage) ?>
     </div>
 </main>
 
-<?php
-function renderQuestionFields(int $number, string $prefix): void
+<?php function field(string $label, string $name, string $id, bool $area = false): void
 {
-    ?>
-    <div class="space-y-4">
-        <div>
-            <label class="block text-sm font-medium mb-1">Question number</label>
-            <input type="number" min="1" required name="question_no" id="<?= $prefix ?>_number" value="<?= $number ?>"
-                class="w-full border rounded-xl px-4 py-2.5">
+    if ($name === 'question_code')
+        return;
+    $labels = [
+        'group_name_en' => 'Group Name (English)',
+        'group_name_mm' => 'Group Name (Myanmar)',
+        'instruction_en' => 'Instruction (English)',
+        'instruction_mm' => 'Instruction (Myanmar)',
+        'question_text_en' => 'Question (English)',
+        'question_text_mm' => 'Question (Myanmar)',
+    ];
+    $label = $labels[$name] ?? $label;
+    $wrapperClass = $name === 'group_code' ? 'md:col-span-2' : '';
+    $rows = str_starts_with($name, 'question_text_') ? 4 : 3; ?>
+    <div class="<?= $wrapperClass ?>"><label for="<?= $id ?>"
+            class="block text-sm font-medium mb-1"><?= e($label) ?></label><?php if ($area): ?><textarea required
+                name="<?= $name ?>" id="<?= $id ?>" rows="<?= $rows ?>"
+                class="w-full border rounded-xl px-3 py-2 resize-y"></textarea><?php else: ?><input required name="<?= $name ?>"
+                id="<?= $id ?>" class="w-full border rounded-xl px-3 py-2"><?php endif; ?></div><?php } ?>
+<div id="groupModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">
+    <form method="post" class="bg-white rounded-2xl p-6 w-full max-w-2xl space-y-5"><?= csrfField() ?><input
+            type="hidden" name="set_id" value="<?= $setId ?>"><input type="hidden" name="action" id="g_action"
+            value="add_group"><input type="hidden" name="id" id="g_id">
+        <h2 class="text-xl font-bold"><?= e(surveyAdminText('survey_group', 'Survey Group')) ?></h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <?php field(surveyAdminText('group_code', 'Group Code'), 'group_code', 'g_code');
+            field('English name', 'group_name_en', 'g_en');
+            field('မြန်မာအမည်', 'group_name_mm', 'g_mm');
+            field('English instruction', 'instruction_en', 'g_ien', true);
+            field('မြန်မာညွှန်ကြားချက်', 'instruction_mm', 'g_imm', true); ?>
         </div>
-        <div>
-            <label class="block text-sm font-medium mb-1">Question text</label>
-            <textarea required name="question_text" id="<?= $prefix ?>_text" rows="3"
-                class="w-full border rounded-xl px-4 py-2.5"></textarea>
-        </div>
-        <div>
-            <label class="block text-sm font-medium mb-2">Survey options</label>
-            <div class="grid md:grid-cols-2 gap-3">
-                <?php for ($i = 0; $i < 3; $i++): ?>
-                    <input name="options[]" id="<?= $prefix ?>_option_<?= $i ?>" required placeholder="Option <?= $i + 1 ?>"
-                        class="w-full border rounded-xl px-4 py-2.5">
-                <?php endfor; ?>
-            </div>
-            <p class="text-xs text-slate-500 mt-2">Exactly three distinct options are required.</p>
-        </div>
-    </div>
-    <?php
-}
-?>
-
-<div id="addModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">
-    <div class="bg-white rounded-2xl w-full max-w-2xl p-6">
-        <h2 class="text-xl font-bold mb-5">Add Survey Question</h2>
-        <form method="post">
-            <?= csrfField() ?>
-            <input type="hidden" name="action" value="add">
-            <input type="hidden" name="set_id" value="<?= $setId ?>">
-            <?php renderQuestionFields($nextNo, 'add'); ?>
-            <div class="flex justify-end gap-3 mt-6">
-                <button type="button" onclick="closeModal('addModal')"
-                    class="flex-1 px-4 py-2.5 text-sm font-semibold bg-slate-500 text-white hover:bg-slate-600 rounded-xl transition-colors"><?= $LANG["cancel"] ?? "Cancel" ?></button>
-                <button
-                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl">
-                    <?= $LANG["save"] ?? "Save" ?>
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<div id="editModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">
-    <div class="bg-white rounded-2xl w-full max-w-2xl p-6">
-        <h2 class="text-xl font-bold mb-5">Edit Survey Question</h2>
-        <form method="post">
-            <?= csrfField() ?>
-            <input type="hidden" name="action" value="edit">
-            <input type="hidden" name="set_id" value="<?= $setId ?>">
-            <input type="hidden" name="id" id="edit_id">
-            <?php renderQuestionFields(1, 'edit'); ?>
-            <div class="flex justify-end gap-3 mt-6">
-                <button type="button" onclick="closeModal('editModal')"
-                    class="flex-1 px-4 py-2.5 text-sm font-semibold bg-slate-500 text-white hover:bg-slate-600 rounded-xl transition-colors"><?= $LANG["cancel"] ?? "Cancel" ?></button>
-                <button
-                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= $LANG["save"] ?? "Save" ?></button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<div id="deleteModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">
-    <form method="post" class="bg-white rounded-2xl w-full max-w-md p-6">
-        <?= csrfField() ?>
-        <input type="hidden" name="action" value="delete">
-        <input type="hidden" name="set_id" value="<?= $setId ?>">
-        <input type="hidden" name="id" id="delete_id">
-        <h2 class="text-xl font-bold">Delete Survey Question?</h2>
-        <p class="text-sm text-slate-500 mt-2">Its Survey answers will also be deleted.</p>
-        <div class="flex justify-end gap-3 mt-6">
-            <button type="button" onclick="closeModal('deleteModal')"
-                class="flex-1 px-4 py-2.5 text-sm font-semibold bg-slate-500 text-white hover:bg-slate-600 rounded-xl transition-colors"><?= $LANG["cancel"] ?? "Cancel" ?></button>
-            <button class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl">
-                <?= $LANG["delete"] ?? "Delete" ?>
-            </button>
+        <div class="flex justify-end gap-2"><button type="button" onclick="hide('groupModal')"
+                class="flex-1 px-4 py-2.5 text-sm font-semibold bg-slate-500 text-white hover:bg-slate-600 rounded-xl transition-colors"><?= e($LANG['cancel'] ?? 'Cancel') ?></button><button
+                class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= e($LANG['save'] ?? 'Save') ?></button>
         </div>
     </form>
 </div>
-
+<div id="questionModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">
+    <form method="post" class="bg-white rounded-2xl p-6 w-full max-w-2xl space-y-5"><?= csrfField() ?><input
+            type="hidden" name="set_id" value="<?= $setId ?>"><input type="hidden" name="action" id="q_action"
+            value="add_question"><input type="hidden" name="id" id="q_id">
+        <h2 class="text-xl font-bold"><?= e(surveyAdminText('survey_question', 'Survey Question')) ?></h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="md:col-span-2"><label
+                    class="block text-sm font-medium mb-1"><?= e(surveyAdminText('survey_group', 'Survey Group')) ?></label><select
+                    required name="survey_group_id" id="q_group"
+                    class="w-full border rounded-xl px-3 py-2"><?php foreach ($groups as $g): ?>
+                        <option value="<?= $g['id'] ?>"><?= e($g['group_code'] . ' — ' . $g['group_name_en']) ?></option>
+                    <?php endforeach; ?>
+                </select></div>
+            <?php field('English question', 'question_text_en', 'q_en', true);
+            field('မြန်မာမေးခွန်း', 'question_text_mm', 'q_mm', true); ?>
+        </div>
+        <p class="text-xs text-slate-500">
+            <?= e(surveyAdminText('fixed_likert_notice', 'Options are fixed: Strongly Agree, Agree, Neutral, Disagree, Strongly Disagree.')) ?>
+        </p>
+        <div class="flex justify-end gap-2"><button type="button" onclick="hide('questionModal')"
+                class="flex-1 px-4 py-2.5 text-sm font-semibold bg-slate-500 text-white hover:bg-slate-600 rounded-xl transition-colors"><?= e($LANG['cancel'] ?? 'Cancel') ?></button><button
+                class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= e($LANG['save'] ?? 'Save') ?></button>
+        </div>
+    </form>
+</div>
+<div id="deleteModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4 modal-backdrop"
+    data-modal-backdrop>
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm modal-box">
+        <div class="px-6 py-6 text-center">
+            <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                <?= iconSvg('trash', 'w-7 h-7 text-red-600') ?>
+            </div>
+            <h3 id="delete_title" class="text-lg font-semibold text-slate-800">
+                <?= e(surveyAdminText('delete_survey_question', 'Delete Survey Question')) ?>
+            </h3>
+            <p id="delete_message" class="text-sm text-slate-500 mt-2">
+                <?= e(surveyAdminText('confirm_delete_question', 'Are you sure you want to delete this question?')) ?>
+            </p>
+        </div>
+        <form method="post" id="deleteForm"><?= csrfField() ?><input type="hidden" name="set_id"
+                value="<?= $setId ?>"><input type="hidden" name="action" id="d_action"><input type="hidden" name="id"
+                id="d_id">
+            <div class="flex gap-3 px-6 pb-6">
+                <button type="button" onclick="hide('deleteModal')"
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold bg-slate-500 text-white hover:bg-slate-600 rounded-xl transition-colors"><?= e($LANG['cancel'] ?? 'Cancel') ?></button>
+                <button type="submit"
+                    class="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors"><?= e($LANG['delete'] ?? 'Delete') ?></button>
+            </div>
+        </form>
+    </div>
+</div>
 <script>
-    function showModal(id) {
-        var modal = document.getElementById(id);
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-    }
-    function hideModal(id) {
-        var modal = document.getElementById(id);
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-    }
-    function openEdit(button) {
-        var question = JSON.parse(button.dataset.question);
-        document.getElementById('edit_id').value = question.id;
-        document.getElementById('edit_number').value = question.question_no;
-        document.getElementById('edit_text').value = question.question_text;
-        var options = JSON.parse(question.options_json || '[]');
-        for (var i = 0; i < 3; i++) {
-            var option = options[i] || '';
-            document.getElementById('edit_option_' + i).value =
-                typeof option === 'object' ? (option.label || '') : option;
-        }
-        showModal('editModal');
-    }
-    function openDelete(id) {
-        document.getElementById('delete_id').value = id;
-        showModal('deleteModal');
-    }
-    window.openModal = showModal;
-    window.closeModal = hideModal;
+    function modal(id) { let m = document.getElementById(id); m.classList.remove('hidden'); m.classList.add('flex') } function hide(id) { let m = document.getElementById(id); m.classList.add('hidden'); m.classList.remove('flex') }
+    function editGroup(b) { let r = JSON.parse(b.dataset.row); g_action.value = 'edit_group'; g_id.value = r.id; g_code.value = r.group_code; g_en.value = r.group_name_en; g_mm.value = r.group_name_mm; g_ien.value = r.instruction_en || ''; g_imm.value = r.instruction_mm || ''; modal('groupModal') }
+    function addQuestion(group) { q_action.value = 'add_question'; q_id.value = ''; q_group.value = group; q_en.value = ''; q_mm.value = ''; modal('questionModal') }
+    function editQuestion(b) { let r = JSON.parse(b.dataset.row); q_action.value = 'edit_question'; q_id.value = r.id; q_group.value = r.survey_group_id; q_en.value = r.question_text_en; q_mm.value = r.question_text_mm; modal('questionModal') }
+    function deleteItem(action, id) { d_action.value = action; d_id.value = id; let group = action === 'delete_group'; delete_title.textContent = group ? '<?= e(surveyAdminText('delete_survey_group', 'Delete Survey Group')) ?>' : '<?= e(surveyAdminText('delete_survey_question', 'Delete Survey Question')) ?>'; delete_message.textContent = group ? '<?= e(surveyAdminText('confirm_delete_group', 'Are you sure you want to delete this Survey Group and its questions?')) ?>' : '<?= e(surveyAdminText('confirm_delete_question', 'Are you sure you want to delete this question?')) ?>'; modal('deleteModal') }
+    document.getElementById('deleteModal').addEventListener('click', function (event) { if (event.target === this) hide('deleteModal') });
 </script>
 <?php include '../includes/admin_footer.php'; ?>

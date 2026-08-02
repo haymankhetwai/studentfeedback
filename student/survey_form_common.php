@@ -89,10 +89,14 @@ $canSubmit = $form['status'] === 'Active' && !$alreadySubmitted;
 $questions = [];
 if (!empty($form['question_set_id'])) {
     $questionStmt = $conn->prepare(
-        "SELECT id, question_no, question_text, options_json
-         FROM feedback_questions
-         WHERE question_set_id = ?
-         ORDER BY question_no"
+        "SELECT fq.id, fq.question_code, fq.question_text_en, fq.question_text_mm,
+        sg.id AS group_id, sg.group_code,
+                sg.group_name_en, sg.group_name_mm, sg.instruction_en,
+        sg.instruction_mm
+         FROM feedback_questions fq
+         JOIN survey_groups sg ON sg.id = fq.survey_group_id
+         WHERE fq.question_set_id = ?
+    ORDER BY sg.id, LENGTH(fq.question_code), fq.question_code, fq.id"
     );
     $questionStmt->bind_param('i', $form['question_set_id']);
     $questionStmt->execute();
@@ -111,17 +115,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $answers = [];
         foreach ($questions as $question) {
-            $options = normalizeSurveyOptions($question['options_json']);
             $selected = filter_input(
                 INPUT_POST,
                 'survey_' . $question['id'],
                 FILTER_VALIDATE_INT,
-                ['options' => ['min_range' => 0]]
+                ['options' => ['min_range' => 1, 'max_range' => 5]]
             );
-            if (
-                count($options) < 3 ||
-                $selected === false || $selected === null || !array_key_exists($selected, $options)
-            ) {
+            if ($selected === false || $selected === null) {
                 $answers = [];
                 break;
             }
@@ -148,11 +148,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $insertAnswer = $conn->prepare(
                     "INSERT INTO feedback_survey_answers
-                     (submission_id, question_id, selected_option_index)
+                     (submission_id, question_id, rating)
                      VALUES (?, ?, ?)"
                 );
-                foreach ($answers as $questionId => $selectedIndex) {
-                    $insertAnswer->bind_param('iii', $submissionId, $questionId, $selectedIndex);
+                foreach ($answers as $questionId => $rating) {
+                    $insertAnswer->bind_param('iii', $submissionId, $questionId, $rating);
                     if (!$insertAnswer->execute() || $insertAnswer->affected_rows !== 1) {
                         throw new RuntimeException('Unable to save a Survey answer.');
                     }
@@ -327,21 +327,40 @@ $pageTitle = $form['title'] ?? 'Survey';
                 action="<?= e(basename($_SERVER['PHP_SELF'])) ?>?form_id=<?= $formId ?><?= $isEmbedded ? '&amp;embed=1' : '' ?>"
                 class="space-y-5" id="survey-form">
                 <?= csrfField() ?>
-                <?php foreach ($questions as $index => $question):
-                    $options = normalizeSurveyOptions($question['options_json']);
-                    ?>
+                <?php
+                $currentGroup = null;
+                $language = ($_SESSION['lang'] ?? 'en') === 'mm' ? 'mm' : 'en';
+                $likertOptions = [
+                    5 => $LANG['likert_strongly_agree'] ?? 'Strongly Agree',
+                    4 => $LANG['likert_agree'] ?? 'Agree',
+                    3 => $LANG['likert_neutral'] ?? 'Neutral',
+                    2 => $LANG['likert_disagree'] ?? 'Disagree',
+                    1 => $LANG['likert_strongly_disagree'] ?? 'Strongly Disagree',
+                ];
+                foreach ($questions as $index => $question):
+                    if ($currentGroup !== (int) $question['group_id']):
+                        $currentGroup = (int) $question['group_id'];
+                        $groupName = $question['group_name_' . $language];
+                        $instruction = $question['instruction_' . $language];
+                ?>
+                    <section class="rounded-2xl border border-violet-200 bg-violet-50 p-5">
+                        <h2 class="text-xl font-bold text-violet-900"><?= e($groupName) ?></h2>
+                        <?php if ($instruction !== ''): ?><p class="mt-2 text-violet-700"><?= e($instruction) ?></p><?php endif; ?>
+                    </section>
+                <?php endif;
+                    $questionText = $question['question_text_' . $language]; ?>
                     <fieldset class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-                        <legend class="sr-only"><?= e($question['question_text']) ?></legend>
+                        <legend class="sr-only"><?= e($questionText) ?></legend>
                         <p class="font-semibold text-slate-900">
-                            <?= e(displayQuestionNumber($index + 1, $_SESSION['lang'] ?? 'en')) ?> <?= e($question['question_text']) ?>
+                            <span class="text-violet-600"><?= e($question['question_code']) ?></span> <?= e($questionText) ?>
                         </p>
-                        <div class="grid md:grid-cols-2 gap-3 mt-4">
-                            <?php foreach ($options as $optionIndex => $option): ?>
+                        <div class="grid sm:grid-cols-2 lg:grid-cols-5 gap-3 mt-4">
+                            <?php foreach ($likertOptions as $rating => $label): ?>
                                 <label
                                     class="flex items-center gap-3 rounded-xl border border-slate-200 p-4 cursor-pointer hover:border-violet-400 hover:bg-violet-50">
-                                    <input type="radio" name="survey_<?= (int) $question['id'] ?>" value="<?= (int) $optionIndex ?>"
+                                    <input type="radio" name="survey_<?= (int) $question['id'] ?>" value="<?= $rating ?>"
                                         required class="w-4 h-4 text-violet-600">
-                                    <span class="text-sm"><?= e($option['label']) ?></span>
+                                    <span class="text-sm"><?= e($label) ?></span>
                                 </label>
                             <?php endforeach; ?>
                         </div>

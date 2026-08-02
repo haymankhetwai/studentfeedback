@@ -1,39 +1,25 @@
-<?php
+﻿<?php
 // ============================================================
-// Trend Analysis — Shared Helper Functions
+// Section annotation
 // ============================================================
 // These functions are used by admin and teacher trend pages.
-// They read-only from the existing database — no modifications.
+// Section annotation
 // ============================================================
 
-/**
- * SQL CASE expression to convert rating values to numeric scores.
- * Reuses the existing system's scoring logic:
- *   Good/Excellent = 5, Fair = 3, Bad/Poor = 1
- */
+/** Canonical numeric Likert rating expression (1-5). */
 function trendRatingCase(): string
 {
-    return "CASE COALESCE(
-        JSON_UNQUOTE(JSON_EXTRACT(
-            fq.options_json,
-            CONCAT('$[', fsa.selected_option_index, '].category')
-        )),
-        CASE fsa.selected_option_index
-            WHEN 0 THEN 'Good' WHEN 1 THEN 'Fair' WHEN 2 THEN 'Bad'
-        END
-    )
-        WHEN 'Good' THEN 5 WHEN 'Fair' THEN 3 WHEN 'Bad' THEN 1
-        ELSE 3 END";
+    return "fsa.rating";
 }
 
 // ============================================================
-// ACADEMIC MODULE — Per-Teacher, optionally per-Course
+// Section annotation
 // ============================================================
 
 /**
  * Get overall rating trend per Academic Year for a specific teacher.
  * Optionally filtered by course.
- * Returns: [['ay_id','year_name','avg_rating','total_ratings','good_count','fair_count','bad_count'], ...]
+ * Returns one independent count for every fixed Likert rating.
  */
 function getAcademicRatingTrend(mysqli $conn, int $teacherId, ?int $courseId = null): array
 {
@@ -41,9 +27,11 @@ function getAcademicRatingTrend(mysqli $conn, int $teacherId, ?int $courseId = n
     $sql = "SELECT ay.id AS ay_id, ay.year_name,
                    ROUND(AVG($rc), 2) AS avg_rating,
                    COUNT(fsa.id) AS total_ratings,
-                   SUM(CASE WHEN ($rc) = 5 THEN 1 ELSE 0 END) AS good_count,
-                   SUM(CASE WHEN ($rc) = 3 THEN 1 ELSE 0 END) AS fair_count,
-                   SUM(CASE WHEN ($rc) = 1 THEN 1 ELSE 0 END) AS bad_count
+                   SUM(CASE WHEN ($rc) = 5 THEN 1 ELSE 0 END) AS strongly_agree_count,
+                   SUM(CASE WHEN ($rc) = 4 THEN 1 ELSE 0 END) AS agree_count,
+                   SUM(CASE WHEN ($rc) = 3 THEN 1 ELSE 0 END) AS neutral_count,
+                   SUM(CASE WHEN ($rc) = 2 THEN 1 ELSE 0 END) AS disagree_count,
+                   SUM(CASE WHEN ($rc) = 1 THEN 1 ELSE 0 END) AS strongly_disagree_count
             FROM feedback_survey_answers fsa
             JOIN feedback_submissions fsub ON fsa.submission_id = fsub.id
             JOIN feedback_forms ff ON fsub.form_id = ff.id
@@ -74,13 +62,13 @@ function getAcademicRatingTrend(mysqli $conn, int $teacherId, ?int $courseId = n
 
 /**
  * Get per-question rating trends for the academic module.
- * Groups by question_no (ordinal position) to match questions across AYs.
- * Returns: [['year_name','question_no','question_text','avg_rating'], ...]
+ * Groups by question_code to match questions across academic years.
+ * Returns: [['year_name','question_code','question_text_en','avg_rating'], ...]
  */
 function getAcademicQuestionTrend(mysqli $conn, int $teacherId, ?int $courseId = null): array
 {
     $rc = trendRatingCase();
-    $sql = "SELECT ay.year_name, fq.question_no, fq.question_text,
+    $sql = "SELECT ay.year_name, fq.question_code, fq.question_text_en,
                    ROUND(AVG($rc), 2) AS avg_rating
             FROM feedback_survey_answers fsa
             JOIN feedback_submissions fsub ON fsa.submission_id = fsub.id
@@ -100,8 +88,8 @@ function getAcademicQuestionTrend(mysqli $conn, int $teacherId, ?int $courseId =
         $params[] = $courseId;
     }
 
-    $sql .= " GROUP BY ay.year_name, fq.question_no, fq.question_text
-              ORDER BY fq.question_no ASC, ay.year_name ASC";
+    $sql .= " GROUP BY ay.year_name, fq.question_code, fq.question_text_en
+              ORDER BY LENGTH(fq.question_code), fq.question_code, ay.year_name";
 
     $stmt = $conn->prepare($sql);
     $stmt->bind_param($types, ...$params);
@@ -113,14 +101,14 @@ function getAcademicQuestionTrend(mysqli $conn, int $teacherId, ?int $courseId =
 
 /**
  * Get survey option trends for the academic module.
- * Returns raw counts per (AY, question_no, option_index).
+ * Returns raw counts per academic year, question code, and rating.
  * Percentages are calculated in PHP.
- * Returns: [['year_name','question_no','question_text','options_json','selected_option_index','cnt'], ...]
+ * Returns: [['year_name','question_code','question_text_en','rating','cnt'], ...]
  */
 function getAcademicSurveyTrend(mysqli $conn, int $teacherId, ?int $courseId = null): array
 {
-    $sql = "SELECT ay.year_name, fq.question_no, fq.question_text, fq.options_json,
-                   fsa.selected_option_index, COUNT(*) AS cnt
+    $sql = "SELECT ay.year_name, fq.question_code, fq.question_text_en,
+                   fsa.rating, COUNT(*) AS cnt
             FROM feedback_survey_answers fsa
             JOIN feedback_submissions fsub ON fsa.submission_id = fsub.id
             JOIN feedback_forms ff ON fsub.form_id = ff.id
@@ -139,8 +127,8 @@ function getAcademicSurveyTrend(mysqli $conn, int $teacherId, ?int $courseId = n
         $params[] = $courseId;
     }
 
-    $sql .= " GROUP BY ay.year_name, fq.question_no, fq.question_text, fq.options_json, fsa.selected_option_index
-              ORDER BY fq.question_no ASC, ay.year_name ASC, fsa.selected_option_index ASC";
+    $sql .= " GROUP BY ay.year_name, fq.question_code, fq.question_text_en, fsa.rating
+              ORDER BY LENGTH(fq.question_code), fq.question_code, ay.year_name, fsa.rating";
 
     $stmt = $conn->prepare($sql);
     $stmt->bind_param($types, ...$params);
@@ -151,7 +139,7 @@ function getAcademicSurveyTrend(mysqli $conn, int $teacherId, ?int $courseId = n
 }
 
 // ============================================================
-// SA / ADMINISTRATION MODULE — No teacher/course, optional semester
+// Section annotation
 // ============================================================
 
 /**
@@ -164,9 +152,11 @@ function getModuleRatingTrend(mysqli $conn, string $module, ?int $semId = null):
     $sql = "SELECT ay.id AS ay_id, ay.year_name,
                    ROUND(AVG($rc), 2) AS avg_rating,
                    COUNT(fsa.id) AS total_ratings,
-                   SUM(CASE WHEN ($rc) = 5 THEN 1 ELSE 0 END) AS good_count,
-                   SUM(CASE WHEN ($rc) = 3 THEN 1 ELSE 0 END) AS fair_count,
-                   SUM(CASE WHEN ($rc) = 1 THEN 1 ELSE 0 END) AS bad_count
+                   SUM(CASE WHEN ($rc) = 5 THEN 1 ELSE 0 END) AS strongly_agree_count,
+                   SUM(CASE WHEN ($rc) = 4 THEN 1 ELSE 0 END) AS agree_count,
+                   SUM(CASE WHEN ($rc) = 3 THEN 1 ELSE 0 END) AS neutral_count,
+                   SUM(CASE WHEN ($rc) = 2 THEN 1 ELSE 0 END) AS disagree_count,
+                   SUM(CASE WHEN ($rc) = 1 THEN 1 ELSE 0 END) AS strongly_disagree_count
             FROM feedback_survey_answers fsa
             JOIN feedback_submissions fsub ON fsa.submission_id = fsub.id
             JOIN feedback_forms ff ON fsub.form_id = ff.id
@@ -199,7 +189,7 @@ function getModuleRatingTrend(mysqli $conn, string $module, ?int $semId = null):
 function getModuleQuestionTrend(mysqli $conn, string $module, ?int $semId = null): array
 {
     $rc = trendRatingCase();
-    $sql = "SELECT ay.year_name, fq.question_no, fq.question_text,
+    $sql = "SELECT ay.year_name, fq.question_code, fq.question_text_en,
                    ROUND(AVG($rc), 2) AS avg_rating
             FROM feedback_survey_answers fsa
             JOIN feedback_submissions fsub ON fsa.submission_id = fsub.id
@@ -217,8 +207,8 @@ function getModuleQuestionTrend(mysqli $conn, string $module, ?int $semId = null
         $params[] = $semId;
     }
 
-    $sql .= " GROUP BY ay.year_name, fq.question_no, fq.question_text
-              ORDER BY fq.question_no ASC, ay.year_name ASC";
+    $sql .= " GROUP BY ay.year_name, fq.question_code, fq.question_text_en
+              ORDER BY LENGTH(fq.question_code), fq.question_code, ay.year_name";
 
     $stmt = $conn->prepare($sql);
     $stmt->bind_param($types, ...$params);
@@ -233,8 +223,8 @@ function getModuleQuestionTrend(mysqli $conn, string $module, ?int $semId = null
  */
 function getModuleSurveyTrend(mysqli $conn, string $module, ?int $semId = null): array
 {
-    $sql = "SELECT ay.year_name, fq.question_no, fq.question_text, fq.options_json,
-                   fsa.selected_option_index, COUNT(*) AS cnt
+    $sql = "SELECT ay.year_name, fq.question_code, fq.question_text_en,
+                   fsa.rating, COUNT(*) AS cnt
             FROM feedback_survey_answers fsa
             JOIN feedback_submissions fsub ON fsa.submission_id = fsub.id
             JOIN feedback_forms ff ON fsub.form_id = ff.id
@@ -251,8 +241,8 @@ function getModuleSurveyTrend(mysqli $conn, string $module, ?int $semId = null):
         $params[] = $semId;
     }
 
-    $sql .= " GROUP BY ay.year_name, fq.question_no, fq.question_text, fq.options_json, fsa.selected_option_index
-              ORDER BY fq.question_no ASC, ay.year_name ASC, fsa.selected_option_index ASC";
+    $sql .= " GROUP BY ay.year_name, fq.question_code, fq.question_text_en, fsa.rating
+              ORDER BY LENGTH(fq.question_code), fq.question_code, ay.year_name, fsa.rating";
 
     $stmt = $conn->prepare($sql);
     $stmt->bind_param($types, ...$params);
@@ -263,7 +253,7 @@ function getModuleSurveyTrend(mysqli $conn, string $module, ?int $semId = null):
 }
 
 // ============================================================
-// DROPDOWN DATA — For admin filter dropdowns
+// Section annotation
 // ============================================================
 
 /**
@@ -329,7 +319,7 @@ function getTrendSemesters(mysqli $conn, string $module): array
 
 /**
  * Calculate improvement percentage between two values.
- * Returns: ((current - previous) / previous) × 100
+  * Section annotation
  */
 function calcImprovement(float $current, float $previous): float
 {
@@ -348,7 +338,7 @@ function trendStatusInfo(float $improvementPct): array
             'status' => 'Improving',
             'color'  => 'text-emerald-700',
             'bg'     => 'bg-emerald-50 border-emerald-200',
-            'icon'   => '📈',
+            'icon'   => iconSvg('chart','w-5 h-5'),
             'badge'  => 'bg-emerald-100 text-emerald-800',
         ];
     } elseif ($improvementPct < -2) {
@@ -356,7 +346,7 @@ function trendStatusInfo(float $improvementPct): array
             'status' => 'Declining',
             'color'  => 'text-red-700',
             'bg'     => 'bg-red-50 border-red-200',
-            'icon'   => '📉',
+            'icon'   => iconSvg('chart','w-5 h-5'),
             'badge'  => 'bg-red-100 text-red-800',
         ];
     } else {
@@ -364,7 +354,7 @@ function trendStatusInfo(float $improvementPct): array
             'status' => 'Stable',
             'color'  => 'text-amber-700',
             'bg'     => 'bg-amber-50 border-amber-200',
-            'icon'   => '➡️',
+            'icon'   => iconSvg('chart','w-5 h-5'),
             'badge'  => 'bg-amber-100 text-amber-800',
         ];
     }
@@ -418,10 +408,10 @@ function buildTrendSummary(array $trendData): array
 
 /**
  * Process raw survey trend data into structured format.
- * Groups by question_no, then by AY, then by option.
+ * Groups by question code, then by academic year, then by option.
  * Calculates percentages automatically.
  *
- * Returns: [question_no => [
+ * Returns: [question_code => [
  *   'text' => latest question text,
  *   'options' => [option labels from latest AY],
  *   'years' => [year_name, ...],
@@ -432,26 +422,21 @@ function processSurveyTrend(array $rawData): array
 {
     if (empty($rawData)) return [];
 
-    // Step 1: Collect raw counts grouped by question_no → year → option_index
-    $grouped = [];      // question_no → year → option_index → count
-    $qTexts  = [];      // question_no → latest question_text
-    $qOpts   = [];      // question_no → latest options_json
+    // Step 1: Collect raw counts grouped by question code, year, and rating.
+    $grouped = [];
+    $qTexts  = [];
     $allYears = [];     // all unique year names
 
     foreach ($rawData as $row) {
-        $qno  = (int) $row['question_no'];
+        $qno  = $row['question_code'];
         $year = $row['year_name'];
-        $selectedIndex = (int) $row['selected_option_index'];
-        $normalizedOptions = normalizeSurveyOptions($row['options_json'] ?? '[]');
-        $category = $normalizedOptions[$selectedIndex]['category'] ?? null;
-        $oidx = array_search($category, ['Good', 'Fair', 'Bad'], true);
-        if ($oidx === false) {
-            continue;
-        }
+        $rating = (int) $row['rating'];
+        if($rating<1||$rating>5) continue;
+        $oidx=5-$rating;
         $cnt  = (int) $row['cnt'];
 
-        $grouped[$qno][$year][$oidx] = $cnt;
-        $qTexts[$qno] = $row['question_text'];   // overwritten with latest
+        $grouped[$qno][$year][$oidx] = ($grouped[$qno][$year][$oidx] ?? 0) + $cnt;
+        $qTexts[$qno] = $row['question_text_en'];   // overwritten with latest
         $allYears[$year] = true;
     }
 
@@ -461,10 +446,10 @@ function processSurveyTrend(array $rawData): array
     // Step 2: Build structured output with percentages
     $result = [];
     foreach ($grouped as $qno => $yearData) {
-        $options = ['Good', 'Fair', 'Bad'];
-        $optionCount = 3;
+        $options = array_column(normalizeSurveyOptions(null),'label');
+        $optionCount = 5;
 
-        $data = []; // option_index → [year => pct]
+        $data = []; // option_index mapped to [year => pct]
         foreach ($yearData as $year => $optCounts) {
             $total = array_sum($optCounts);
             for ($i = 0; $i < $optionCount; $i++) {
@@ -487,9 +472,9 @@ function processSurveyTrend(array $rawData): array
 
 /**
  * Process raw question-wise rating data into structured format.
- * Groups by question_no, collects per-AY averages.
+ * Groups by question code and collects per-academic-year averages.
  *
- * Returns: [question_no => [
+ * Returns: [question_code => [
  *   'text' => latest question text,
  *   'years' => [year_name, ...],
  *   'ratings' => [year_name => avg_rating, ...]
@@ -504,11 +489,11 @@ function processQuestionTrend(array $rawData): array
     $allYears = [];
 
     foreach ($rawData as $row) {
-        $qno  = (int) $row['question_no'];
+        $qno  = $row['question_code'];
         $year = $row['year_name'];
 
         $grouped[$qno][$year] = (float) $row['avg_rating'];
-        $qTexts[$qno] = $row['question_text'];
+        $qTexts[$qno] = $row['question_text_en'];
         $allYears[$year] = true;
     }
 
@@ -538,3 +523,4 @@ function trendChartColors(): array
         '#84cc16', '#a855f7', '#0ea5e9', '#d946ef', '#64748b',
     ];
 }
+

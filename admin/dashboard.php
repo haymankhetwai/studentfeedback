@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require_once '../config/db.php';
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
@@ -14,10 +14,9 @@ $conn->query("
         SELECT
             fsa.id,
             fs.form_id,
-            CASE fsa.selected_option_index
-                WHEN 0 THEN 'Good'
-                WHEN 1 THEN 'Fair'
-                WHEN 2 THEN 'Bad'
+            CASE
+                WHEN fsa.rating >= 4 THEN 'Good'
+                WHEN fsa.rating = 3 THEN 'Fair'
                 ELSE 'Bad'
             END AS rating,
             fsa.created_at
@@ -2474,7 +2473,7 @@ include '../includes/admin_sidebar.php';
 
         <?= e($user['name']) ?>
 
-        👋
+     👋
 
     </h2>
 
@@ -2482,7 +2481,7 @@ include '../includes/admin_sidebar.php';
     <p class="text-sm text-slate-500 mt-1">
 
         <?= $LANG['admin_overview']
-            ?? 'University Feedback Management System � Full Overview' ?>
+            ?? 'University Feedback Management System — Full Overview' ?>
 
     </p>
 
@@ -2680,7 +2679,7 @@ include '../includes/admin_sidebar.php';
                 <option value="">
 
                     <?= $LANG["choose_form_placeholder"]
-                        ?? "� Choose a Feedback Form �" ?>
+                        ?? "— Choose a Feedback Form —" ?>
 
                 </option>
 
@@ -2907,7 +2906,7 @@ include '../includes/admin_sidebar.php';
         <h3 class="text-sm font-bold text-slate-800 mb-3">
 
             <?= $LANG['top3_teacher_rating']
-                ?? 'Top 3 Teachers � Rating Distribution' ?>
+                ?? 'Top 3 Teachers — Rating Distribution' ?>
 
         </h3>
 
@@ -3144,7 +3143,7 @@ include '../includes/admin_sidebar.php';
                                 <?= $LANG['ratings']
                                     ?? 'ratings' ?>
 
-                                �
+                                ·
 
                                 <span class="text-cyan-600 font-bold">
 
@@ -4935,3 +4934,4 @@ include '../includes/admin_sidebar.php';
 include '../includes/admin_footer.php';
 
 ?>
+

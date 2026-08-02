@@ -384,7 +384,7 @@ include '../includes/admin_sidebar.php';
                 <span
                     class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><?= iconSvg('search', 'w-4 h-4') ?></span>
                 <input type="text" name="search" value="<?= e($search) ?>"
-                    placeholder="<?= $LANG['search_student_course'] ?? 'Search student, course name/code...' ?>"
+                    placeholder="<?= $LANG['search_student_course'] ?? 'Search student, course name...' ?>"
                     class="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
             </div>
 
@@ -413,7 +413,7 @@ include '../includes/admin_sidebar.php';
                 <option value=""><?= $LANG['all_sections'] ?? 'All Sections' ?></option>
                 <?php foreach ($sectionMasterList as $smSec): ?>
                     <option value="<?= e($smSec['section_name']) ?>" <?= $filter_section === $smSec['section_name'] ? 'selected' : '' ?>>
-                        <?= $LANG["section_label"] ?? "Section" ?> <?= e($smSec['section_name']) ?>
+                        <?= $LANG["section_label"] ?? "Section" ?>     <?= e($smSec['section_name']) ?>
                     </option>
                 <?php endforeach ?>
             </select>
@@ -549,7 +549,7 @@ include '../includes/admin_sidebar.php';
 
 <div id="addModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4 modal-backdrop"
     data-modal-backdrop>
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xl modal-box overflow-hidden">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl modal-box overflow-hidden">
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
             <div>
                 <h3 class="font-bold text-slate-800 text-lg">
@@ -584,10 +584,10 @@ include '../includes/admin_sidebar.php';
                     </div>
                 </div>
 
-                <div>
+                <div class="">
                     <label
                         class="block text-sm font-semibold text-slate-700 mb-1"><?= $LANG['select_courses_sections'] ?? 'Select Courses / Sections (၎င်း Range အတွက် တစ်ခါတည်းအပ်မည့် ဘာသာရပ်များ)' ?></label>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
+                    <!-- <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
                         <select id="addFilterYear" name="academic_year_id" required onchange="filterAddSections()"
                             class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
                             <option value=""><?= $LANG['select_academic_year'] ?? 'Select Academic Year' ?> *</option>
@@ -606,7 +606,50 @@ include '../includes/admin_sidebar.php';
                             class="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
                             <option value=""><?= $LANG['select_class_section'] ?? 'Select Class Section' ?> *</option>
                             <?php foreach ($sectionMasterList as $smSec): ?>
-                                <option value="<?= e($smSec['section_name']) ?>"><?= $LANG["section_label"] ?? "Section" ?> <?= e($smSec['section_name']) ?></option>
+                                <option value="<?= e($smSec['section_name']) ?>"><?= $LANG["section_label"] ?? "Section" ?>
+                                    <?= e($smSec['section_name']) ?>
+                                </option>
+                            <?php endforeach ?>
+                        </select>
+                    </div> -->
+                    <div class="flex flex-wrap sm:flex-nowrap gap-2 mb-2">
+                        <!-- Academic Year (Given slightly more width or allowed to grow) -->
+                        <select id="addFilterYear" name="academic_year_id" required onchange="filterAddSections()"
+                            class="w-full sm:w-auto sm:flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 outline-none bg-white">
+                            <option value="">
+                                <?= $LANG['select_academic_year'] ?? 'Select Academic Year' ?> *
+                            </option>
+                            <?php foreach ($allAcademicYears as $ay): ?>
+                                <option value="<?= $ay['id'] ?>">
+                                    <?= e($ay['year_name']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+
+                        <!-- Semester -->
+                        <select id="addFilterSemester" name="semester_id" required onchange="filterAddSections()"
+                            class="w-full sm:w-auto sm:flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 outline-none bg-white">
+                            <option value="">
+                                <?= $LANG['select_semester'] ?? 'Select Semester' ?> *
+                            </option>
+                            <?php foreach ($semesterList as $sm): ?>
+                                <option value="<?= $sm['id'] ?>">
+                                    <?= e(semesterToRoman($sm['semester_name'])) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+
+                        <!-- Class Section -->
+                        <select id="addFilterSection" name="class_section" required onchange="filterAddSections()"
+                            class="w-full sm:w-auto sm:flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/25 outline-none bg-white">
+                            <option value="">
+                                <?= $LANG['select_class_section'] ?? 'Select Class Section' ?> *
+                            </option>
+                            <?php foreach ($sectionMasterList as $smSec): ?>
+                                <option value="<?= e($smSec['section_name']) ?>">
+                                    <?= $LANG["section_label"] ?? "Section" ?>
+                                    <?= e($smSec['section_name']) ?>
+                                </option>
                             <?php endforeach ?>
                         </select>
                     </div>
