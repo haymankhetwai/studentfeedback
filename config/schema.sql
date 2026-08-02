@@ -149,24 +149,34 @@ CREATE TABLE IF NOT EXISTS feedback_forms (
     INDEX idx_fb_forms_qs (question_set_id)
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS survey_groups (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    question_set_id INT NOT NULL,
+    group_code VARCHAR(30) NOT NULL,
+    group_name_en VARCHAR(200) NOT NULL,
+    group_name_mm VARCHAR(200) NOT NULL,
+    instruction_en TEXT DEFAULT NULL,
+    instruction_mm TEXT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (question_set_id) REFERENCES feedback_question_sets(id) ON DELETE CASCADE,
+    UNIQUE KEY uq_survey_group_code (question_set_id, group_code),
+    INDEX idx_survey_group_set (question_set_id)
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS feedback_questions (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    question_set_id INT DEFAULT NULL,
-    question_no INT NOT NULL,
-    question_text TEXT NOT NULL,
-    options_json TEXT NOT NULL,
+    question_set_id INT NOT NULL,
+    survey_group_id INT NOT NULL,
+    question_code VARCHAR(30) NOT NULL,
+    question_text_en TEXT NOT NULL,
+    question_text_mm TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (question_set_id) REFERENCES feedback_question_sets(id) ON DELETE SET NULL,
-    CONSTRAINT chk_feedback_question_options
-        CHECK (
-            JSON_VALID(options_json)
-            AND JSON_LENGTH(options_json) = 3
-            AND JSON_UNQUOTE(JSON_EXTRACT(options_json, '$[0].category')) = 'Good'
-            AND JSON_UNQUOTE(JSON_EXTRACT(options_json, '$[1].category')) = 'Fair'
-            AND JSON_UNQUOTE(JSON_EXTRACT(options_json, '$[2].category')) = 'Bad'
-        ),
-    UNIQUE KEY uq_qs_qno (question_set_id, question_no),
-    INDEX idx_fq_qs (question_set_id)
+    FOREIGN KEY (question_set_id) REFERENCES feedback_question_sets(id) ON DELETE CASCADE,
+    FOREIGN KEY (survey_group_id) REFERENCES survey_groups(id) ON DELETE CASCADE,
+    UNIQUE KEY uq_group_question_code (survey_group_id, question_code),
+    INDEX idx_fq_qs (question_set_id),
+    INDEX idx_fq_group (survey_group_id)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS feedback_submissions (
@@ -185,13 +195,14 @@ CREATE TABLE IF NOT EXISTS feedback_survey_answers (
     id INT AUTO_INCREMENT PRIMARY KEY,
     submission_id INT NOT NULL,
     question_id INT NOT NULL,
-    selected_option_index INT NOT NULL,
+    rating TINYINT UNSIGNED NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (submission_id) REFERENCES feedback_submissions(id) ON DELETE CASCADE,
     FOREIGN KEY (question_id) REFERENCES feedback_questions(id) ON DELETE CASCADE,
     INDEX idx_fsa_submission (submission_id),
     INDEX idx_fsa_question (question_id),
-    INDEX idx_fsa_question_option (question_id, selected_option_index),
+    CONSTRAINT chk_feedback_survey_rating CHECK (rating BETWEEN 1 AND 5),
+    INDEX idx_fsa_question_rating (question_id, rating),
     UNIQUE KEY uq_fsa_submission_question (submission_id, question_id)
 ) ENGINE=InnoDB;
 

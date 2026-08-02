@@ -15,6 +15,30 @@ function moduleQuestionsPage($module)
     return 'manage_questions.php';
 }
 
+function cloneSurveyArchitecture(mysqli $conn, int $sourceSetId, int $targetSetId): int
+{
+    $groups = $conn->prepare("SELECT * FROM survey_groups WHERE question_set_id=? ORDER BY id");
+    $groups->bind_param('i', $sourceSetId); $groups->execute();
+    $sourceGroups = $groups->get_result()->fetch_all(MYSQLI_ASSOC); $groups->close();
+    $groupMap = []; $copied = 0;
+    $insertGroup = $conn->prepare("INSERT INTO survey_groups(question_set_id,group_code,group_name_en,group_name_mm,instruction_en,instruction_mm) VALUES(?,?,?,?,?,?)");
+    $insertQuestion = $conn->prepare("INSERT INTO feedback_questions(question_set_id,survey_group_id,question_code,question_text_en,question_text_mm) VALUES(?,?,?,?,?)");
+    foreach ($sourceGroups as $group) {
+        $insertGroup->bind_param('isssss', $targetSetId, $group['group_code'], $group['group_name_en'], $group['group_name_mm'], $group['instruction_en'], $group['instruction_mm']);
+        if (!$insertGroup->execute()) throw new RuntimeException($insertGroup->error);
+        $groupMap[(int)$group['id']] = (int)$conn->insert_id;
+    }
+    $questions = $conn->prepare("SELECT * FROM feedback_questions WHERE question_set_id=? ORDER BY survey_group_id,LENGTH(question_code),question_code,id");
+    $questions->bind_param('i',$sourceSetId); $questions->execute(); $rows=$questions->get_result()->fetch_all(MYSQLI_ASSOC); $questions->close();
+    foreach ($rows as $q) {
+        $newGroupId=$groupMap[(int)$q['survey_group_id']];
+        $insertQuestion->bind_param('iisss',$targetSetId,$newGroupId,$q['question_code'],$q['question_text_en'],$q['question_text_mm']);
+        if (!$insertQuestion->execute()) throw new RuntimeException($insertQuestion->error);
+        $copied++;
+    }
+    $insertGroup->close(); $insertQuestion->close(); return $copied;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     $action = $_POST['action'] ?? '';
 
@@ -86,17 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                     throw new Exception("Questions already exist for this new Question Set (possible double submission).");
                 }
 
-                $insQ = $conn->prepare(
-                    "INSERT INTO feedback_questions (question_set_id, question_no, question_text, options_json)
-                     SELECT ?, question_no, question_text, options_json
-                     FROM feedback_questions WHERE question_set_id = ?"
-                );
-                $insQ->bind_param('ii', $newSetId, $prevSetId);
-                if (!$insQ->execute()) {
-                    throw new Exception("Failed to copy questions: " . $insQ->error . " (errno: " . $insQ->errno . ")");
-                }
-                $copied = $insQ->affected_rows;
-                $insQ->close();
+                $copied = cloneSurveyArchitecture($conn, $prevSetId, $newSetId);
             }
 
             $conn->commit();
@@ -178,24 +192,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                 throw new Exception("No insert_id returned. Connection error: " . $conn->error);
             }
 
-            $srcQ = $conn->prepare("SELECT question_no, question_text, options_json FROM feedback_questions WHERE question_set_id=? ORDER BY question_no ASC");
-            $srcQ->bind_param('i', $sourceId);
-            $srcQ->execute();
-            $srcQuestions = $srcQ->get_result()->fetch_all(MYSQLI_ASSOC);
-            $srcQ->close();
-
-            $copied = 0;
-            if ($srcQuestions) {
-                $insQ = $conn->prepare("INSERT INTO feedback_questions (question_set_id, question_no, question_text, options_json) VALUES (?,?,?,?)");
-                foreach ($srcQuestions as $q) {
-                    $insQ->bind_param('iiss', $newSetId, $q['question_no'], $q['question_text'], $q['options_json']);
-                    if (!$insQ->execute()) {
-                        throw new Exception("Question insert failed: " . $insQ->error . " (errno: " . $insQ->errno . ")");
-                    }
-                    $copied++;
-                }
-                $insQ->close();
-            }
+            $copied = cloneSurveyArchitecture($conn, $sourceId, $newSetId);
 
             $conn->commit();
             setFlash('success', 'Question Set cloned successfully with ' . $copied . ' questions.');

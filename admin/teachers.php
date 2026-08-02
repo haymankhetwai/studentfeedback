@@ -208,7 +208,7 @@ include '../includes/admin_sidebar.php';
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
                         <option value=""><?= $LANG['choose_user_teacher'] ?? 'Choose user (role=teacher)' ?></option>
                         <?php foreach ($availableUsers as $u): ?>
-                            <option value="<?= $u['id'] ?>"><?= e($u['name']) ?> � <?= e($u['email']) ?></option>
+                            <option value="<?= $u['id'] ?>"><?= e($u['name']) ?> — <?= e($u['email']) ?></option>
                         <?php endforeach ?>
                     </select>
                     <p class="text-xs text-slate-400 mt-1">
