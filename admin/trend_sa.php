@@ -15,14 +15,14 @@ require_once '../includes/trend_helpers.php';
 
 requireRole('admin');
 
-$pageTitle  = $LANG['sa_trend_analysis'] ?? 'Student Affairs – Trend Analysis';
+$pageTitle  = $LANG['sa_trend_analysis'] ?? 'Student Support Services – Trend Analysis';
 $activeMenu = 'trend_sa';
 
 // --- Filters ------------------------------------------------
 $semId = (int) ($_GET['semester_id'] ?? 0);
 
 // Dropdown data
-$semesters = getTrendSemesters($conn, 'student_affairs');
+$semesters = getTrendSemesters($conn, 'student_support_services');
 
 // --- Trend Data (only if semester selected) -----------------
 $trendData     = [];
@@ -34,7 +34,7 @@ $hasMultipleAY = false;
 $ayImprovements = [];
 
 if ($semId) {
-    $trendData   = getModuleRatingTrend($conn, 'student_affairs', $semId);
+    $trendData   = getModuleRatingTrend($conn, 'student_support_services', $semId);
     $hasData     = count($trendData) > 0;
     $hasMultipleAY = count($trendData) > 1;
     $summary     = buildTrendSummary($trendData);
@@ -65,7 +65,7 @@ include '../includes/admin_sidebar.php';
         <div>
             <!-- <h2 class="text-2xl font-bold text-slate-800">📊 <?= e($pageTitle) ?></h2> -->
             <p class="text-sm text-slate-500 mt-1">
-                <?= $LANG['sa_trend_desc'] ?? 'Analyze Student Affairs feedback trends across Academic Years' ?>
+                <?= $LANG['sa_trend_desc'] ?? 'Analyze Student Support Services feedback trends across Academic Years' ?>
             </p>
         </div>
     </div>
@@ -107,7 +107,7 @@ include '../includes/admin_sidebar.php';
             <?= $LANG['select_semester_prompt'] ?? 'Please select a Semester to view the Trend Analysis.' ?>
         </h3>
         <!-- <p class="text-sm text-slate-500">
-            <?= $LANG['select_semester_prompt_desc'] ?? 'Choose a semester from the dropdown above to view Student Affairs feedback trend analysis across Academic Years.' ?>
+            <?= $LANG['select_semester_prompt_desc'] ?? 'Choose a semester from the dropdown above to view Student Support Services feedback trend analysis across Academic Years.' ?>
         </p> -->
     </div>
 
@@ -119,7 +119,7 @@ include '../includes/admin_sidebar.php';
             <?= $LANG['no_trend_data'] ?? 'No Feedback Data Available' ?>
         </h3>
         <p class="text-sm text-slate-500">
-            <?= $LANG['no_trend_data_sa'] ?? 'No Student Affairs feedback data found for trend analysis.' ?>
+            <?= $LANG['no_trend_data_sa'] ?? 'No Student Support Services feedback data found for trend analysis.' ?>
         </p>
     </div>
 

@@ -23,7 +23,7 @@ $studentId = $student['id'] ?? 0;
 $studentYearIds = getStudentAcademicYearIds($conn, $studentId);
 $studentSemIds = getStudentSemesterIds($conn, $studentId);
 
-$pageTitle = $LANG['adm_feedback_page_title'] ?? 'Administration Feedback';
+$pageTitle = $LANG['adm_feedback_page_title'] ?? 'Learning Environment Feedback';
 $activeMenu = 'adm';
 $today = date('Y-m-d');
 
@@ -38,7 +38,7 @@ if ($studentId && !empty($studentYearIds) && !empty($studentSemIds)) {
         $rs = $conn->prepare("
             SELECT f.*, (SELECT COUNT(*) FROM feedback_submissions s WHERE s.form_id=f.id AND s.student_id=?) AS submitted
             FROM feedback_forms f
-            WHERE f.module='administration' AND f.academic_year_id IN ($yrPH) AND f.semester_id IN ($smPH)
+            WHERE f.module='learning_environment' AND f.academic_year_id IN ($yrPH) AND f.semester_id IN ($smPH)
             ORDER BY f.end_date ASC, f.id DESC
         ");
         $rs->bind_param('i' . $yrBT . $smBT, ...array_merge([$studentId], $studentYearIds, $studentSemIds));
@@ -50,7 +50,6 @@ if ($studentId && !empty($studentYearIds) && !empty($studentSemIds)) {
 
 $navItems = [
     ['label' => $LANG['nav_dashboard'] ?? 'Dashboard', 'href' => '/studentfeedbackucsh/student/dashboard.php', 'key' => 'dashboard', 'icon' => 'home', 'iconColor' => 'text-yellow-300'],
-    ['label' => $LANG['nav_feedback_forms'] ?? 'Feedback Forms', 'href' => '/studentfeedbackucsh/student/feedback_forms.php', 'key' => 'feedback_forms', 'icon' => 'clipboard', 'iconColor' => 'text-emerald-300'],
     ['label' => $LANG['nav_history'] ?? 'Submission History', 'href' => '/studentfeedbackucsh/student/feedback_history.php', 'key' => 'history', 'icon' => 'history', 'iconColor' => 'text-teal-300'],
     ['label' => $LANG['nav_profile'] ?? 'Profile', 'href' => '/studentfeedbackucsh/student/profile.php', 'key' => 'profile', 'icon' => 'user', 'iconColor' => 'text-rose-300'],
 ];
@@ -121,11 +120,11 @@ $initials = avatarInitials($user['name']);
                     <div class="flex items-center gap-2 mb-1">
                         <!-- <?= iconSvg('office', 'w-5 h-5 text-orange-600') ?>
                         <h2 class="text-xl font-bold text-slate-800">
-                            <?= $LANG['adm_feedback_page_title'] ?? 'Administration Feedback' ?>
+                            <?= $LANG['adm_feedback_page_title'] ?? 'Learning Environment Feedback' ?>
                         </h2> -->
                     </div>
                     <p class="text-sm text-slate-500">
-                        <?= $LANG['adm_feedback_subtitle'] ?? 'Rate and review the university administration' ?>
+                        <?= $LANG['adm_feedback_subtitle'] ?? 'Rate and review the learning environment' ?>
                     </p>
                 </div>
                 <?php renderFlash() ?>
@@ -185,7 +184,7 @@ $initials = avatarInitials($user['name']);
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 text-center py-16 text-slate-400">
                         <?= iconSvg('office', 'w-10 h-10 mx-auto mb-3 opacity-40') ?>
                         <p class="text-sm font-medium text-slate-600">
-                            <?= $LANG['no_adm_forms_available'] ?? 'No Administration forms available right now.' ?>
+                            <?= $LANG['no_adm_forms_available'] ?? 'No Learning Environment forms available right now.' ?>
                         </p>
                     </div>
                 <?php endif ?>

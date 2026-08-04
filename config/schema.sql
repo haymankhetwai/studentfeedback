@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS section_assignments (
 CREATE TABLE IF NOT EXISTS feedback_question_sets (
     id INT AUTO_INCREMENT PRIMARY KEY,
     academic_year_id INT NOT NULL,
-    module ENUM('academic','student_affairs','administration') NOT NULL,
+    module ENUM('teaching_quality','student_support_services','learning_environment') NOT NULL,
     title VARCHAR(150) NOT NULL,
     status ENUM('active','inactive') NOT NULL DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -126,7 +126,7 @@ CREATE TABLE IF NOT EXISTS feedback_question_sets (
 
 CREATE TABLE IF NOT EXISTS feedback_forms (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    module ENUM('academic','student_affairs','administration') NOT NULL DEFAULT 'academic',
+    module ENUM('teaching_quality','student_support_services','learning_environment') NOT NULL DEFAULT 'teaching_quality',
     section_id INT DEFAULT NULL,
     academic_year_id INT DEFAULT NULL,
     semester_id INT DEFAULT NULL,

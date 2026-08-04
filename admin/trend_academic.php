@@ -14,7 +14,7 @@ require_once '../includes/trend_helpers.php';
 
 requireRole('admin');
 
-$pageTitle  = $LANG['academic_trend_analysis'] ?? 'Academic Trend Analysis';
+$pageTitle  = $LANG['academic_trend_analysis'] ?? 'Teaching Quality Trend Analysis';
 $activeMenu = 'trend_academic';
 
 // --- AJAX: Search teachers by name (all teachers in DB) --------
