@@ -1,3 +1,3 @@
 <?php
-$surveyModule = 'student_affairs';
+$surveyModule = 'student_support_services';
 require __DIR__ . '/survey_form_common.php';

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // ============================================================
 // Section annotation
 // ============================================================
@@ -38,7 +38,7 @@ function getAcademicRatingTrend(mysqli $conn, int $teacherId, ?int $courseId = n
             JOIN feedback_questions fq ON fsa.question_id = fq.id
             JOIN sections sec ON ff.section_id = sec.id
             JOIN academic_years ay ON ff.academic_year_id = ay.id
-            WHERE ff.module = 'academic'
+            WHERE ff.module = 'teaching_quality'
               AND sec.teacher_id = ?";
 
     $types = 'i';
@@ -76,7 +76,7 @@ function getAcademicQuestionTrend(mysqli $conn, int $teacherId, ?int $courseId =
             JOIN feedback_questions fq ON fsa.question_id = fq.id
             JOIN sections sec ON ff.section_id = sec.id
             JOIN academic_years ay ON ff.academic_year_id = ay.id
-            WHERE ff.module = 'academic'
+            WHERE ff.module = 'teaching_quality'
               AND sec.teacher_id = ?";
 
     $types = 'i';
@@ -115,7 +115,7 @@ function getAcademicSurveyTrend(mysqli $conn, int $teacherId, ?int $courseId = n
             JOIN feedback_questions fq ON fsa.question_id = fq.id
             JOIN sections sec ON ff.section_id = sec.id
             JOIN academic_years ay ON ff.academic_year_id = ay.id
-            WHERE ff.module = 'academic'
+            WHERE ff.module = 'teaching_quality'
               AND sec.teacher_id = ?";
 
     $types = 'i';
@@ -266,7 +266,7 @@ function getTrendTeachers(mysqli $conn): array
             JOIN users u ON t.user_id = u.id
             JOIN sections sec ON sec.teacher_id = t.id
             JOIN feedback_forms ff ON ff.section_id = sec.id
-            WHERE ff.module = 'academic'
+            WHERE ff.module = 'teaching_quality'
               AND ff.academic_year_id IS NOT NULL
             ORDER BY u.name ASC";
     return $conn->query($sql)->fetch_all(MYSQLI_ASSOC);
@@ -282,7 +282,7 @@ function getTrendCourses(mysqli $conn, ?int $teacherId = null): array
             FROM courses c
             JOIN sections sec ON sec.course_id = c.id
             JOIN feedback_forms ff ON ff.section_id = sec.id
-            WHERE ff.module = 'academic'
+            WHERE ff.module = 'teaching_quality'
               AND ff.academic_year_id IS NOT NULL";
 
     if ($teacherId) {

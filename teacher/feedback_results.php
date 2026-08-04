@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once '../config/db.php';
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
@@ -206,7 +206,7 @@ if ($formId && $teacherId) {
     $module = $form['module'] ?? '';
 
     $formMeta = [];
-    if ($form && $module === 'academic') {
+    if ($form && $module === 'teaching_quality') {
         $formMeta = [
             'academic_year' => $form['display_year'] ?? '',
             'semester' => $form['display_semester'] ?? '',
@@ -329,26 +329,48 @@ $earnedScore=0; foreach(normalizeSurveyOptions(null) as $option)$earnedScore+=$l
 $maxScore = $completedCount * $numRatingQuestions * 5;
 $overallPct = $maxScore > 0 ? round(($earnedScore / $maxScore) * 100, 1) : 0;
 
+// if ($overallPct >= 90) {
+//     $grade = 'Excellent';
+//     $gradeColor = 'emerald';
+//     $gradeIcon = iconSvg('star','w-6 h-6');
+// } elseif ($overallPct >= 80) {
+//     $grade = 'High';
+//     $gradeColor = 'blue';
+//     $gradeIcon = iconSvg('star','w-6 h-6');
+// } elseif ($overallPct >= 70) {
+//     $grade = 'Positive';
+//     $gradeColor = 'cyan';
+//     $gradeIcon = iconSvg('check','w-6 h-6');
+// } elseif ($overallPct >= 60) {
+//     $grade = 'Moderate';
+//     $gradeColor = 'amber';
+//     $gradeIcon = iconSvg('clipboard','w-6 h-6');
+// } else {
+//     $grade = 'Needs Improvement';
+//     $gradeColor = 'red';
+//     $gradeIcon = iconSvg('question','w-6 h-6');
+// }
+
 if ($overallPct >= 90) {
     $grade = 'Excellent';
     $gradeColor = 'emerald';
-    $gradeIcon = iconSvg('star','w-6 h-6');
+    $gradeIcon = '🏆';
 } elseif ($overallPct >= 80) {
     $grade = 'High';
     $gradeColor = 'blue';
-    $gradeIcon = iconSvg('star','w-6 h-6');
+    $gradeIcon = '⭐';
 } elseif ($overallPct >= 70) {
     $grade = 'Positive';
     $gradeColor = 'cyan';
-    $gradeIcon = iconSvg('check','w-6 h-6');
+    $gradeIcon = '👍';
 } elseif ($overallPct >= 60) {
     $grade = 'Moderate';
     $gradeColor = 'amber';
-    $gradeIcon = iconSvg('clipboard','w-6 h-6');
+    $gradeIcon = '📋';
 } else {
     $grade = 'Needs Improvement';
     $gradeColor = 'red';
-    $gradeIcon = iconSvg('question','w-6 h-6');
+    $gradeIcon = '⚠️';
 }
 
 
@@ -704,7 +726,7 @@ if ($overallPct >= 90) {
                             </p>
                         </div>
 
-                        <?php if ($module === 'academic' && !empty($formMeta)): ?>
+                        <?php if ($module === 'teaching_quality' && !empty($formMeta)): ?>
                             <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6">
                                 <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
                                     <?= $LANG['form_information'] ?? 'Form Information' ?>

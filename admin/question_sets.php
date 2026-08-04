@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
     if ($action === 'add') {
         $ayId = (int) ($_POST['academic_year_id'] ?? 0);
-        $module = in_array($_POST['module'] ?? '', ['academic', 'student_affairs', 'administration']) ? $_POST['module'] : 'academic';
+        $module = in_array($_POST['module'] ?? '', ['teaching_quality', 'student_support_services', 'learning_environment']) ? $_POST['module'] : 'teaching_quality';
         $title = clean($_POST['title'] ?? '');
 
         if (!$ayId || !$title) {
@@ -150,7 +150,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     if ($action === 'clone') {
         $sourceId = (int) ($_POST['source_id'] ?? 0);
         $targetAyId = (int) ($_POST['target_academic_year_id'] ?? 0);
-        $targetModule = in_array($_POST['target_module'] ?? '', ['academic', 'student_affairs', 'administration']) ? $_POST['target_module'] : 'academic';
+        $targetModule = in_array($_POST['target_module'] ?? '', ['teaching_quality', 'student_support_services', 'learning_environment']) ? $_POST['target_module'] : 'teaching_quality';
         $targetTitle = clean($_POST['target_title'] ?? '');
 
         if (!$sourceId || !$targetAyId || !$targetTitle) {
@@ -336,12 +336,12 @@ include '../includes/admin_sidebar.php';
             <select name="module" onchange="this.form.submit()"
                 class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
                 <option value=""><?= $LANG["all_modules"] ?? "All Modules" ?></option>
-                <option value="academic" <?= $filterMod === 'academic' ? 'selected' : '' ?>>
-                    <?= $LANG["academic"] ?? "Academic" ?></option>
-                <option value="student_affairs" <?= $filterMod === 'student_affairs' ? 'selected' : '' ?>>
-                    <?= $LANG["student_affairs"] ?? "Student Affairs" ?></option>
-                <option value="administration" <?= $filterMod === 'administration' ? 'selected' : '' ?>>
-                    <?= $LANG["administration"] ?? "Administration" ?></option>
+                <option value="teaching_quality" <?= $filterMod === 'teaching_quality' ? 'selected' : '' ?>>
+                    <?= $LANG["teaching_quality"] ?? "Teaching Quality" ?></option>
+                <option value="student_support_services" <?= $filterMod === 'student_support_services' ? 'selected' : '' ?>>
+                    <?= $LANG["student_support_services"] ?? "Student Support Services" ?></option>
+                <option value="learning_environment" <?= $filterMod === 'learning_environment' ? 'selected' : '' ?>>
+                    <?= $LANG["learning_environment"] ?? "Learning Environment" ?></option>
             </select>
         </div>
         <div class="flex gap-2">
@@ -475,10 +475,10 @@ include '../includes/admin_sidebar.php';
                             <span class="text-red-500">*</span></label>
                         <select name="module" required
                             class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none bg-white">
-                            <option value="academic"><?= $LANG["academic"] ?? "Academic" ?></option>
-                            <option value="student_affairs"><?= $LANG["student_affairs"] ?? "Student Affairs" ?>
+                            <option value="teaching_quality"><?= $LANG["teaching_quality"] ?? "Teaching Quality" ?></option>
+                            <option value="student_support_services"><?= $LANG["student_support_services"] ?? "Student Support Services" ?>
                             </option>
-                            <option value="administration"><?= $LANG["administration"] ?? "Administration" ?></option>
+                            <option value="learning_environment"><?= $LANG["learning_environment"] ?? "Learning Environment" ?></option>
                         </select>
                     </div>
                 </div>
@@ -549,10 +549,10 @@ include '../includes/admin_sidebar.php';
                                 <span class="text-red-500">*</span></label>
                             <select name="target_module" required
                                 class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 outline-none bg-white">
-                                <option value="academic"><?= $LANG["academic"] ?? "Academic" ?></option>
-                                <option value="student_affairs"><?= $LANG["student_affairs"] ?? "Student Affairs" ?>
+                                <option value="teaching_quality"><?= $LANG["teaching_quality"] ?? "Teaching Quality" ?></option>
+                                <option value="student_support_services"><?= $LANG["student_support_services"] ?? "Student Support Services" ?>
                                 </option>
-                                <option value="administration"><?= $LANG["administration"] ?? "Administration" ?>
+                                <option value="learning_environment"><?= $LANG["learning_environment"] ?? "Learning Environment" ?>
                                 </option>
                             </select>
                         </div>
@@ -646,7 +646,11 @@ include '../includes/admin_sidebar.php';
 </div>
 
 <script>
-    var moduleLabels = { 'academic': 'Academic', 'student_affairs': 'Student Affairs', 'administration': 'Administration' };
+    var moduleLabels = {
+        'teaching_quality': <?= json_encode($LANG['teaching_quality'] ?? 'Teaching Quality') ?>,
+        'student_support_services': <?= json_encode($LANG['student_support_services'] ?? 'Student Support Services') ?>,
+        'learning_environment': <?= json_encode($LANG['learning_environment'] ?? 'Learning Environment') ?>
+    };
     function openEdit(row) {
         document.getElementById('edit_id').value = row.id;
         document.getElementById('edit_title').value = row.title;

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once '../config/db.php';
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
@@ -43,7 +43,7 @@ if (isset($_GET['ajax_forms']) && $_GET['ajax_forms'] === '1') {
     $ajaxSem = (int) ($_GET['sem_id'] ?? 0);
 
     $ajaxFormConds = [
-        "ff.module = 'academic'"
+        "ff.module = 'teaching_quality'"
     ];
 
     $ajaxFormTypes = '';
@@ -571,7 +571,7 @@ $teachersResult = $conn->query("
         ON t.user_id = u.id
 
     WHERE
-        ff.module = 'academic'
+        ff.module = 'teaching_quality'
 
     ORDER BY
         u.name ASC
@@ -632,7 +632,7 @@ $sections =
 */
 
 $afConds = [
-    "ff.module = 'academic'"
+    "ff.module = 'teaching_quality'"
 ];
 
 $afTypes = '';
@@ -761,7 +761,7 @@ $admSemesters =
 */
 
 $whereParts = [
-    "ff.module = 'academic'"
+    "ff.module = 'teaching_quality'"
 ];
 
 $params = [];
@@ -1028,7 +1028,7 @@ if ($hasAcademicFilter) {
     */
 
     $teacherPerfParts = [
-        "ff.module = 'academic'"
+        "ff.module = 'teaching_quality'"
     ];
 
     $teacherPerfTypes = '';
@@ -1362,7 +1362,7 @@ if ($hasAcademicFilter) {
 
         $trParts = [
 
-            "ff.module = 'academic'",
+            "ff.module = 'teaching_quality'",
 
             "sec.teacher_id = ?"
 
@@ -1793,7 +1793,7 @@ if (
                 ON s.semester_id = sm.id
 
             WHERE
-                ff.module = 'student_affairs'
+                ff.module = 'student_support_services'
 
             ORDER BY
                 sm.id DESC
@@ -1960,7 +1960,7 @@ $saTotalRatings =
         $saRatingsJoin
 
         WHERE
-            ff.module = 'student_affairs'
+            ff.module = 'student_support_services'
 
             $saRatingsWhere
 
@@ -1981,7 +1981,7 @@ $saTotalSubmissions =
         $saSubsJoin
 
         WHERE
-            ff.module = 'student_affairs'
+            ff.module = 'student_support_services'
 
             $saSubsWhere
 
@@ -1997,7 +1997,7 @@ $saTotalForms =
         FROM feedback_forms ff
 
         WHERE
-            ff.module = 'student_affairs'
+            ff.module = 'student_support_services'
 
             $saFormWhere
 
@@ -2021,7 +2021,7 @@ $saRatingDist =
         $saRatingsJoin
 
         WHERE
-            ff.module = 'student_affairs'
+            ff.module = 'student_support_services'
 
             $saRatingsWhere
 
@@ -2141,7 +2141,7 @@ if (
                 ON s.semester_id = sm.id
 
             WHERE
-                ff.module = 'administration'
+                ff.module = 'learning_environment'
 
             ORDER BY
                 sm.id DESC
@@ -2304,7 +2304,7 @@ $admTotalRatings =
         $admRatingsJoin
 
         WHERE
-            ff.module = 'administration'
+            ff.module = 'learning_environment'
 
             $admRatingsWhere
 
@@ -2325,7 +2325,7 @@ $admTotalSubmissions =
         $admSubsJoin
 
         WHERE
-            ff.module = 'administration'
+            ff.module = 'learning_environment'
 
             $admSubsWhere
 
@@ -2341,7 +2341,7 @@ $admTotalForms =
         FROM feedback_forms ff
 
         WHERE
-            ff.module = 'administration'
+            ff.module = 'learning_environment'
 
             $admFormWhere
 
@@ -2365,7 +2365,7 @@ $admRatingDist =
         $admRatingsJoin
 
         WHERE
-            ff.module = 'administration'
+            ff.module = 'learning_environment'
 
             $admRatingsWhere
 
@@ -2555,7 +2555,7 @@ include '../includes/admin_sidebar.php';
         </span>
 
         <?= $LANG['academic_feedback']
-            ?? 'Academic Feedback' ?>
+            ?? 'Teaching Quality Feedback' ?>
 
     </h3>
 
@@ -3315,7 +3315,7 @@ include '../includes/admin_sidebar.php';
             </span>
 
             <?= $LANG['student_affairs_feedback']
-                ?? 'Student Affairs Feedback' ?>
+                ?? 'Student Support Services Feedback' ?>
 
         </h3>
 
@@ -3468,7 +3468,7 @@ include '../includes/admin_sidebar.php';
                     <p class="text-[9px] text-slate-500">
 
                         <?= $LANG['sa_submissions']
-                            ?? 'SA Submissions' ?>
+                            ?? 'Student Support Services Submissions' ?>
 
                     </p>
 
@@ -3503,7 +3503,7 @@ include '../includes/admin_sidebar.php';
                     <p class="text-[9px] text-slate-500">
 
                         <?= $LANG['sa_forms_stat']
-                            ?? 'SA Forms' ?>
+                            ?? 'Student Support Services Forms' ?>
 
                     </p>
 
@@ -3568,7 +3568,7 @@ include '../includes/admin_sidebar.php';
             <h4 class="text-xs font-bold text-slate-800 mb-2">
 
                 <?= $LANG['sa_rating_dist']
-                    ?? 'SA Rating Distribution (Good / Fair / Bad)' ?>
+                    ?? 'Student Support Services Rating Distribution (Good / Fair / Bad)' ?>
 
             </h4>
 
@@ -3686,7 +3686,7 @@ include '../includes/admin_sidebar.php';
             </span>
 
             <?= $LANG['administration_feedback']
-                ?? 'Administration Feedback' ?>
+                ?? 'Learning Environment Feedback' ?>
 
         </h3>
 

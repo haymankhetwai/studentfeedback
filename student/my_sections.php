@@ -37,7 +37,6 @@ if ($studentId) {
 // Fixed navigation array: Includes structural modules so items do not disappear
 $navItems = [
     ['label' => $LANG['nav_dashboard'] ?? 'Dashboard', 'href' => '/studentfeedbackucsh/student/dashboard.php', 'key' => 'dashboard', 'icon' => 'home', 'iconColor' => 'text-yellow-300'],
-    ['label' => $LANG['nav_feedback_forms'] ?? 'Feedback Forms', 'href' => '/studentfeedbackucsh/student/feedback_forms.php', 'key' => 'feedback_forms', 'icon' => 'clipboard', 'iconColor' => 'text-emerald-300'],
     ['label' => $LANG['nav_history'] ?? 'Submission History', 'href' => '/studentfeedbackucsh/student/feedback_history.php', 'key' => 'history', 'icon' => 'history', 'iconColor' => 'text-teal-300'],
     ['label' => $LANG['nav_profile'] ?? 'Profile', 'href' => '/studentfeedbackucsh/student/profile.php', 'key' => 'profile', 'icon' => 'user', 'iconColor' => 'text-rose-300'],
 ];

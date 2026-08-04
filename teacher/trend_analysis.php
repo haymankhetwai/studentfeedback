@@ -40,15 +40,15 @@ $courseId = (int) ($_GET['course_id'] ?? 0);
 $courses = getTrendCourses($conn, $teacherId);
 
 // ─── Trend Data ─────────────────────────────────────────────
-$trendData     = getAcademicRatingTrend($conn, $teacherId, $courseId ?: null);
-$questionRaw   = getAcademicQuestionTrend($conn, $teacherId, $courseId ?: null);
-$surveyRaw     = getAcademicSurveyTrend($conn, $teacherId, $courseId ?: null);
+$trendData = getAcademicRatingTrend($conn, $teacherId, $courseId ?: null);
+$questionRaw = getAcademicQuestionTrend($conn, $teacherId, $courseId ?: null);
+$surveyRaw = getAcademicSurveyTrend($conn, $teacherId, $courseId ?: null);
 
 $questionTrend = processQuestionTrend($questionRaw);
-$surveyTrend   = processSurveyTrend($surveyRaw);
-$summary       = buildTrendSummary($trendData);
+$surveyTrend = processSurveyTrend($surveyRaw);
+$summary = buildTrendSummary($trendData);
 
-$hasData       = count($trendData) > 0;
+$hasData = count($trendData) > 0;
 $hasMultipleAY = count($trendData) > 1;
 
 // Per-AY improvement calculations
@@ -64,7 +64,7 @@ for ($i = 0; $i < count($trendData); $i++) {
     }
 }
 
-$pageTitle  = $LANG['trend_analysis'] ?? 'Trend Analysis';
+$pageTitle = $LANG['trend_analysis'] ?? 'Trend Analysis';
 $activeMenu = 'trend';
 ?>
 <!DOCTYPE html>
@@ -118,7 +118,7 @@ $activeMenu = 'trend';
             </div>
             <?php if ($courseId): ?>
                 <a href="trend_analysis.php"
-                    class="px-4 py-2.5 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all">
+                    class="px-5 py-2.5 bg-red-600 text-white hover:bg-red-700 text-sm font-semibold rounded-xl transition-all h-[42px] inline-flex items-center">
                     <?= $LANG['clear'] ?? 'Clear' ?>
                 </a>
             <?php endif; ?>
@@ -215,8 +215,7 @@ $activeMenu = 'trend';
                 <p class="text-sm text-slate-500"><?= $summary['worst_avg'] ?>/5</p>
             </div>
             <!-- Trend Status -->
-            <div
-                class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-5 <?= $summary['trend_info']['bg'] ?>">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-5 <?= $summary['trend_info']['bg'] ?>">
                 <div class="flex items-center gap-3 mb-2">
                     <div class="w-10 h-10 rounded-xl bg-white/60 flex items-center justify-center text-xl">
                         <?= $summary['trend_info']['icon'] ?>
@@ -229,7 +228,7 @@ $activeMenu = 'trend';
                     <?= e($summary['trend_info']['status']) ?>
                 </p>
                 <p class="text-sm <?= $summary['trend_info']['color'] ?>">
-                    <?= $summary['overall_change_pct'] >= 0 ? '+' : '' ?><?= $summary['overall_change_pct'] ?>%
+                    <?= $summary['overall_change_pct'] >= 0 ? '+' : '' ?>    <?= $summary['overall_change_pct'] ?>%
                 </p>
             </div>
         </div>
@@ -265,9 +264,13 @@ $activeMenu = 'trend';
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="border-b border-slate-200">
-                            <th class="text-left py-3 px-4 text-slate-500"><?= $LANG['academic_year'] ?? 'Academic Year' ?></th>
-                            <th class="text-center py-3 px-4 text-slate-500"><?= $LANG['average_rating'] ?? 'Avg Rating' ?></th>
-                            <?php foreach(normalizeSurveyOptions(null) as $option):?><th class="text-center py-3 px-4 text-slate-500"><?=e($option['label'])?></th><?php endforeach;?>
+                            <th class="text-left py-3 px-4 text-slate-500"><?= $LANG['academic_year'] ?? 'Academic Year' ?>
+                            </th>
+                            <th class="text-center py-3 px-4 text-slate-500"><?= $LANG['average_rating'] ?? 'Avg Rating' ?>
+                            </th>
+                            <?php foreach (normalizeSurveyOptions(null) as $option): ?>
+                                <th class="text-center py-3 px-4 text-slate-500"><?= e($option['label']) ?></th>
+                            <?php endforeach; ?>
                             <th class="text-center py-3 px-4 text-slate-500"><?= $LANG['total'] ?? 'Total' ?></th>
                             <th class="text-center py-3 px-4 text-slate-500"><?= $LANG['change'] ?? 'Change' ?></th>
                             <th class="text-center py-3 px-4 text-slate-500"><?= $LANG['status'] ?? 'Status' ?></th>
@@ -278,11 +281,16 @@ $activeMenu = 'trend';
                             <tr class="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
                                 <td class="py-3 px-4 font-medium text-slate-800"><?= e($row['year_name']) ?></td>
                                 <td class="py-3 px-4 text-center">
-                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 font-bold text-sm">
+                                    <span
+                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 font-bold text-sm">
                                         <?= $row['avg_rating'] ?>
                                     </span>
                                 </td>
-                                <td class="py-3 px-4 text-center font-medium"><?=(int)$row['strongly_agree_count']?></td><td class="py-3 px-4 text-center font-medium"><?=(int)$row['agree_count']?></td><td class="py-3 px-4 text-center font-medium"><?=(int)$row['neutral_count']?></td><td class="py-3 px-4 text-center font-medium"><?=(int)$row['disagree_count']?></td><td class="py-3 px-4 text-center font-medium"><?=(int)$row['strongly_disagree_count']?></td>
+                                <td class="py-3 px-4 text-center font-medium"><?= (int) $row['strongly_agree_count'] ?></td>
+                                <td class="py-3 px-4 text-center font-medium"><?= (int) $row['agree_count'] ?></td>
+                                <td class="py-3 px-4 text-center font-medium"><?= (int) $row['neutral_count'] ?></td>
+                                <td class="py-3 px-4 text-center font-medium"><?= (int) $row['disagree_count'] ?></td>
+                                <td class="py-3 px-4 text-center font-medium"><?= (int) $row['strongly_disagree_count'] ?></td>
                                 <td class="py-3 px-4 text-center text-slate-600"><?= (int) $row['total_ratings'] ?></td>
                                 <td class="py-3 px-4 text-center">
                                     <?php if ($ayImprovements[$i] === null): ?>
@@ -290,9 +298,9 @@ $activeMenu = 'trend';
                                     <?php else:
                                         $imp = $ayImprovements[$i];
                                         $impColor = $imp > 2 ? 'text-emerald-600' : ($imp < -2 ? 'text-red-600' : 'text-amber-600');
-                                    ?>
+                                        ?>
                                         <span class="font-semibold <?= $impColor ?>">
-                                            <?= $imp >= 0 ? '+' : '' ?><?= $imp ?>%
+                                            <?= $imp >= 0 ? '+' : '' ?>            <?= $imp ?>%
                                         </span>
                                     <?php endif; ?>
                                 </td>
@@ -301,9 +309,10 @@ $activeMenu = 'trend';
                                         <span class="text-slate-400">—</span>
                                     <?php else:
                                         $info = trendStatusInfo($ayImprovements[$i]);
-                                    ?>
-                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold <?= $info['badge'] ?>">
-                                            <?= $info['icon'] ?> <?= e($info['status']) ?>
+                                        ?>
+                                        <span
+                                            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold <?= $info['badge'] ?>">
+                                            <?= $info['icon'] ?>             <?= e($info['status']) ?>
                                         </span>
                                     <?php endif; ?>
                                 </td>

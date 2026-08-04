@@ -62,7 +62,7 @@ if ($studentId) {
          LEFT JOIN section_master sm_sec ON s.section_id = sm_sec.id
          LEFT JOIN academic_years ay ON s.academic_year_id = ay.id
          LEFT JOIN semesters sm ON s.semester_id = sm.id
-         WHERE sa.student_id = ? AND ff.module = 'academic'
+         WHERE sa.student_id = ? AND ff.module = 'teaching_quality'
          ORDER BY ff.end_date ASC, ff.id ASC"
     );
     $acadStmt->bind_param('ii', $studentId, $studentId);
@@ -92,7 +92,7 @@ if ($studentId && !empty($studentYearIds) && !empty($studentSemIds)) {
          FROM feedback_forms f
          LEFT JOIN academic_years ay ON f.academic_year_id = ay.id
          LEFT JOIN semesters sm ON f.semester_id = sm.id
-         WHERE f.module='student_affairs' AND f.academic_year_id IN ($yrPH) AND f.semester_id IN ($smPH)
+         WHERE f.module='student_support_services' AND f.academic_year_id IN ($yrPH) AND f.semester_id IN ($smPH)
          ORDER BY f.end_date ASC, f.id ASC"
     );
     $saStmt->bind_param('i' . $yrBT . $smBT, ...array_merge([$studentId], $studentYearIds, $studentSemIds));
@@ -122,7 +122,7 @@ if ($studentId && !empty($studentYearIds) && !empty($studentSemIds)) {
          FROM feedback_forms f
          LEFT JOIN academic_years ay ON f.academic_year_id = ay.id
          LEFT JOIN semesters sm ON f.semester_id = sm.id
-         WHERE f.module='administration' AND f.academic_year_id IN ($yrPH) AND f.semester_id IN ($smPH)
+         WHERE f.module='learning_environment' AND f.academic_year_id IN ($yrPH) AND f.semester_id IN ($smPH)
          ORDER BY f.end_date ASC, f.id ASC"
     );
     $admStmt->bind_param('i' . $yrBT . $smBT, ...array_merge([$studentId], $studentYearIds, $studentSemIds));
@@ -135,7 +135,7 @@ if ($studentId && !empty($studentYearIds) && !empty($studentSemIds)) {
 }
 
 // Sort all forms: submitted last, then by module priority (academic, student_affairs, administration), then by date
-$moduleOrder = ['academic' => 0, 'student_affairs' => 1, 'administration' => 2];
+$moduleOrder = ['teaching_quality' => 0, 'student_support_services' => 1, 'learning_environment' => 2];
 usort($allForms, function ($a, $b) use ($moduleOrder) {
     $aSubmitted = (int) $a['submitted'] > 0;
     $bSubmitted = (int) $b['submitted'] > 0;
@@ -210,9 +210,9 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'workflow') {
     }
 
     $formPages = [
-        'academic' => 'feedback_form.php',
-        'student_affairs' => 'sa_feedback_form.php',
-        'administration' => 'adm_feedback_form.php',
+        'teaching_quality' => 'feedback_form.php',
+        'student_support_services' => 'sa_feedback_form.php',
+        'learning_environment' => 'adm_feedback_form.php',
     ];
     $nextUrl = $nextForm
         ? ($formPages[$nextForm['module']] ?? 'feedback_form.php') . '?form_id=' . (int) $nextForm['id']
@@ -247,9 +247,9 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'status' && isset($_GET['fid'])) {
 $initialInlineUrl = '';
 if ($requestedFormId) {
     $formPages = [
-        'academic' => 'feedback_form.php',
-        'student_affairs' => 'sa_feedback_form.php',
-        'administration' => 'adm_feedback_form.php',
+        'teaching_quality' => 'feedback_form.php',
+        'student_support_services' => 'sa_feedback_form.php',
+        'learning_environment' => 'adm_feedback_form.php',
     ];
     foreach ($allForms as $candidate) {
         if ((int) $candidate['id'] === $requestedFormId) {
@@ -327,7 +327,6 @@ $initials = avatarInitials($user['name']);
                 <?php
                 $navItems = [
                     ['label' => $LANG['nav_dashboard'] ?? 'Dashboard', 'href' => '/studentfeedbackucsh/student/dashboard.php', 'key' => 'dashboard', 'icon' => 'home', 'iconColor' => 'text-yellow-300'],
-                    ['label' => $LANG['nav_feedback_forms'] ?? 'Feedback Forms', 'href' => '/studentfeedbackucsh/student/feedback_forms.php', 'key' => 'feedback_forms', 'icon' => 'clipboard', 'iconColor' => 'text-emerald-300'],
                     ['label' => $LANG['nav_history'] ?? 'Submission History', 'href' => '/studentfeedbackucsh/student/feedback_history.php', 'key' => 'history', 'icon' => 'history', 'iconColor' => 'text-teal-300'],
                     ['label' => $LANG['nav_profile'] ?? 'Profile', 'href' => '/studentfeedbackucsh/student/profile.php', 'key' => 'profile', 'icon' => 'user', 'iconColor' => 'text-rose-300'],
                 ];
@@ -499,19 +498,19 @@ $initials = avatarInitials($user['name']);
                             // Module header
                             $moduleKey = $f['module'];
                             $moduleNames = [
-                                'academic' => $LANG['academic_feedback_section'] ?? 'Academic Feedback',
-                                'student_affairs' => $LANG['student_affairs_section'] ?? 'Student Affairs',
-                                'administration' => $LANG['administration_section'] ?? 'Administration'
+                                'teaching_quality' => $LANG['academic_feedback_section'] ?? 'Teaching Quality Feedback',
+                                'student_support_services' => $LANG['student_affairs_section'] ?? 'Student Support Services',
+                                'learning_environment' => $LANG['administration_section'] ?? 'Learning Environment'
                             ];
                             $moduleColors = [
-                                'academic' => ['bg' => 'bg-cyan-50', 'text' => 'text-cyan-800', 'border' => 'border-cyan-200', 'dot' => 'bg-cyan-500'],
-                                'student_affairs' => ['bg' => 'bg-purple-50', 'text' => 'text-purple-800', 'border' => 'border-purple-200', 'dot' => 'bg-purple-500'],
-                                'administration' => ['bg' => 'bg-orange-50', 'text' => 'text-orange-800', 'border' => 'border-orange-200', 'dot' => 'bg-orange-500']
+                                'teaching_quality' => ['bg' => 'bg-cyan-50', 'text' => 'text-cyan-800', 'border' => 'border-cyan-200', 'dot' => 'bg-cyan-500'],
+                                'student_support_services' => ['bg' => 'bg-purple-50', 'text' => 'text-purple-800', 'border' => 'border-purple-200', 'dot' => 'bg-purple-500'],
+                                'learning_environment' => ['bg' => 'bg-orange-50', 'text' => 'text-orange-800', 'border' => 'border-orange-200', 'dot' => 'bg-orange-500']
                             ];
                             $moduleIcons = [
-                                'academic' => 'academic',
-                                'student_affairs' => 'shield',
-                                'administration' => 'office'
+    'teaching_quality' => 'academic',
+                                'student_support_services' => 'shield',
+                                'learning_environment' => 'office'
                             ];
 
                             if ($moduleKey !== $currentModule):
@@ -549,7 +548,7 @@ $initials = avatarInitials($user['name']);
                                         <div
                                             class="flex items-center gap-2 text-xs <?= $isLocked ? 'text-slate-300' : 'text-slate-400' ?> mt-0.5">
                                             <?= iconSvg($moduleIcons[$moduleKey] ?? 'clipboard', 'w-3 h-3') ?>
-                                            <?php if ($f['module'] === 'academic' && $f['course_name']): ?>
+                                            <?php if ($f['module'] === 'teaching_quality' && $f['course_name']): ?>
                                                 <span><?= e($f['course_name']) ?> (<?= e($f['course_code']) ?>)</span>
                                                 <span>·</span>
                                                 <span>Sec <?= e($f['section_name']) ?></span>
@@ -581,13 +580,13 @@ $initials = avatarInitials($user['name']);
                                                 <?= $LANG['active'] ?? 'Active' ?>
                                                 · <?= getTimeRemaining($f['end_date']) ?>
                                             </span>
-                                            <?php if ($f['module'] === 'academic'): ?>
+                                            <?php if ($f['module'] === 'teaching_quality'): ?>
                                                 <a href="/studentfeedbackucsh/student/feedback_form.php?form_id=<?= $f['id'] ?>"
                                                     class="fill-btn js-inline-survey inline-flex items-center gap-1 px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all hover:-translate-y-0.5 shadow-sm">
                                                     <?= iconSvg('clipboard', 'w-3.5 h-3.5') ?>
                                                     <?= $LANG['fill'] ?? 'Fill' ?>
                                                 </a>
-                                            <?php elseif ($f['module'] === 'student_affairs'): ?>
+                                            <?php elseif ($f['module'] === 'student_support_services'): ?>
                                                 <a href="/studentfeedbackucsh/student/sa_feedback_form.php?form_id=<?= $f['id'] ?>"
                                                     class="fill-btn js-inline-survey inline-flex items-center gap-1 px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all hover:-translate-y-0.5 shadow-sm">
                                                     <?= iconSvg('clipboard', 'w-3.5 h-3.5') ?>

@@ -15,14 +15,14 @@ require_once '../includes/trend_helpers.php';
 
 requireRole('admin');
 
-$pageTitle  = $LANG['adm_trend_analysis'] ?? 'Administration – Trend Analysis';
+$pageTitle  = $LANG['adm_trend_analysis'] ?? 'Learning Environment – Trend Analysis';
 $activeMenu = 'trend_adm';
 
 // --- Filters ------------------------------------------------
 $semId = (int) ($_GET['semester_id'] ?? 0);
 
 // Dropdown data
-$semesters = getTrendSemesters($conn, 'administration');
+$semesters = getTrendSemesters($conn, 'learning_environment');
 
 // --- Trend Data (only if semester selected) -----------------
 $trendData     = [];
@@ -34,7 +34,7 @@ $hasMultipleAY = false;
 $ayImprovements = [];
 
 if ($semId) {
-    $trendData   = getModuleRatingTrend($conn, 'administration', $semId);
+    $trendData   = getModuleRatingTrend($conn, 'learning_environment', $semId);
     $hasData     = count($trendData) > 0;
     $hasMultipleAY = count($trendData) > 1;
     $summary     = buildTrendSummary($trendData);
@@ -65,7 +65,7 @@ include '../includes/admin_sidebar.php';
         <div>
             <!-- <h2 class="text-2xl font-bold text-slate-800">📊 <?= e($pageTitle) ?></h2> -->
             <p class="text-sm text-slate-500 mt-1">
-                <?= $LANG['adm_trend_desc'] ?? 'Analyze Administration feedback trends across Academic Years' ?>
+                <?= $LANG['adm_trend_desc'] ?? 'Analyze Learning Environment feedback trends across Academic Years' ?>
             </p>
         </div>
     </div>
@@ -106,7 +106,7 @@ include '../includes/admin_sidebar.php';
             <?= $LANG['select_semester_prompt'] ?? 'Please select a Semester to view the Trend Analysis.' ?>
         </h3>
         <!-- <p class="text-sm text-slate-500">
-            <?= $LANG['select_semester_prompt_desc'] ?? 'Choose a semester from the dropdown above to view Administration feedback trend analysis across Academic Years.' ?>
+            <?= $LANG['select_semester_prompt_desc'] ?? 'Choose a semester from the dropdown above to view Learning Environment feedback trend analysis across Academic Years.' ?>
         </p> -->
     </div>
 
@@ -117,7 +117,7 @@ include '../includes/admin_sidebar.php';
             <?= $LANG['no_trend_data'] ?? 'No Feedback Data Available' ?>
         </h3>
         <p class="text-sm text-slate-500">
-            <?= $LANG['no_trend_data_adm'] ?? 'No Administration feedback data found for trend analysis.' ?>
+            <?= $LANG['no_trend_data_adm'] ?? 'No Learning Environment feedback data found for trend analysis.' ?>
         </p>
     </div>
 

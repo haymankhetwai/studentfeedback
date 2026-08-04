@@ -101,7 +101,7 @@ if (isset($_GET['ajax_question_sets'])) {
     header('Content-Type: application/json');
 
     $ayId = (int) ($_GET['academic_year_id'] ?? 0);
-    $mod = clean($_GET['module'] ?? 'academic');
+    $mod = clean($_GET['module'] ?? 'teaching_quality');
 
     if ($ayId) {
 
@@ -164,10 +164,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
         $module = in_array(
             $_POST['module'] ?? '',
-            ['academic', 'student_affairs', 'administration']
+            ['teaching_quality', 'student_support_services', 'learning_environment']
         )
             ? $_POST['module']
-            : 'academic';
+            : 'teaching_quality';
 
         $ayId = (int) ($_POST['academic_year_id'] ?? 0);
         $semId = (int) ($_POST['semester_id'] ?? 0);
@@ -248,11 +248,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         |--------------------------------------------------------------------------
         */
 
-        if ($module === 'academic' && !$sec) {
+        if ($module === 'teaching_quality' && !$sec) {
 
             setFlash(
                 'error',
-                'Section is required for Academic forms.'
+                'Section is required for Teaching Quality forms.'
             );
 
             header('Location: feedback_forms_all.php');
@@ -311,7 +311,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
            Academic Form
         --------------------------------------------- */
 
-        if ($module === 'academic') {
+        if ($module === 'teaching_quality') {
+
+            $dupStmt = $conn->prepare("
+                SELECT ff.id
+                FROM feedback_forms ff
+                JOIN sections existing_section
+                    ON existing_section.id = ff.section_id
+                JOIN sections selected_section
+                    ON selected_section.id = ?
+                WHERE ff.module = 'teaching_quality'
+                  AND ff.academic_year_id = ?
+                  AND ff.semester_id = ?
+                  AND existing_section.section_id <=> selected_section.section_id
+                  AND existing_section.course_id = selected_section.course_id
+                  AND existing_section.teacher_id = selected_section.teacher_id
+                LIMIT 1
+            ");
+
+            $dupStmt->bind_param(
+                'iii',
+                $sec,
+                $ayId,
+                $semId
+            );
+
+            $dupStmt->execute();
+            $duplicateAcademicForm = $dupStmt->get_result()->fetch_assoc();
+            $dupStmt->close();
+
+            if ($duplicateAcademicForm) {
+                setFlash(
+                    'error',
+                    $LANG['duplicate_feedback_form_academic']
+                );
+
+                header('Location: feedback_forms_all.php');
+                exit;
+            }
 
             $stmt = $conn->prepare("
                 INSERT INTO feedback_forms
@@ -329,7 +366,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
                 VALUES
                 (
-                    'academic',
+                    'teaching_quality',
                     ?,
                     ?,
                     ?,
@@ -380,13 +417,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
             if ($dupRow) {
 
-                $modLabel = $module === 'student_affairs'
-                    ? 'Student Affairs'
-                    : 'Administration';
-
                 setFlash(
                     'error',
-                    "A $modLabel form already exists for this Academic Year + Semester."
+                    $LANG['duplicate_feedback_form_module']
                 );
 
                 header('Location: feedback_forms_all.php');
@@ -517,13 +550,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             */
 
             if (
-                $editModule === 'academic' &&
+                $editModule === 'teaching_quality' &&
                 !$sec
             ) {
 
                 setFlash(
                     'error',
-                    'Section is required for Academic forms.'
+                    'Section is required for Teaching Quality forms.'
                 );
 
                 header('Location: feedback_forms_all.php');
@@ -627,7 +660,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                Academic Edit
             --------------------------------------------- */
 
-            if ($editModule === 'academic') {
+            if ($editModule === 'teaching_quality') {
 
                 $stmt = $conn->prepare("
                     UPDATE feedback_forms
@@ -688,14 +721,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
                 if ($dupRow) {
 
-                    $modLabel = $editModule === 'student_affairs'
-                        ? 'Student Affairs'
-                        : 'Administration';
-
-                    setFlash(
-                        'error',
-                        "A $modLabel form already exists for this Academic Year + Semester."
-                    );
+                setFlash(
+                    'error',
+                    $LANG['duplicate_feedback_form_module']
+                );
 
                     header('Location: feedback_forms_all.php');
                     exit;
@@ -1192,7 +1221,7 @@ include '../includes/admin_sidebar.php';
         <p class="text-sm text-slate-500 mt-0.5">
 
             <?= $LANG["manage_feedback_forms_subtitle"] ??
-                "Manage feedback forms for all modules   Academic, Student Affairs, and Administration." ?>
+                "Manage feedback forms for all modules   Teaching Quality, Student Support Services, and Learning Environment." ?>
 
         </p>
 
@@ -1242,29 +1271,29 @@ include '../includes/admin_sidebar.php';
                 </option>
 
 
-                <option value="academic" <?= $filterMod === 'academic'
+                <option value="teaching_quality" <?= $filterMod === 'teaching_quality'
                     ? 'selected'
                     : '' ?>>
 
-                    <?= $LANG["academic"] ?? "Academic" ?>
+                    <?= $LANG["teaching_quality"] ?? "Teaching Quality" ?>
 
                 </option>
 
 
-                <option value="student_affairs" <?= $filterMod === 'student_affairs'
+                <option value="student_support_services" <?= $filterMod === 'student_support_services'
                     ? 'selected'
                     : '' ?>>
 
-                    <?= $LANG["student_affairs"] ?? "Student Affairs" ?>
+                    <?= $LANG["student_support_services"] ?? "Student Support Services" ?>
 
                 </option>
 
 
-                <option value="administration" <?= $filterMod === 'administration'
+                <option value="learning_environment" <?= $filterMod === 'learning_environment'
                     ? 'selected'
                     : '' ?>>
 
-                    <?= $LANG["administration"] ?? "Administration" ?>
+                    <?= $LANG["learning_environment"] ?? "Learning Environment" ?>
 
                 </option>
 
@@ -1558,7 +1587,7 @@ include '../includes/admin_sidebar.php';
                             <td class="px-5 py-3">
 
                                 <?php if (
-                                    $row['module'] === 'academic' &&
+                                    $row['module'] === 'teaching_quality' &&
                                     !empty($row['section_name'])
                                 ): ?>
 
@@ -1636,7 +1665,7 @@ include '../includes/admin_sidebar.php';
 
                                     <span class="text-xs text-slate-400 italic">
 
-                                        <?= $row['module'] === 'academic'
+                                        <?= $row['module'] === 'teaching_quality'
                                             ? 'No Section'
                                             : 'No Section' ?>
 
@@ -2018,26 +2047,26 @@ include '../includes/admin_sidebar.php';
                         </option>
 
 
-                        <option value="academic">
+                        <option value="teaching_quality">
 
-                            <?= $LANG["academic"] ??
-                                "Academic" ?>
-
-                        </option>
-
-
-                        <option value="student_affairs">
-
-                            <?= $LANG["student_affairs"] ??
-                                "Student Affairs" ?>
+                            <?= $LANG["teaching_quality"] ??
+                                "Teaching Quality" ?>
 
                         </option>
 
 
-                        <option value="administration">
+                        <option value="student_support_services">
 
-                            <?= $LANG["administration"] ??
-                                "Administration" ?>
+                            <?= $LANG["student_support_services"] ??
+                                "Student Support Services" ?>
+
+                        </option>
+
+
+                        <option value="learning_environment">
+
+                            <?= $LANG["learning_environment"] ??
+                                "Learning Environment" ?>
 
                         </option>
 
@@ -3039,15 +3068,15 @@ include '../includes/admin_sidebar.php';
             );
 
 
-        if (val === 'academic') {
+        if (val === 'teaching_quality') {
 
             sectionWrapper.style.display =
                 '';
 
 
         } else if (
-            val === 'student_affairs' ||
-            val === 'administration'
+            val === 'student_support_services' ||
+            val === 'learning_environment'
         ) {
 
             sectionWrapper.style.display =
@@ -3686,7 +3715,7 @@ include '../includes/admin_sidebar.php';
 
                     if (
                         module ===
-                        'academic' &&
+                        'teaching_quality' &&
                         (
                             !sectionId ||
                             sectionId === '0'
@@ -4010,9 +4039,9 @@ include '../includes/admin_sidebar.php';
 
         if (
             row.module ===
-            'student_affairs' ||
+            'student_support_services' ||
             row.module ===
-            'administration'
+            'learning_environment'
         ) {
 
             uniFields.classList.remove(
@@ -4049,7 +4078,7 @@ include '../includes/admin_sidebar.php';
 
         if (
             row.module ===
-            'academic'
+            'teaching_quality'
         ) {
 
             secWrapper.style.display =

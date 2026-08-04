@@ -33,7 +33,7 @@ if ($fail > 0) {
     echo "</div>";
 } else {
     echo "<div class='bg-green-50 border border-green-200 rounded-lg p-4 mb-4'>";
-    echo "<p class='text-green-800 font-semibold'>All SA and Administration tables created successfully!</p>";
+    echo "<p class='text-green-800 font-semibold'>All SA and Learning Environment tables created successfully!</p>";
     echo "</div>";
 }
 echo "<a href='admin/index.php' class='inline-block px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700'>→ Go to Admin</a>";

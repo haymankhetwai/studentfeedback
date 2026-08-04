@@ -58,7 +58,7 @@ if ($studentId) {
         SELECT fs.submitted_at, ff.title AS form_title, ff.start_date, ff.end_date
         FROM feedback_submissions fs
         JOIN feedback_forms ff ON fs.form_id=ff.id
-        WHERE ff.module='student_affairs' AND fs.student_id=?
+        WHERE ff.module='student_support_services' AND fs.student_id=?
         ORDER BY fs.submitted_at DESC
     ");
     $rs->bind_param('i', $studentId);
@@ -74,7 +74,7 @@ if ($studentId) {
         SELECT fs.submitted_at, ff.title AS form_title, ff.start_date, ff.end_date
         FROM feedback_submissions fs
         JOIN feedback_forms ff ON fs.form_id=ff.id
-        WHERE ff.module='administration' AND fs.student_id=?
+        WHERE ff.module='learning_environment' AND fs.student_id=?
         ORDER BY fs.submitted_at DESC
     ");
     $rs->bind_param('i', $studentId);
@@ -87,7 +87,7 @@ if ($studentId) {
 $allHistory = [];
 foreach ($academicHistory as $r) {
     $allHistory[] = [
-        'module' => 'academic',
+        'module' => 'teaching_quality',
         'submitted_at' => $r['submitted_at'],
         'form_title' => $r['form_title'],
         'detail' => e($r['course_name']) . ' (' . e($r['course_code']) . ') — Sec ' . e($r['section_name']) . ' · ' . e($r['display_year']) . ' ' . e(semesterToRoman($r['display_semester'])) . ' · ' . formatDateTime($r['start_date']) . ' – ' . formatDateTime($r['end_date'])
@@ -95,25 +95,24 @@ foreach ($academicHistory as $r) {
 }
 foreach ($saHistory as $r) {
     $allHistory[] = [
-        'module' => 'student_affairs',
+        'module' => 'student_support_services',
         'submitted_at' => $r['submitted_at'],
         'form_title' => $r['form_title'],
-        'detail' => 'Student Affairs · ' . formatDateTime($r['start_date']) . ' – ' . formatDateTime($r['end_date'])
+        'detail' => 'Student Support Services · ' . formatDateTime($r['start_date']) . ' – ' . formatDateTime($r['end_date'])
     ];
 }
 foreach ($admHistory as $r) {
     $allHistory[] = [
-        'module' => 'administration',
+        'module' => 'learning_environment',
         'submitted_at' => $r['submitted_at'],
         'form_title' => $r['form_title'],
-        'detail' => 'Administration · ' . formatDateTime($r['start_date']) . ' – ' . formatDateTime($r['end_date'])
+        'detail' => 'Learning Environment · ' . formatDateTime($r['start_date']) . ' – ' . formatDateTime($r['end_date'])
     ];
 }
 usort($allHistory, fn($a, $b) => strtotime($b['submitted_at']) - strtotime($a['submitted_at']));
 
 $navItems = [
     ['label' => $LANG['nav_dashboard'] ?? 'Dashboard', 'href' => '/studentfeedbackucsh/student/dashboard.php', 'key' => 'dashboard', 'icon' => 'home', 'iconColor' => 'text-yellow-300'],
-    ['label' => $LANG['nav_feedback_forms'] ?? 'Feedback Forms', 'href' => '/studentfeedbackucsh/student/feedback_forms.php', 'key' => 'feedback_forms', 'icon' => 'clipboard', 'iconColor' => 'text-emerald-300'],
     ['label' => $LANG['nav_history'] ?? 'Submission History', 'href' => '/studentfeedbackucsh/student/feedback_history.php', 'key' => 'history', 'icon' => 'history', 'iconColor' => 'text-teal-300'],
     ['label' => $LANG['nav_profile'] ?? 'Profile', 'href' => '/studentfeedbackucsh/student/profile.php', 'key' => 'profile', 'icon' => 'user', 'iconColor' => 'text-rose-300'],
 ];
@@ -206,7 +205,7 @@ $initials = avatarInitials($user['name']);
                         </div>
                         <div>
                             <p class="text-xl font-bold text-cyan-700"><?= count($academicHistory) ?></p>
-                            <p class="text-xs text-slate-500"><?= $LANG['academic_feedback_section'] ?? 'Academic' ?>
+                            <p class="text-xs text-slate-500"><?= $LANG['academic_feedback_section'] ?? 'Teaching Quality' ?>
                             </p>
                         </div>
                     </div>
@@ -217,7 +216,7 @@ $initials = avatarInitials($user['name']);
                         <div>
                             <p class="text-xl font-bold text-purple-700"><?= count($saHistory) ?></p>
                             <p class="text-xs text-slate-500">
-                                <?= $LANG['student_affairs_section'] ?? 'Student Affairs' ?>
+                                <?= $LANG['student_affairs_section'] ?? 'Student Support Services' ?>
                             </p>
                         </div>
                     </div>
@@ -227,7 +226,7 @@ $initials = avatarInitials($user['name']);
                         </div>
                         <div>
                             <p class="text-xl font-bold text-orange-700"><?= count($admHistory) ?></p>
-                            <p class="text-xs text-slate-500"><?= $LANG['administration_section'] ?? 'Administration' ?>
+                            <p class="text-xs text-slate-500"><?= $LANG['administration_section'] ?? 'Learning Environment' ?>
                             </p>
                         </div>
                     </div>

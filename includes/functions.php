@@ -427,9 +427,9 @@ function moduleBadge(string $module): string
 {
     global $LANG;
     return match ($module) {
-        'academic' => '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-cyan-100 text-cyan-800">📚 ' . e($LANG['academic_feedback'] ?? 'Academic') . '</span>',
-        'student_affairs' => '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">🛡️ ' . e($LANG['student_affairs_section'] ?? 'Student Affairs') . '</span>',
-        'administration' => '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">🏢 ' . e($LANG['administration_section'] ?? 'Administration') . '</span>',
+        'teaching_quality' => '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-cyan-100 text-cyan-800">📚 ' . e($LANG['academic_feedback'] ?? 'Teaching Quality') . '</span>',
+        'student_support_services' => '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">🛡️ ' . e($LANG['student_affairs_section'] ?? 'Student Support Services') . '</span>',
+        'learning_environment' => '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">🏢 ' . e($LANG['administration_section'] ?? 'Learning Environment') . '</span>',
         default => '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">' . e($module) . '</span>',
     };
 }

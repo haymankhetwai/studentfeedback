@@ -57,6 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $action = $_POST['action'] ?? '';
         $questionTransaction = false;
+        $groupTransaction = false;
         try {
             if (in_array($action, ['add_group', 'edit_group'], true)) {
                 $id = (int) ($_POST['id'] ?? 0);
@@ -67,15 +68,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $imm = clean($_POST['instruction_mm'] ?? '');
                 if ($code === '' || $en === '' || $mm === '')
                     throw new RuntimeException(surveyAdminText('survey_group_required', 'Code and both group names are required.'));
+                if (!preg_match('/[A-Za-z]/', $en))
+                    throw new RuntimeException(surveyAdminText('group_name_english_letter_required', 'The English Group Name must contain at least one English letter (A–Z).'));
+                if (!preg_match('/[\x{1000}-\x{109F}\x{A9E0}-\x{A9FF}\x{AA60}-\x{AA7F}]/u', $mm))
+                    throw new RuntimeException(surveyAdminText('group_name_myanmar_character_required', 'The Myanmar Group Name must contain at least one Myanmar Unicode character.'));
                 if ($action === 'add_group') {
                     $s = $conn->prepare("INSERT INTO survey_groups(question_set_id,group_code,group_name_en,group_name_mm,instruction_en,instruction_mm) VALUES(?,?,?,?,?,?)");
                     $s->bind_param('isssss', $setId, $code, $en, $mm, $ien, $imm);
                 } else {
+                    $conn->begin_transaction();
+                    $groupTransaction = true;
+
+                    $currentGroup = $conn->prepare("SELECT group_code FROM survey_groups WHERE id=? AND question_set_id=? FOR UPDATE");
+                    $currentGroup->bind_param('ii', $id, $setId);
+                    $currentGroup->execute();
+                    $currentGroupRow = $currentGroup->get_result()->fetch_assoc();
+                    $currentGroup->close();
+                    if (!$currentGroupRow)
+                        throw new RuntimeException(surveyAdminText('invalid_survey_group', 'Invalid Survey Group.'));
+
+                    $oldCode = strtoupper(trim($currentGroupRow['group_code']));
                     $s = $conn->prepare("UPDATE survey_groups SET group_code=?,group_name_en=?,group_name_mm=?,instruction_en=?,instruction_mm=? WHERE id=? AND question_set_id=?");
                     $s->bind_param('sssssii', $code, $en, $mm, $ien, $imm, $id, $setId);
                 }
                 $s->execute();
                 $s->close();
+
+                if ($action === 'edit_group') {
+                    if ($oldCode !== $code) {
+                        $questionRows = $conn->prepare("SELECT id, question_code FROM feedback_questions WHERE survey_group_id=? AND question_set_id=? FOR UPDATE");
+                        $questionRows->bind_param('ii', $id, $setId);
+                        $questionRows->execute();
+                        $groupQuestions = $questionRows->get_result()->fetch_all(MYSQLI_ASSOC);
+                        $questionRows->close();
+
+                        $updateCode = $conn->prepare("UPDATE feedback_questions SET question_code=? WHERE id=? AND survey_group_id=? AND question_set_id=?");
+                        foreach ($groupQuestions as $groupQuestion) {
+                            $currentQuestionCode = strtoupper(trim($groupQuestion['question_code']));
+                            if (!str_starts_with($currentQuestionCode, $oldCode))
+                                throw new RuntimeException(surveyAdminText('invalid_question_code', 'A question has an invalid Question Code.'));
+                            $numericSuffix = substr($currentQuestionCode, strlen($oldCode));
+                            if ($numericSuffix === '' || !ctype_digit($numericSuffix))
+                                throw new RuntimeException(surveyAdminText('invalid_question_code', 'A question has an invalid Question Code.'));
+                            $newQuestionCode = $code . $numericSuffix;
+                            $questionId = (int) $groupQuestion['id'];
+                            $updateCode->bind_param('siii', $newQuestionCode, $questionId, $id, $setId);
+                            $updateCode->execute();
+                        }
+                        $updateCode->close();
+                    }
+                    $conn->commit();
+                    $groupTransaction = false;
+                }
                 setFlash('success', surveyAdminText('survey_group_saved', 'Survey Group saved.'));
             } elseif ($action === 'delete_group') {
                 $id = (int) ($_POST['id'] ?? 0);
@@ -96,6 +140,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $own->close();
                 if (!$valid || $en === '' || $mm === '')
                     throw new RuntimeException(surveyAdminText('survey_question_required', 'Group and both question texts are required.'));
+                if (!preg_match('/[A-Za-z]/', $en))
+                    throw new RuntimeException(surveyAdminText('question_english_letter_required', 'The English question must contain at least one English letter (A–Z).'));
+                if (!preg_match('/[\x{1000}-\x{109F}\x{A9E0}-\x{A9FF}\x{AA60}-\x{AA7F}]/u', $mm))
+                    throw new RuntimeException(surveyAdminText('question_myanmar_character_required', 'The Myanmar question must contain at least one Myanmar Unicode character.'));
                 $conn->begin_transaction();
                 $questionTransaction = true;
                 if ($action === 'add_question') {
@@ -129,6 +177,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } catch (Throwable $e) {
             if ($questionTransaction)
+                $conn->rollback();
+            if ($groupTransaction)
                 $conn->rollback();
             $dbMessage = in_array($action, ['add_question', 'edit_question'], true) ? surveyAdminText('duplicate_question_code', 'Unable to generate a unique Question Code.') : surveyAdminText('duplicate_group_code', 'Group Code is already in use.');
             setFlash('error', $e instanceof mysqli_sql_exception ? $dbMessage : $e->getMessage());

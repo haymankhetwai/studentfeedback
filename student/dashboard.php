@@ -9,7 +9,6 @@ if (!isset($_SESSION['entry_allowed']) || $_SESSION['selected_role'] !== 'studen
 }
 
 requireRole('student');
-
 updateAllFeedbackStatuses($conn);
 
 $user = getCurrentUser();
@@ -22,18 +21,16 @@ $studentId = $student['id'] ?? 0;
 $studentYearIds = getStudentAcademicYearIds($conn, $studentId);
 $studentSemIds = getStudentSemesterIds($conn, $studentId);
 
-$pageTitle = 'Student Dashboard';
+$pageTitle = $LANG['student_dashboard_title'] ?? 'Student Dashboard';
 $activeMenu = 'dashboard';
-$now = date('Y-m-d H:i:s');
-$today = date('Y-m-d');
 
-// ─── Load ALL forms and compute stats ──────────────────────────────
+// ─── Load ALL forms and compute stats ──────────────────────────────────
 $allForms = [];
 $totalCompletedCount = 0;
 $totalAvailableCount = 0;
 
 if ($studentId) {
-    // Academic
+    // Teaching Quality forms
     $acadFormsStmt = $conn->prepare(
         "SELECT ff.id, ff.title, ff.start_date, ff.end_date, ff.status, ff.module,
                 c.course_name, c.course_code, sm_sec.section_name AS section_name,
@@ -50,7 +47,7 @@ if ($studentId) {
          LEFT JOIN section_master sm_sec ON s.section_id = sm_sec.id
          LEFT JOIN academic_years ay ON s.academic_year_id = ay.id
          LEFT JOIN semesters sm ON s.semester_id = sm.id
-         WHERE sa.student_id = ? AND ff.module = 'academic'
+         WHERE sa.student_id = ? AND ff.module = 'teaching_quality'
          ORDER BY ff.end_date ASC"
     );
     $acadFormsStmt->bind_param('ii', $studentId, $studentId);
@@ -58,16 +55,17 @@ if ($studentId) {
     $acadRows = $acadFormsStmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $acadFormsStmt->close();
     foreach ($acadRows as $r) {
-        if ($r['status'] === 'Active' || (int)$r['submitted'] > 0) {
+        if ($r['status'] === 'Active' || (int) $r['submitted'] > 0) {
             $allForms[] = $r;
             $totalAvailableCount++;
-            if ((int)$r['submitted'] > 0) $totalCompletedCount++;
+            if ((int) $r['submitted'] > 0)
+                $totalCompletedCount++;
         }
     }
 
-    // SA + Admin
+    // Student Support Services + Learning Environment forms
     if (!empty($studentYearIds) && !empty($studentSemIds)) {
-        foreach (['student_affairs', 'administration'] as $module) {
+        foreach (['student_support_services', 'learning_environment'] as $module) {
             $yrPH = implode(',', array_fill(0, count($studentYearIds), '?'));
             $yrBT = str_repeat('i', count($studentYearIds));
             $smPH = implode(',', array_fill(0, count($studentSemIds), '?'));
@@ -77,6 +75,8 @@ if ($studentId) {
                 "SELECT f.id, f.title, f.start_date, f.end_date, f.status, f.module,
                         COALESCE(ay.year_name, '') AS display_year,
                         sm.semester_name AS display_semester,
+                        NULL AS course_name, NULL AS course_code,
+                        NULL AS section_name, NULL AS teacher_name,
                         (SELECT COUNT(*) FROM feedback_submissions s WHERE s.form_id=f.id AND s.student_id=?) AS submitted
                  FROM feedback_forms f
                  LEFT JOIN academic_years ay ON f.academic_year_id = ay.id
@@ -89,10 +89,11 @@ if ($studentId) {
             $modRows = $modStmt->get_result()->fetch_all(MYSQLI_ASSOC);
             $modStmt->close();
             foreach ($modRows as $r) {
-                if ($r['status'] === 'Active' || (int)$r['submitted'] > 0) {
+                if ($r['status'] === 'Active' || (int) $r['submitted'] > 0) {
                     $allForms[] = $r;
                     $totalAvailableCount++;
-                    if ((int)$r['submitted'] > 0) $totalCompletedCount++;
+                    if ((int) $r['submitted'] > 0)
+                        $totalCompletedCount++;
                 }
             }
         }
@@ -100,10 +101,9 @@ if ($studentId) {
 }
 
 $totalPendingCount = $totalAvailableCount - $totalCompletedCount;
-$progressPercent = $totalAvailableCount > 0 ? round(($totalCompletedCount / $totalAvailableCount) * 100) : 0;
 $allCompleted = $totalAvailableCount > 0 && $totalPendingCount === 0;
 
-// ─── Group forms by module for cards ──────────────────────────────
+// ─── Group forms by module ──────────────────────────────────────────────
 $acadPendingForms = [];
 $acadCompletedCount = 0;
 $saPendingForms = [];
@@ -112,46 +112,104 @@ $admPendingForms = [];
 $admCompletedCount = 0;
 
 foreach ($allForms as $f) {
-    $isSubmitted = (int)$f['submitted'] > 0;
-    if ($f['module'] === 'academic') {
-        if ($isSubmitted) {
+    $isSubmitted = (int) $f['submitted'] > 0;
+    if ($f['module'] === 'teaching_quality') {
+        if ($isSubmitted)
             $acadCompletedCount++;
-        } else {
+        else
             $acadPendingForms[] = $f;
-        }
-    } elseif ($f['module'] === 'student_affairs') {
-        if ($isSubmitted) {
+    } elseif ($f['module'] === 'student_support_services') {
+        if ($isSubmitted)
             $saCompletedCount++;
-        } else {
+        else
             $saPendingForms[] = $f;
-        }
-    } elseif ($f['module'] === 'administration') {
-        if ($isSubmitted) {
+    } elseif ($f['module'] === 'learning_environment') {
+        if ($isSubmitted)
             $admCompletedCount++;
-        } else {
+        else
             $admPendingForms[] = $f;
-        }
     }
 }
 
-// First uncompleted form for CTA
-$firstUncompletedId = null;
-$sortedAll = $allForms;
-$moduleOrder = ['academic' => 0, 'student_affairs' => 1, 'administration' => 2];
-usort($sortedAll, function ($a, $b) use ($moduleOrder) {
-    $aSub = (int)$a['submitted'] > 0;
-    $bSub = (int)$b['submitted'] > 0;
-    if ($aSub !== $bSub) return $aSub ? 1 : -1;
-    $aMod = $moduleOrder[$a['module']] ?? 99;
-    $bMod = $moduleOrder[$b['module']] ?? 99;
-    if ($aMod !== $bMod) return $aMod - $bMod;
-    return strtotime($a['end_date']) - strtotime($b['end_date']);
-});
-foreach ($sortedAll as $f) {
-    if ((int)$f['submitted'] === 0 && $f['status'] === 'Active') {
-        $firstUncompletedId = $f['id'];
-        break;
+// ─── Module totals ──────────────────────────────────────────────────────
+$acadTotal = $acadCompletedCount + count($acadPendingForms);
+$saTotal = $saCompletedCount + count($saPendingForms);
+$admTotal = $admCompletedCount + count($admPendingForms);
+
+// ─── Next form to complete (sequential: TQ → SSS → LE) ─────────────────
+$nextForm = null;
+$nextFormUrl = null;
+
+if (!empty($acadPendingForms)) {
+    $nextForm = $acadPendingForms[0];
+    $nextFormUrl = '/studentfeedbackucsh/student/feedback_form.php?form_id=' . (int) $nextForm['id'];
+} elseif (!empty($saPendingForms)) {
+    $nextForm = $saPendingForms[0];
+    $nextFormUrl = '/studentfeedbackucsh/student/sa_feedback_form.php?form_id=' . (int) $nextForm['id'];
+} elseif (!empty($admPendingForms)) {
+    $nextForm = $admPendingForms[0];
+    $nextFormUrl = '/studentfeedbackucsh/student/adm_feedback_form.php?form_id=' . (int) $nextForm['id'];
+}
+
+// One-time completion state created by the successful survey submission.
+$completionMessage = '';
+$completionBadge = '';
+$showCompletionMessage = false;
+$completionDelay = 4000;
+$completion = $_SESSION['feedback_completion'] ?? null;
+unset($_SESSION['feedback_completion']);
+
+if (is_array($completion)) {
+    $completedFormId = (int) ($completion['form_id'] ?? 0);
+    $completedModule = (string) ($completion['module'] ?? '');
+    if ($completedFormId > 0 && in_array($completedModule, ['teaching_quality', 'student_support_services', 'learning_environment'], true)) {
+        $completedLabel = '';
+        if ($completedModule === 'teaching_quality') {
+            $completedStmt = $conn->prepare(
+                "SELECT COALESCE(c.course_name, ff.title) AS form_label
+                 FROM feedback_forms ff
+                 LEFT JOIN sections s ON s.id = ff.section_id
+                 LEFT JOIN courses c ON c.id = s.course_id
+                 WHERE ff.id = ? LIMIT 1"
+            );
+        } else {
+            $completedStmt = $conn->prepare("SELECT title AS form_label FROM feedback_forms WHERE id = ? LIMIT 1");
+        }
+        $completedStmt->bind_param('i', $completedFormId);
+        $completedStmt->execute();
+        $completedLabel = (string) ($completedStmt->get_result()->fetch_assoc()['form_label'] ?? '');
+        $completedStmt->close();
+
+        if ($completedModule === 'teaching_quality') {
+            if (empty($acadPendingForms)) {
+                $completionMessage = $LANG['thank_tq_all_completed'] ?? 'You have successfully completed all Teaching Quality feedback forms. Please continue with the Student Support Services feedback form.';
+                $completionBadge = $LANG['badge_all_tq_completed'] ?? 'All Teaching Quality Forms Completed';
+            } else {
+                $completionMessage = sprintf($LANG['thank_tq_course_completed'] ?? 'The Teaching Quality feedback for %s has been successfully completed. Please continue with the next feedback form.', $completedLabel);
+                $completionBadge = $LANG['badge_tq_submitted'] ?? 'Teaching Quality — Feedback Submitted';
+            }
+        } elseif ($completedModule === 'student_support_services') {
+            $completionMessage = $LANG['thank_sss_completed'] ?? 'You have successfully completed the Student Support Services feedback form. Please continue with the final Learning Environment feedback form.';
+            $completionBadge = $LANG['badge_sss_completed'] ?? 'Student Support Services Completed';
+        } else {
+            $completionMessage = $LANG['thank_le_completed'] ?? 'You have successfully completed the Learning Environment feedback form.';
+            $completionBadge = $LANG['badge_le_completed'] ?? 'Learning Environment Completed';
+        }
+        // The temporary notification is only useful when another required
+        // form remains. Final completion goes straight to the completed state.
+        $showCompletionMessage = $totalPendingCount > 0;
     }
+}
+
+$inlineFormHtml = '';
+if ($nextForm) {
+    $surveyModule = $nextForm['module'];
+    $surveyDashboardEmbed = true;
+    $_GET['form_id'] = (int) $nextForm['id'];
+    ob_start();
+    require __DIR__ . '/survey_form_common.php';
+    $inlineFormHtml = ob_get_clean();
+    $pageTitle = $LANG['student_dashboard_title'] ?? 'Student Dashboard';
 }
 ?>
 <!DOCTYPE html>
@@ -160,25 +218,131 @@ foreach ($sortedAll as $f) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title><?= e($pageTitle) ?> — SFMS</title>
+    <title><?= e($pageTitle) ?> — SFIS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>tailwind.config = { theme: { extend: { fontFamily: { inter: ['Inter', 'sans-serif'] } } } }</script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/studentfeedbackucsh/assets/css/custom.css">
     <style>
-        .card-body { max-height: 0; overflow: hidden; transition: max-height 0.4s ease, padding 0.3s ease; padding-top: 0; padding-bottom: 0; }
-        .card-body.expanded { max-height: 1000px; padding-top: 0; }
-        .more-btn { transition: all 0.2s ease; }
-        .more-btn:hover { background: rgba(0,0,0,0.05); }
-        .progress-ring { transition: stroke-dashoffset 0.6s ease; }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(14px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulseGlow {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 0 0 10px rgba(6, 182, 212, 0);
+            }
+        }
+
+        @keyframes activeCardShimmer {
+            from {
+                background-position: -200% center;
+            }
+
+            to {
+                background-position: 200% center;
+            }
+        }
+
+        .fade-in-up {
+            animation: fadeInUp 0.45s ease both;
+        }
+
+        .delay-1 {
+            animation-delay: 0.08s;
+        }
+
+        .delay-2 {
+            animation-delay: 0.16s;
+        }
+
+        .delay-3 {
+            animation-delay: 0.26s;
+        }
+
+        .pulse-glow {
+            animation: pulseGlow 2.5s ease-in-out infinite;
+        }
+
+        /* Arrow slides right on hover */
+        .active-form-link .card-arrow {
+            transition: transform 0.25s ease;
+        }
+
+        .active-form-link:hover .card-arrow {
+            transform: translateX(4px);
+        }
+
+        /* Smooth card hover lift */
+        .active-form-link {
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+        }
+
+        .active-form-link:hover {
+            transform: translateY(-3px);
+        }
+
+        @keyframes completionCountdown {
+            from { width: 0%; }
+            to { width: 100%; }
+        }
+
+        .dashboard-completion-countdown {
+            width: 0;
+            transform-origin: left center;
+            animation-name: completionCountdown;
+            animation-duration: <?= (int) $completionDelay ?>ms;
+            animation-timing-function: linear;
+            animation-fill-mode: forwards;
+        }
     </style>
 </head>
 
 <body
     class="h-full bg-gradient-to-br from-slate-50 to-cyan-50/30 font-inter <?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'lang-mm' : '' ?>">
+    <?php if ($showCompletionMessage): ?>
+        <div id="dashboard-completion-message"
+            class="fixed inset-x-3 top-3 z-[70] mx-auto max-w-2xl overflow-hidden rounded-2xl border border-emerald-200 bg-white/95 shadow-2xl shadow-emerald-200/50 backdrop-blur transition-all duration-300 ease-out sm:inset-x-6 sm:top-5"
+            role="status" aria-live="polite">
+            <div class="h-1.5 bg-gradient-to-r from-emerald-400 via-cyan-500 to-indigo-500"></div>
+            <div class="flex items-start gap-4 p-5 sm:p-6">
+                <div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-2xl shadow-sm"
+                    aria-hidden="true">&#127881;</div>
+                <div class="min-w-0 flex-1">
+                    <h2 class="text-lg font-extrabold text-slate-900 sm:text-xl">
+                        <?= e($LANG['thank_you_heading'] ?? 'Thank You!') ?></h2>
+                    <p class="mt-1.5 text-sm leading-relaxed text-slate-600 sm:text-base"><?= e($completionMessage) ?></p>
+                    <p class="mt-2 text-xs font-medium text-emerald-700">
+                        <?= e($LANG['next_form_loading'] ?? 'The next required feedback form will appear automatically...') ?>
+                    </p>
+                    <div class="mt-3 h-1.5 overflow-hidden rounded-full bg-emerald-50">
+                        <div
+                            class="dashboard-completion-countdown h-full rounded-full bg-gradient-to-r from-cyan-500 to-emerald-400">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <div id="overlay" class="fixed inset-0 bg-black/40 z-30 hidden lg:hidden" onclick="closeSidebar()"></div>
     <div class="flex h-screen overflow-hidden">
 
+        <!-- ── Sidebar ── -->
         <aside id="sidebar"
             class="fixed inset-y-0 left-0 w-64 bg-gradient-to-b from-cyan-600 to-cyan-700 text-white flex flex-col z-40 transform -translate-x-full transition-transform duration-300 lg:relative lg:translate-x-0 lg:flex-shrink-0">
             <div class="flex items-center gap-3 px-5 py-5 border-b border-cyan-500">
@@ -187,7 +351,7 @@ foreach ($sortedAll as $f) {
                         class="w-full h-full object-contain rounded-xl">
                 </div>
                 <div>
-                    <p class="text-lg font-bold"><?= $LANG['student_portal'] ?? 'SFMS Student' ?></p>
+                    <p class="text-lg font-bold"><?= $LANG['student_portal'] ?? 'SFIS Student' ?></p>
                     <p class="text-[10px] text-cyan-100"><?= $LANG['student_portal_sub'] ?? 'Student Portal' ?></p>
                 </div>
                 <button onclick="closeSidebar()" class="ml-auto lg:hidden text-cyan-200">
@@ -202,7 +366,6 @@ foreach ($sortedAll as $f) {
                 <?php
                 $navItems = [
                     ['label' => $LANG['nav_dashboard'] ?? 'Dashboard', 'href' => '/studentfeedbackucsh/student/dashboard.php', 'key' => 'dashboard', 'icon' => 'home', 'iconColor' => 'text-yellow-300'],
-                    ['label' => $LANG['nav_feedback_forms'] ?? 'Feedback Forms', 'href' => '/studentfeedbackucsh/student/feedback_forms.php', 'key' => 'feedback_forms', 'icon' => 'clipboard', 'iconColor' => 'text-emerald-300'],
                     ['label' => $LANG['nav_history'] ?? 'Submission History', 'href' => '/studentfeedbackucsh/student/feedback_history.php', 'key' => 'history', 'icon' => 'history', 'iconColor' => 'text-teal-300'],
                     ['label' => $LANG['nav_profile'] ?? 'Profile', 'href' => '/studentfeedbackucsh/student/profile.php', 'key' => 'profile', 'icon' => 'user', 'iconColor' => 'text-rose-300'],
                 ];
@@ -228,255 +391,372 @@ foreach ($sortedAll as $f) {
             </a>
         </aside>
 
+        <!-- ── Main Column ── -->
         <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
             <?php include '../includes/student_header.php'; ?>
-            <main class="flex-1 overflow-y-auto p-4 lg:p-6">
 
+            <main class="flex-1 overflow-y-auto p-4 lg:p-6">
                 <?php renderFlash() ?>
 
-                <div class="mb-6">
-                    <h2 class="text-2xl font-bold text-slate-800"><?= $LANG['student_welcome'] ?? 'Welcome' ?>,
-                        <?= e($user['name']) ?> 👋
-                    </h2>
-                    <p class="text-sm text-slate-500 mt-1">
-                        <?= $LANG['student_overview'] ?? "Here's your feedback overview across all modules." ?>
-                    </p>
-                </div>
-
-                <!-- Overall Progress Card -->
-                <!-- <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
-                    <div class="flex flex-col md:flex-row items-center gap-6">
-                        <div class="relative flex-shrink-0">
-                            <svg class="w-24 h-24 transform -rotate-90" viewBox="0 0 100 100">
-                                <circle cx="50" cy="50" r="42" fill="none" stroke="#e2e8f0" stroke-width="8" />
-                                <circle cx="50" cy="50" r="42" fill="none" stroke="#06b6d4" stroke-width="8"
-                                    stroke-linecap="round"
-                                    stroke-dasharray="<?= 2 * M_PI * 42 ?>"
-                                    stroke-dashoffset="<?= 2 * M_PI * 42 * (1 - $progressPercent / 100) ?>"
-                                    class="progress-ring" />
-                            </svg>
-                            <div class="absolute inset-0 flex items-center justify-center">
-                                <span class="text-lg font-bold text-cyan-700"><?= $progressPercent ?>%</span>
-                            </div>
-                        </div>
-                        <div class="flex-1 text-center md:text-left">
-                            <h3 class="text-lg font-bold text-slate-800 mb-1"><?= $LANG['overall_progress'] ?? 'Overall Progress' ?></h3>
-                            <p class="text-sm text-slate-500 mb-3">
-                                <?= $totalCompletedCount ?> <?= $LANG['of'] ?? 'of' ?> <?= $totalAvailableCount ?> <?= $LANG['forms_completed'] ?? 'forms completed' ?>
-                            </p>
-                            <div class="w-full bg-slate-100 rounded-full h-3 mb-2">
-                                <div class="bg-gradient-to-r from-cyan-500 to-cyan-600 h-3 rounded-full transition-all duration-500 ease-out"
-                                    style="width: <?= $progressPercent ?>%"></div>
-                            </div>
-                            <div class="flex items-center gap-4 text-xs text-slate-500">
-                                <span class="flex items-center gap-1">
-                                    <span class="w-2 h-2 rounded-full bg-green-500"></span>
-                                    <?= $totalCompletedCount ?> <?= $LANG['completed'] ?? 'Completed' ?>
-                                </span>
-                                <span class="flex items-center gap-1">
-                                    <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-                                    <?= $totalPendingCount ?> <?= $LANG['pending'] ?? 'Pending' ?>
-                                </span>
-                                <span class="flex items-center gap-1">
-                                    <span class="w-2 h-2 rounded-full bg-slate-300"></span>
-                                    <?= $totalAvailableCount ?> <?= $LANG['total'] ?? 'Total' ?>
-                                </span>
-                            </div>
-                        </div>
+                <!-- ── Welcome Banner ── -->
+                <div
+                    class="relative bg-gradient-to-r from-cyan-600 via-cyan-600 to-cyan-700 rounded-2xl p-6 mb-6 text-white shadow-lg overflow-hidden fade-in-up">
+                    <div class="absolute -right-6 -top-6 w-32 h-32 rounded-full bg-white/10 pointer-events-none"></div>
+                    <div class="absolute right-8 -bottom-10 w-40 h-40 rounded-full bg-white/5 pointer-events-none">
                     </div>
-                </div> -->
-
-                <!-- Continue Feedback -->
-                <?php if (!$allCompleted && $firstUncompletedId): ?>
-                <a href="/studentfeedbackucsh/student/feedback_forms.php" class="block bg-gradient-to-r from-cyan-600 to-cyan-700 rounded-2xl p-5 mb-6 text-white shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5">
-                    <div class="flex flex-col sm:flex-row items-center gap-4">
-                        <div class="flex items-center gap-3 flex-1">
-                            <div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
-                                <?= iconSvg('clipboard', 'w-6 h-6 text-white') ?>
-                            </div>
-                            <div>
-                                <p class="text-sm font-semibold opacity-90"><?= $LANG['continue_feedback'] ?? 'Continue Feedback' ?></p>
-                                <p class="text-xs opacity-75">
-                                    <?= $totalPendingCount ?> <?= $LANG['forms_remaining'] ?? 'forms remaining' ?>
-                                </p>
-                            </div>
-                        </div>
-                        <span class="px-5 py-2.5 bg-white text-cyan-700 font-semibold text-sm rounded-xl shadow-sm">
-                            <?= $LANG['start_now'] ?? 'Start Now' ?> →
-                        </span>
-                    </div>
-                </a>
-                <?php elseif ($allCompleted): ?>
-                <div class="bg-green-50 border border-green-200 rounded-2xl p-5 mb-6 flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
-                        <?= iconSvg('check', 'w-6 h-6 text-green-600') ?>
-                    </div>
-                    <div>
-                        <p class="text-sm font-semibold text-green-800"><?= $LANG['all_done'] ?? 'All Done!' ?></p>
-                        <p class="text-xs text-green-600"><?= $LANG['all_forms_completed'] ?? 'You have completed all feedback forms. Thank you!' ?></p>
-                    </div>
-                </div>
-                <?php endif ?>
-
-                <!-- Module Cards -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
-
-                    <!-- Academic Card -->
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-cyan-50">
-                            <div class="flex items-center gap-2">
-                                <h3 class="text-sm font-semibold text-cyan-800">
-                                    <?= $LANG['academic_feedback_section'] ?? 'Academic Feedback' ?>
-                                </h3>
-                                <span class="text-[11px] text-cyan-600 font-medium">(<?= count($acadPendingForms) ?>
-                                    <?= $LANG['pending'] ?? 'pending' ?>, <?= $acadCompletedCount ?>
-                                    <?= $LANG['completed'] ?? 'completed' ?>)</span>
-                            </div>
-                        </div>
-                        <?php if ($acadPendingForms): ?>
-                            <div class="divide-y divide-slate-100">
-                                <?php
-                                $acadShowLimit = 3;
-                                $acadShowAll = false;
-                                foreach ($acadPendingForms as $idx => $f): ?>
-                                    <div class="px-5 py-3.5 flex items-center justify-between gap-3 <?= ($idx >= $acadShowLimit) ? 'acad-extra hidden' : '' ?>">
-                                        <div class="min-w-0">
-                                            <p class="text-xs font-medium text-slate-800 truncate"><?= e($f['title']) ?></p>
-                                            <p class="text-[11px] text-slate-400 truncate"><?= e($f['course_name'] ?? '') ?> <?= $f['course_name'] ? '— Sec ' . e($f['section_name'] ?? '') : '' ?> · <?= e($f['display_year'] ?? '') ?> · <?= e(semesterToRoman($f['display_semester'] ?? '')) ?></p>
-                                        </div>
-                                        <a href="/studentfeedbackucsh/student/feedback_forms.php"
-                                            class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg flex-shrink-0"><?= $LANG['fill'] ?? 'Fill' ?></a>
-                                    </div>
-                                <?php endforeach ?>
-                            </div>
-                            <?php if (count($acadPendingForms) > $acadShowLimit): ?>
-                            <button onclick="toggleMore(this, 'acad-extra')" class="more-btn w-full px-5 py-2.5 text-md font-semibold text-cyan-600 border-t border-slate-100">
-                                <?= $LANG['more'] ?? 'More' ?> ↓
-                            </button>
-                            <?php endif ?>
-                        <?php else: ?>
-                            <div class="text-center py-8 text-slate-400">
-                                <p class="text-xs"><?= $LANG['all_caught_up'] ?? 'All caught up!' ?></p>
-                            </div>
-                        <?php endif ?>
-                    </div>
-
-                    <!-- Student Affairs Card -->
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-purple-50">
-                            <div class="flex items-center gap-2">
-                                <h3 class="text-sm font-semibold text-purple-800">
-                                    <?= $LANG['student_affairs_section'] ?? 'Student Affairs' ?>
-                                </h3>
-                                <span class="text-[11px] text-purple-600 font-medium">(<?= count($saPendingForms) ?>
-                                    <?= $LANG['pending'] ?? 'pending' ?>, <?= $saCompletedCount ?>
-                                    <?= $LANG['completed'] ?? 'completed' ?>)</span>
-                            </div>
-                        </div>
-                        <?php if ($saPendingForms): ?>
-                            <div class="divide-y divide-slate-100">
-                                <?php
-                                $saShowLimit = 3;
-                                foreach ($saPendingForms as $idx => $f): ?>
-                                    <div class="px-5 py-3.5 flex items-center justify-between gap-3 <?= ($idx >= $saShowLimit) ? 'sa-extra hidden' : '' ?>">
-                                        <div class="min-w-0">
-                                            <p class="text-xs font-medium text-slate-800 truncate"><?= e($f['title']) ?></p>
-                                            <p class="text-[11px] text-slate-400">Due: <?= formatDateTime($f['end_date']) ?></p>
-                                        </div>
-                                        <a href="/studentfeedbackucsh/student/feedback_forms.php"
-                                            class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg flex-shrink-0"><?= $LANG['fill'] ?? 'Fill' ?></a>
-                                    </div>
-                                <?php endforeach ?>
-                            </div>
-                            <?php if (count($saPendingForms) > $saShowLimit): ?>
-                            <button onclick="toggleMore(this, 'sa-extra')" class="more-btn w-full px-5 py-2.5 text-xs font-semibold text-purple-600 border-t border-slate-100">
-                                <?= $LANG['more'] ?? 'More' ?> ↓
-                            </button>
-                            <?php endif ?>
-                        <?php else: ?>
-                            <div class="text-center py-8 text-slate-400">
-                                <p class="text-xs"><?= $LANG['no_pending_sa'] ?? 'No pending SA forms.' ?></p>
-                            </div>
-                        <?php endif ?>
-                    </div>
-
-                    <!-- Administration Card -->
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                        <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-orange-50">
-                            <div class="flex items-center gap-2">
-                                <h3 class="text-sm font-semibold text-orange-800">
-                                    <?= $LANG['administration_section'] ?? 'Administration' ?>
-                                </h3>
-                                <span class="text-[11px] text-orange-600 font-medium">(<?= count($admPendingForms) ?>
-                                    <?= $LANG['pending'] ?? 'pending' ?>, <?= $admCompletedCount ?>
-                                    <?= $LANG['completed'] ?? 'completed' ?>)</span>
-                            </div>
-                        </div>
-                        <?php if ($admPendingForms): ?>
-                            <div class="divide-y divide-slate-100">
-                                <?php
-                                $admShowLimit = 3;
-                                foreach ($admPendingForms as $idx => $f): ?>
-                                    <div class="px-5 py-3.5 flex items-center justify-between gap-3 <?= ($idx >= $admShowLimit) ? 'adm-extra hidden' : '' ?>">
-                                        <div class="min-w-0">
-                                            <p class="text-xs font-medium text-slate-800 truncate"><?= e($f['title']) ?></p>
-                                            <p class="text-[11px] text-slate-400">Due: <?= formatDateTime($f['end_date']) ?></p>
-                                        </div>
-                                        <a href="/studentfeedbackucsh/student/feedback_forms.php"
-                                            class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-white bg-orange-600 hover:bg-orange-700 rounded-lg flex-shrink-0"><?= $LANG['fill'] ?? 'Fill' ?></a>
-                                    </div>
-                                <?php endforeach ?>
-                            </div>
-                            <?php if (count($admPendingForms) > $admShowLimit): ?>
-                            <button onclick="toggleMore(this, 'adm-extra')" class="more-btn w-full px-5 py-2.5 text-xs font-semibold text-orange-600 border-t border-slate-100">
-                                <?= $LANG['more'] ?? 'More' ?> ↓
-                            </button>
-                            <?php endif ?>
-                        <?php else: ?>
-                            <div class="text-center py-8 text-slate-400">
-                                <p class="text-xs"><?= $LANG['no_pending_adm'] ?? 'No pending Adm forms.' ?></p>
-                            </div>
-                        <?php endif ?>
+                    <div class="relative z-10">
+                        <h2 class="text-2xl font-bold">
+                            <?= $LANG['student_welcome'] ?? 'Welcome' ?>, <?= e($user['name']) ?> 👋
+                        </h2>
+                        <p class="text-cyan-100 mt-1.5 text-sm max-w-md">
+                            <?= e($LANG['dashboard_feedback_instruction'] ?? 'Please complete all required feedback forms for this semester.') ?>
+                        </p>
                     </div>
                 </div>
 
-                <!-- Quick Links -->
-                <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                    <a href="/studentfeedbackucsh/student/feedback_forms.php"
-                        class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3 hover:shadow-md hover:border-cyan-200/50 transition-all hover:-translate-y-0.5">
-                        <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                            <?= iconSvg('clipboard', 'w-5 h-5 text-emerald-600') ?>
+                <?php if ($totalAvailableCount > 0): ?>
+
+                    <!-- ── Required Forms Summary ── -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6 fade-in-up delay-1">
+                        <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3.5">
+                            <?= e($LANG['required_feedback_forms'] ?? 'Required Feedback Forms') ?>
+                        </h3>
+                        <div class="space-y-2.5">
+
+                            <?php if ($acadTotal > 0): ?>
+                                <?php $done = ($acadCompletedCount >= $acadTotal); ?>
+                                <div
+                                    class="flex flex-wrap items-center gap-3 px-4 py-3 sm:flex-nowrap rounded-xl <?= $done ? 'bg-green-50 border border-green-100' : 'bg-cyan-50 border border-cyan-100' ?>">
+                                    <div
+                                        class="w-8 h-8 rounded-lg <?= $done ? 'bg-green-500' : 'bg-cyan-500' ?> flex items-center justify-center text-white flex-shrink-0">
+                                        <?= iconSvg('academic', 'w-4 h-4') ?>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-sm font-semibold <?= $done ? 'text-green-800' : 'text-slate-700' ?>">
+                                            <?= e($LANG['academic'] ?? 'Teaching Quality') ?></p>
+                                        <p class="mt-0.5 text-xs text-slate-500">
+                                            <?= e(sprintf($LANG['feedback_forms_required_count'] ?? '%d Feedback Forms Required', $acadTotal)) ?>
+                                        </p>
+                                    </div>
+                                    <?php if ($done): ?>
+                                        <span class="flex items-center gap-1 text-xs font-semibold text-green-600">
+                                            <?= iconSvg('check', 'w-3.5 h-3.5') ?>             <?= e($LANG['completed'] ?? 'Completed') ?>
+                                            (<?= $acadCompletedCount ?>/<?= $acadTotal ?>)
+                                        </span>
+                                    <?php else: ?>
+                                        <div class="flex flex-col items-end gap-1 text-xs font-semibold flex-shrink-0">
+                                            <span
+                                                class="flex items-center gap-1 text-green-600"><?= iconSvg('check', 'w-3.5 h-3.5') ?>
+                                                <?= $acadCompletedCount ?>             <?= e($LANG['completed'] ?? 'Completed') ?></span>
+                                            <span class="text-cyan-600">&rarr; <?= $acadTotal - $acadCompletedCount ?>
+                                                <?= e(ucfirst($LANG['remaining'] ?? 'Remaining')) ?></span>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php if ($saTotal > 0): ?>
+                                <?php $done = ($saCompletedCount >= $saTotal); ?>
+                                <div
+                                    class="flex flex-wrap items-center gap-3 px-4 py-3 sm:flex-nowrap rounded-xl <?= $done ? 'bg-green-50 border border-green-100' : 'bg-purple-50 border border-purple-100' ?>">
+                                    <div
+                                        class="w-8 h-8 rounded-lg <?= $done ? 'bg-green-500' : 'bg-purple-500' ?> flex items-center justify-center text-white flex-shrink-0">
+                                        <?= iconSvg('shield', 'w-4 h-4') ?>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-sm font-semibold <?= $done ? 'text-green-800' : 'text-slate-700' ?>">
+                                            <?= e($LANG['student_affairs'] ?? 'Student Support Services') ?></p>
+                                        <p class="mt-0.5 text-xs text-slate-500">
+                                            <?= e(sprintf($LANG['feedback_forms_required_count'] ?? '%d Feedback Forms Required', $saTotal)) ?>
+                                        </p>
+                                    </div>
+                                    <?php if ($done): ?>
+                                        <span class="flex items-center gap-1 text-xs font-semibold text-green-600">
+                                            <?= iconSvg('check', 'w-3.5 h-3.5') ?>             <?= e($LANG['completed'] ?? 'Completed') ?>
+                                            (<?= $saCompletedCount ?>/<?= $saTotal ?>)
+                                        </span>
+                                    <?php else: ?>
+                                        <div class="flex flex-col items-end gap-1 text-xs font-semibold flex-shrink-0">
+                                            <span
+                                                class="flex items-center gap-1 text-green-600"><?= iconSvg('check', 'w-3.5 h-3.5') ?>
+                                                <?= $saCompletedCount ?>             <?= e($LANG['completed'] ?? 'Completed') ?></span>
+                                            <span class="text-purple-600">&rarr; <?= $saTotal - $saCompletedCount ?>
+                                                <?= e(ucfirst($LANG['remaining'] ?? 'Remaining')) ?></span>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php if ($admTotal > 0): ?>
+                                <?php $done = ($admCompletedCount >= $admTotal); ?>
+                                <div
+                                    class="flex flex-wrap items-center gap-3 px-4 py-3 sm:flex-nowrap rounded-xl <?= $done ? 'bg-green-50 border border-green-100' : 'bg-orange-50 border border-orange-100' ?>">
+                                    <div
+                                        class="w-8 h-8 rounded-lg <?= $done ? 'bg-green-500' : 'bg-orange-500' ?> flex items-center justify-center text-white flex-shrink-0">
+                                        <?= iconSvg('office', 'w-4 h-4') ?>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-sm font-semibold <?= $done ? 'text-green-800' : 'text-slate-700' ?>">
+                                            <?= e($LANG['administration'] ?? 'Learning Environment') ?></p>
+                                        <p class="mt-0.5 text-xs text-slate-500">
+                                            <?= e(sprintf($LANG['feedback_forms_required_count'] ?? '%d Feedback Forms Required', $admTotal)) ?>
+                                        </p>
+                                    </div>
+                                    <?php if ($done): ?>
+                                        <span class="flex items-center gap-1 text-xs font-semibold text-green-600">
+                                            <?= iconSvg('check', 'w-3.5 h-3.5') ?>             <?= e($LANG['completed'] ?? 'Completed') ?>
+                                            (<?= $admCompletedCount ?>/<?= $admTotal ?>)
+                                        </span>
+                                    <?php else: ?>
+                                        <div class="flex flex-col items-end gap-1 text-xs font-semibold flex-shrink-0">
+                                            <span
+                                                class="flex items-center gap-1 text-green-600"><?= iconSvg('check', 'w-3.5 h-3.5') ?>
+                                                <?= $admCompletedCount ?>             <?= e($LANG['completed'] ?? 'Completed') ?></span>
+                                            <span class="text-orange-600">&rarr; <?= $admTotal - $admCompletedCount ?>
+                                                <?= e(ucfirst($LANG['remaining'] ?? 'Remaining')) ?></span>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endif; ?>
+
                         </div>
-                        <div>
-                            <p class="text-sm font-semibold text-slate-800">
-                                <?= $LANG['nav_feedback_forms'] ?? 'Feedback Forms' ?>
+                    </div>
+
+                <?php endif; /* $totalAvailableCount > 0 */ ?>
+
+                <div id="dashboard-feedback-flow" class="<?= $showCompletionMessage ? 'hidden' : '' ?>">
+
+                    <?php if ($nextForm): ?>
+                        <div class="mb-6 fade-in-up delay-2">
+                            <?= $inlineFormHtml ?>
+                        </div>
+
+                    <?php elseif (false && $nextFormUrl): ?>
+                        <!-- ── Current Feedback Form (fully-clickable card) ── -->
+                        <div class="mb-6 fade-in-up delay-2">
+                            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+                                <?= e($LANG['current_feedback_form'] ?? 'Current Feedback Form') ?>
                             </p>
-                            <p class="text-xs text-slate-500">
-                                <?= $totalPendingCount ?> <?= $LANG['pending'] ?? 'pending' ?>
+                            <?php
+                            $nm = $nextForm['module'];
+                            // Per-module colour tokens
+                            $tokens = [
+                                'teaching_quality' => [
+                                    'border' => 'border-cyan-300',
+                                    'hborder' => 'hover:border-cyan-500',
+                                    'accent' => 'from-cyan-500 to-indigo-500',
+                                    'badge' => 'bg-cyan-100 text-cyan-700',
+                                    'arrow' => 'bg-cyan-50 group-hover:bg-cyan-100 text-cyan-600',
+                                    'label' => $LANG['academic'] ?? 'Teaching Quality',
+                                ],
+                                'student_support_services' => [
+                                    'border' => 'border-purple-300',
+                                    'hborder' => 'hover:border-purple-500',
+                                    'accent' => 'from-purple-500 to-indigo-500',
+                                    'badge' => 'bg-purple-100 text-purple-700',
+                                    'arrow' => 'bg-purple-50 group-hover:bg-purple-100 text-purple-600',
+                                    'label' => $LANG['student_affairs'] ?? 'Student Support Services',
+                                ],
+                                'learning_environment' => [
+                                    'border' => 'border-orange-300',
+                                    'hborder' => 'hover:border-orange-500',
+                                    'accent' => 'from-orange-500 to-amber-400',
+                                    'badge' => 'bg-orange-100 text-orange-700',
+                                    'arrow' => 'bg-orange-50 group-hover:bg-orange-100 text-orange-600',
+                                    'label' => $LANG['administration'] ?? 'Learning Environment',
+                                ],
+                            ];
+                            $t = $tokens[$nm] ?? $tokens['teaching_quality'];
+                            ?>
+                            <a href="<?= e($nextFormUrl) ?>"
+                                class="active-form-link group block bg-white rounded-2xl border-2 <?= $t['border'] . ' ' . $t['hborder'] ?> shadow-md hover:shadow-xl overflow-hidden pulse-glow">
+                                <!-- Gradient accent bar -->
+                                <div class="h-1.5 bg-gradient-to-r <?= $t['accent'] ?>"></div>
+
+                                <div class="p-6">
+                                    <div class="flex items-start gap-4">
+                                        <!-- Info -->
+                                        <div class="flex-1 min-w-0">
+                                            <!-- Module badge + live dot -->
+                                            <div class="flex items-center gap-2 mb-3 flex-wrap">
+                                                <span
+                                                    class="inline-flex items-center px-3 py-0.5 rounded-full text-xs font-semibold <?= $t['badge'] ?>">
+                                                    <?= e($t['label']) ?>
+                                                </span>
+                                                <span class="flex items-center gap-1 text-xs text-amber-600 font-medium">
+                                                    <span
+                                                        class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse inline-block"></span>
+                                                    <?= e($LANG['active'] ?? 'Active') ?>
+                                                </span>
+                                            </div>
+
+                                            <!-- Form title -->
+                                            <h4 class="text-lg font-bold text-slate-900 mb-2.5 leading-snug">
+                                                <?= e($nextForm['title']) ?>
+                                            </h4>
+
+                                            <!-- Contextual details -->
+                                            <div class="space-y-1.5">
+                                                <?php if ($nm === 'teaching_quality'): ?>
+                                                    <?php if (!empty($nextForm['course_name'])): ?>
+                                                        <p class="text-sm text-slate-600 flex items-center gap-1.5">
+                                                            <?= iconSvg('book', 'w-3.5 h-3.5 text-slate-400 flex-shrink-0') ?>
+                                                            <span><?= e($nextForm['course_name']) ?><?= !empty($nextForm['course_code']) ? ' (' . e($nextForm['course_code']) . ')' : '' ?></span>
+                                                        </p>
+                                                    <?php endif; ?>
+                                                    <?php if (!empty($nextForm['teacher_name'])): ?>
+                                                        <p class="text-sm text-slate-500 flex items-center gap-1.5">
+                                                            <?= iconSvg('user', 'w-3.5 h-3.5 text-slate-400 flex-shrink-0') ?>
+                                                            <span><?= e($nextForm['teacher_name']) ?></span>
+                                                        </p>
+                                                    <?php endif; ?>
+                                                <?php else: ?>
+                                                    <?php if (!empty($nextForm['display_year']) || !empty($nextForm['display_semester'])): ?>
+                                                        <p class="text-sm text-slate-500 flex items-center gap-1.5">
+                                                            <?= iconSvg('academic', 'w-3.5 h-3.5 text-slate-400 flex-shrink-0') ?>
+                                                            <span>
+                                                                <?= e($nextForm['display_year'] ?? '') ?>
+                                                                <?php if (!empty($nextForm['display_semester'])): ?>
+                                                                    &nbsp;·&nbsp;<?= e(semesterToRoman($nextForm['display_semester'])) ?>
+                                                                <?php endif; ?>
+                                                            </span>
+                                                        </p>
+                                                    <?php endif; ?>
+                                                <?php endif; ?>
+
+                                                <?php if (!empty($nextForm['end_date'])): ?>
+                                                    <p class="text-xs text-slate-400 flex items-center gap-1.5">
+                                                        <?= iconSvg('history', 'w-3.5 h-3.5 flex-shrink-0') ?>
+                                                        <span><?= e($LANG['due'] ?? 'Due') ?>:
+                                                            <?= formatDateTime($nextForm['end_date']) ?></span>
+                                                    </p>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+
+                                        <!-- Arrow indicator -->
+                                        <div
+                                            class="flex-shrink-0 w-11 h-11 rounded-xl <?= $t['arrow'] ?> flex items-center justify-center mt-1 transition-colors">
+                                            <svg class="w-5 h-5 card-arrow" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M9 5l7 7-7 7" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+
+                    <?php elseif ($allCompleted): ?>
+                        <!-- ── All Done State ── -->
+                        <div
+                            class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-8 mb-6 text-center fade-in-up delay-2">
+                            <div
+                                class="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-200">
+                                <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                        d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
+                            <h3 class="text-lg font-bold text-green-800 mb-1.5">
+                                &#127881;
+                                <?= e($LANG['all_required_feedback_completed'] ?? 'All required feedback forms have been completed.') ?>
+                            </h3>
+                            <p class="text-sm text-green-600 mb-7">
+                                <?= e($LANG['thank_you_participation'] ?? 'Thank you for your valuable participation.') ?>
+                            </p>
+
+                            <div class="space-y-2.5 text-left max-w-sm mx-auto">
+                                <?php if ($acadTotal > 0): ?>
+                                    <div
+                                        class="flex items-center gap-3 bg-white/70 rounded-xl px-5 py-3 border border-green-100">
+                                        <div
+                                            class="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                                            <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                                                    d="M5 13l4 4L19 7" />
+                                            </svg>
+                                        </div>
+                                        <span
+                                            class="text-sm font-semibold text-green-800"><?= e($LANG['teaching_quality_completed'] ?? 'Teaching Quality Completed') ?></span>
+                                    </div>
+                                <?php endif; ?>
+                                <?php if ($saTotal > 0): ?>
+                                    <div
+                                        class="flex items-center gap-3 bg-white/70 rounded-xl px-5 py-3 border border-green-100">
+                                        <div
+                                            class="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                                            <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                                                    d="M5 13l4 4L19 7" />
+                                            </svg>
+                                        </div>
+                                        <span
+                                            class="text-sm font-semibold text-green-800"><?= e($LANG['student_support_services_completed'] ?? 'Student Support Services Completed') ?></span>
+                                    </div>
+                                <?php endif; ?>
+                                <?php if ($admTotal > 0): ?>
+                                    <div
+                                        class="flex items-center gap-3 bg-white/70 rounded-xl px-5 py-3 border border-green-100">
+                                        <div
+                                            class="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                                            <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                                                    d="M5 13l4 4L19 7" />
+                                            </svg>
+                                        </div>
+                                        <span
+                                            class="text-sm font-semibold text-green-800"><?= e($LANG['learning_environment_completed'] ?? 'Learning Environment Completed') ?></span>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+
+                    <?php elseif ($totalAvailableCount === 0): ?>
+                        <!-- ── No Forms Available ── -->
+                        <div
+                            class="bg-white rounded-2xl shadow-sm border border-slate-100 p-10 mb-6 text-center fade-in-up delay-2">
+                            <div class="w-14 h-14 mx-auto mb-4 rounded-full bg-slate-100 flex items-center justify-center">
+                                <?= iconSvg('clipboard', 'w-7 h-7 text-slate-400') ?>
+                            </div>
+                            <p class="text-sm font-medium text-slate-500">
+                                <?= e($LANG['no_feedback_forms_available'] ?? 'No feedback forms are currently available for you.') ?>
+                            </p>
+                            <p class="text-xs text-slate-400 mt-1">
+                                <?= e($LANG['check_back_for_feedback_forms'] ?? 'Check back when forms are opened by your instructors.') ?>
                             </p>
                         </div>
-                    </a>
+                    <?php endif; ?>
+
+                </div>
+
+                <!-- ── Quick Links ── -->
+                <!-- <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 fade-in-up delay-3">
                     <a href="/studentfeedbackucsh/student/feedback_history.php"
                         class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3 hover:shadow-md hover:border-slate-300 transition-all hover:-translate-y-0.5">
                         <div class="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center flex-shrink-0">
                             <?= iconSvg('history', 'w-5 h-5 text-teal-600') ?>
                         </div>
-                        <div>
-                            <p class="text-sm font-semibold text-slate-800"><?= $LANG['nav_history'] ?? 'History' ?></p>
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold text-slate-800 truncate"><?= $LANG['nav_history'] ?? 'History' ?></p>
                             <p class="text-xs text-slate-500"><?= $LANG['all_submissions'] ?? 'All submissions' ?></p>
                         </div>
                     </a>
                     <a href="/studentfeedbackucsh/student/profile.php"
-                        class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3 hover:shadow-md hover:border-rose-200/50 transition-all hover:-translate-y-0.5">
+                        class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3 hover:shadow-md hover:border-rose-200/60 transition-all hover:-translate-y-0.5">
                         <div class="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center flex-shrink-0">
                             <?= iconSvg('user', 'w-5 h-5 text-rose-600') ?>
                         </div>
-                        <div>
-                            <p class="text-sm font-semibold text-slate-800"><?= $LANG['nav_profile'] ?? 'Profile' ?></p>
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold text-slate-800 truncate"><?= $LANG['nav_profile'] ?? 'Profile' ?></p>
                             <p class="text-xs text-slate-500"><?= $LANG['profile_subtitle'] ?? 'Account settings' ?></p>
                         </div>
                     </a>
-                </div>
+                </div> -->
 
             </main>
         </div>
@@ -484,31 +764,22 @@ foreach ($sortedAll as $f) {
     <script>
         function openSidebar() { document.getElementById('sidebar').classList.remove('-translate-x-full'); document.getElementById('overlay').classList.remove('hidden'); }
         function closeSidebar() { document.getElementById('sidebar').classList.add('-translate-x-full'); document.getElementById('overlay').classList.add('hidden'); }
-
-        function toggleMore(btn, extraClass) {
-            var items = document.querySelectorAll('.' + extraClass);
-            var isExpanded = btn.dataset.expanded === 'true';
-            for (var i = 0; i < items.length; i++) {
-                if (isExpanded) {
-                    items[i].classList.add('hidden');
-                } else {
-                    items[i].classList.remove('hidden');
+        <?php if ($showCompletionMessage): ?>
+            window.setTimeout(function () {
+                const message = document.getElementById('dashboard-completion-message');
+                const flow = document.getElementById('dashboard-feedback-flow');
+                if (message) {
+                    message.classList.add('opacity-0', '-translate-y-2');
                 }
-            }
-            btn.dataset.expanded = isExpanded ? 'false' : 'true';
-            btn.innerHTML = isExpanded
-                ? '<?= $LANG["more"] ?? "More" ?> ↓'
-                : '<?= $LANG["less"] ?? "Less" ?> ↑';
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            var ring = document.querySelector('.progress-ring');
-            if (ring) {
-                var target = ring.getAttribute('stroke-dashoffset');
-                ring.style.strokeDashoffset = ring.getAttribute('stroke-dasharray');
-                setTimeout(function() { ring.style.strokeDashoffset = target; }, 100);
-            }
-        });
+                window.setTimeout(function () {
+                    if (message) message.remove();
+                    if (flow) {
+                        flow.classList.remove('hidden');
+                        flow.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }, 300);
+            }, <?= $completionDelay ?>);
+        <?php endif; ?>
     </script>
 </body>
 
