@@ -1,6 +1,6 @@
 {
     "name": "ucsh/student-feedback",
-    "description": "Student Feedback Management System",
+    "description": "Student Feedback Information System",
     "require": {
         "phpoffice/phpspreadsheet": "^1.29"
     },

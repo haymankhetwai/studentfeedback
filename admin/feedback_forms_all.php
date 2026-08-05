@@ -1512,9 +1512,14 @@ include '../includes/admin_sidebar.php';
 
                             <!-- MODULE -->
 
-                            <td class="px-5 py-3 text-sm text-slate-800 font-medium capitalize">
+                            <td class="px-5 py-3 text-sm text-slate-800 font-medium">
 
-                                <?= e($row['module']) ?>
+                                <?= e($LANG[$row['module']] ?? match ($row['module']) {
+                                    'teaching_quality' => 'Teaching Quality',
+                                    'student_support_services' => 'Student Support Services',
+                                    'learning_environment' => 'Learning Environment',
+                                    default => $row['module'],
+                                }) ?>
 
                             </td>
 

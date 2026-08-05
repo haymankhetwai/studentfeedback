@@ -17,7 +17,7 @@ $isEmbedded = $isAjaxEmbedded || $isDashboardEmbedded;
 $validModules = ['teaching_quality', 'student_support_services', 'learning_environment'];
 if (!in_array($module, $validModules, true)) {
     http_response_code(400);
-    exit('Invalid feedback module.');
+    exit(e($LANG['invalid_feedback_module'] ?? 'Invalid feedback module.'));
 }
 
 $user = getCurrentUser();
@@ -74,7 +74,7 @@ $formStmt->execute();
 $form = $formStmt->get_result()->fetch_assoc();
 $formStmt->close();
 if (!$form) {
-    setFlash('error', 'This Survey is not available for your assigned class.');
+    setFlash('error', $LANG['survey_not_available_for_class'] ?? 'This Survey is not available for your assigned class.');
     header('Location: feedback_forms.php');
     exit;
 }
@@ -90,30 +90,17 @@ $canSubmit = $form['status'] === 'Active' && !$alreadySubmitted;
 
 $questions = [];
 if (!empty($form['question_set_id'])) {
-    $questionStmt = $conn->prepare(
-        "SELECT fq.id, fq.question_code, fq.question_text_en, fq.question_text_mm,
-        sg.id AS group_id, sg.group_code,
-                sg.group_name_en, sg.group_name_mm, sg.instruction_en,
-        sg.instruction_mm
-         FROM feedback_questions fq
-         JOIN survey_groups sg ON sg.id = fq.survey_group_id
-         WHERE fq.question_set_id = ?
-    ORDER BY sg.id, LENGTH(fq.question_code), fq.question_code, fq.id"
-    );
-    $questionStmt->bind_param('i', $form['question_set_id']);
-    $questionStmt->execute();
-    $questions = $questionStmt->get_result()->fetch_all(MYSQLI_ASSOC);
-    $questionStmt->close();
+    $questions = getSurveyQuestionsForSet($conn, (int) $form['question_set_id']);
 }
 
 $submissionError = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCsrf()) {
-        $submissionError = 'Invalid request token.';
+        $submissionError = $LANG['invalid_request_token'] ?? 'Invalid request token.';
     } elseif (!$canSubmit) {
         $submissionError = $LANG['flash_form_not_open'] ?? 'This Survey is not open for submission.';
     } elseif (!$questions) {
-        $submissionError = 'This Survey has no questions.';
+        $submissionError = $LANG['survey_has_no_questions'] ?? 'This Survey has no questions.';
     } else {
         $answers = [];
         foreach ($questions as $question) {
@@ -131,7 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (count($answers) !== count($questions)) {
-            $submissionError = 'Please answer every Survey question.';
+            $submissionError = $LANG['answer_every_survey_question'] ?? 'Please answer every Survey question.';
         } else {
             $conn->begin_transaction();
             try {
@@ -179,8 +166,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } catch (Throwable $error) {
                 $conn->rollback();
                 $submissionError = $error instanceof mysqli_sql_exception && $error->getCode() === 1062
-                    ? 'You have already submitted this Survey.'
-                    : 'Survey submission failed.';
+                    ? ($LANG['survey_already_submitted'] ?? 'You have already submitted this Survey.')
+                    : ($LANG['survey_submission_failed'] ?? 'Survey submission failed.');
             }
         }
     }
@@ -190,7 +177,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         http_response_code(422);
         echo json_encode([
             'success' => false,
-            'message' => $submissionError ?: 'Survey submission failed.',
+            'message' => $submissionError ?: ($LANG['survey_submission_failed'] ?? 'Survey submission failed.'),
         ]);
         exit;
     }
@@ -214,7 +201,7 @@ $moduleLabel = match ($module) {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title><?= e($pageTitle) ?> — SFMS</title>
+        <title><?= e($pageTitle) ?> — SFIS</title>
         <script src="https://cdn.tailwindcss.com"></script>
         <link rel="stylesheet" href="/studentfeedbackucsh/assets/css/custom.css">
     </head>
@@ -223,10 +210,10 @@ $moduleLabel = match ($module) {
         <header class="bg-cyan-700 text-white">
             <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
                 <div>
-                    <p class="font-bold">SFMS Survey</p>
+                    <p class="font-bold"><?= e($LANG['sfms_survey'] ?? 'SFIS Survey') ?></p>
                     <p class="text-xs text-cyan-100"><?= e($user['name']) ?></p>
                 </div>
-                <a href="feedback_forms.php" class="text-sm hover:underline">Back to Surveys</a>
+                <a href="feedback_forms.php" class="text-sm hover:underline"><?= e($LANG['back_to_surveys'] ?? 'Back to Surveys') ?></a>
             </div>
         </header>
         <main class="max-w-5xl mx-auto px-4 py-8">
@@ -327,15 +314,15 @@ $moduleLabel = match ($module) {
 </section> -->
             <?php if ($alreadySubmitted): ?>
                 <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800">
-                    You have already submitted this Survey.
+                    <?= e($LANG['survey_already_submitted'] ?? 'You have already submitted this Survey.') ?>
                 </div>
             <?php elseif (!$canSubmit): ?>
                 <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-800">
-                    This Survey is not currently open.
+                    <?= e($LANG['survey_not_open'] ?? 'This Survey is not currently open.') ?>
                 </div>
             <?php elseif (!$questions): ?>
                 <div class="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-500">
-                    This Survey has no questions.
+                    <?= e($LANG['survey_has_no_questions'] ?? 'This Survey has no questions.') ?>
                 </div>
             <?php else: ?>
                 <form method="post"
@@ -435,6 +422,27 @@ $moduleLabel = match ($module) {
                                         throw new Error('Translated survey was not returned.');
                                     }
 
+                                    // Synchronize translated page text without replacing form controls.
+                                    // Keeping the existing INPUT nodes mounted preserves every radio selection.
+                                    const skippedTags = new Set(['INPUT', 'TEXTAREA', 'SELECT', 'SCRIPT', 'STYLE', 'SVG', 'CANVAS']);
+                                    function syncTranslatedTree(current, translated) {
+                                        if (!current || !translated || current.tagName !== translated.tagName || skippedTags.has(current.tagName)) return;
+                                        ['title', 'aria-label', 'placeholder'].forEach(function (attribute) {
+                                            if (translated.hasAttribute(attribute)) current.setAttribute(attribute, translated.getAttribute(attribute));
+                                        });
+                                        const currentText = Array.from(current.childNodes).filter(function (node) { return node.nodeType === Node.TEXT_NODE; });
+                                        const translatedTextNodes = Array.from(translated.childNodes).filter(function (node) { return node.nodeType === Node.TEXT_NODE; });
+                                        if (currentText.length === translatedTextNodes.length) {
+                                            currentText.forEach(function (node, index) { node.nodeValue = translatedTextNodes[index].nodeValue; });
+                                        }
+                                        const currentChildren = Array.from(current.children);
+                                        const translatedChildren = Array.from(translated.children);
+                                        if (currentChildren.length === translatedChildren.length) {
+                                            currentChildren.forEach(function (child, index) { syncTranslatedTree(child, translatedChildren[index]); });
+                                        }
+                                    }
+                                    syncTranslatedTree(document.body, translatedDocument.body);
+
                                     const translatedText = new Map();
                                     translatedDocument.querySelectorAll('[data-language-key]').forEach(function (element) {
                                         translatedText.set(element.dataset.languageKey, element);
@@ -483,6 +491,11 @@ $moduleLabel = match ($module) {
                             fieldset.querySelector('.survey-question-error')?.classList.add('hidden');
                         }
 
+                        function markQuestionUnanswered(fieldset) {
+                            fieldset.classList.add('border-red-400', 'ring-2', 'ring-red-100', 'bg-red-50');
+                            fieldset.querySelector('.survey-question-error')?.classList.remove('hidden');
+                        }
+
                         function showQuestion(fieldset) {
                             if (!fieldset) return;
                             fieldset.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -492,6 +505,7 @@ $moduleLabel = match ($module) {
                         }
 
                         function renderSummary(unanswered) {
+                            if (!summary || !unansweredList) return;
                             unansweredList.replaceChildren();
                             unanswered.forEach(function (fieldset) {
                                 const item = document.createElement('li');
@@ -505,7 +519,7 @@ $moduleLabel = match ($module) {
                             radio.addEventListener('change', function () {
                                 const fieldset = radio.closest('[data-survey-question]');
                                 if (fieldset) clearQuestionError(fieldset);
-                                if (!summary.classList.contains('hidden')) {
+                                if (summary && !summary.classList.contains('hidden')) {
                                     const remaining = Array.from(form.querySelectorAll('[data-survey-question]')).filter(function (question) {
                                         return !question.querySelector('input[type="radio"]:checked');
                                     });
@@ -524,8 +538,7 @@ $moduleLabel = match ($module) {
                                 clearQuestionError(fieldset);
                                 if (!answered) {
                                     unanswered.push(fieldset);
-                                    fieldset.classList.add('border-red-400', 'ring-2', 'ring-red-100', 'bg-red-50');
-                                    fieldset.querySelector('.survey-question-error')?.classList.remove('hidden');
+                                    markQuestionUnanswered(fieldset);
                                 }
                             });
 

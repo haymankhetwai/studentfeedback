@@ -1,5 +1,5 @@
 -- ============================================================
--- SFMS v19 — Replace sections.section VARCHAR with section_id FK
+-- SFIS v19 — Replace sections.section VARCHAR with section_id FK
 -- section_master becomes the single source of truth for section names.
 -- ============================================================
 USE studentfeedbackintern;

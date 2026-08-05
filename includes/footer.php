@@ -1,6 +1,6 @@
 <?php if ($showFooterContent ?? true): ?>
     <footer class="bg-indigo-600 text-white text-center py-5">
-        © <?= date("Y") ?> UCSH - <?= $LANG['footer_system'] ?? 'Student Feedback Management System' ?>. <?= $LANG['footer_rights'] ?? 'All Rights Reserved' ?>.
+        © <?= date("Y") ?> UCSH - <?= $LANG['footer_system'] ?? 'Student Feedback Information System' ?>. <?= $LANG['footer_rights'] ?? 'All Rights Reserved' ?>.
     </footer>
 <?php endif; ?>
 

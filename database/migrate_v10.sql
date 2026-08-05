@@ -1,5 +1,5 @@
 -- ============================================================
--- SFMS Migration v10: Add Survey (MCQ) question type
+-- SFIS Migration v10: Add Survey (MCQ) question type
 -- Adds options_json column + feedback_survey_answers table
 -- ============================================================
 USE studentfeedbackintern;

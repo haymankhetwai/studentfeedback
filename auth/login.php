@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$pageTitle = 'Login — Student Feedback Management System';
+$pageTitle = 'Login — Student Feedback Information System';
 $showNav = true;
 $isLoginPage = true;
 $htmlClass = 'h-full';
@@ -84,9 +84,9 @@ include '../includes/header.php';
 
 
                 </div>
-                <h1 class="text-xl font-bold text-white tracking-wide"><?= $LANG['sfms'] ?? 'SFMS' ?></h1>
+                <h1 class="text-xl font-bold text-white tracking-wide"><?= $LANG['sfms'] ?? 'SFIS' ?></h1>
                 <p class="text-cyan-100 text-xs mt-0.5">
-                    <?= $LANG['sfms_full'] ?? 'Student Feedback Management System' ?>
+                    <?= $LANG['sfms_full'] ?? 'Student Feedback Information System' ?>
                 </p>
             </div>
 
@@ -170,7 +170,7 @@ include '../includes/header.php';
 
                 <!-- <div class="mt-4 text-center text-[10px] text-slate-400">
                         Default Admin: <span
-                            class="font-mono text-slate-600 bg-slate-50 px-1 py-0.5 rounded">admin@sfms.edu</span> / <span
+                            class="font-mono text-slate-600 bg-slate-50 px-1 py-0.5 rounded">admin@sfis.edu</span> / <span
                             class="font-mono text-slate-600 bg-slate-50 px-1 py-0.5 rounded">Admin@123</span>
                     </div> -->
             </div>

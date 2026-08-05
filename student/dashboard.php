@@ -408,7 +408,7 @@ if ($nextForm) {
                         <h2 class="text-2xl font-bold">
                             <?= $LANG['student_welcome'] ?? 'Welcome' ?>, <?= e($user['name']) ?> 👋
                         </h2>
-                        <p class="text-cyan-100 mt-1.5 text-sm max-w-md">
+                        <p class="text-cyan-100 mt-1.5 text-sm max-w-lg">
                             <?= e($LANG['dashboard_feedback_instruction'] ?? 'Please complete all required feedback forms for this semester.') ?>
                         </p>
                     </div>

@@ -270,7 +270,7 @@ $initials = avatarInitials($user['name']);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title><?= e($pageTitle) ?> — SFMS</title>
+    <title><?= e($pageTitle) ?> — SFIS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>tailwind.config = { theme: { extend: { fontFamily: { inter: ['Inter', 'sans-serif'] } } } }</script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -312,7 +312,7 @@ $initials = avatarInitials($user['name']);
                         class="w-full h-full object-contain rounded-xl">
                 </div>
                 <div>
-                    <p class="text-lg font-bold"><?= $LANG['student_portal'] ?? 'SFMS Student' ?></p>
+                    <p class="text-lg font-bold"><?= $LANG['student_portal'] ?? 'SFIS Student' ?></p>
                     <p class="text-[10px] text-cyan-100"><?= $LANG['student_portal_sub'] ?? 'Student Portal' ?></p>
                 </div>
                 <button onclick="closeSidebar()" class="ml-auto lg:hidden text-cyan-200">
@@ -551,12 +551,12 @@ $initials = avatarInitials($user['name']);
                                             <?php if ($f['module'] === 'teaching_quality' && $f['course_name']): ?>
                                                 <span><?= e($f['course_name']) ?> (<?= e($f['course_code']) ?>)</span>
                                                 <span>·</span>
-                                                <span>Sec <?= e($f['section_name']) ?></span>
+                                                <span><?= e($LANG['section_short'] ?? 'Sec') ?> <?= e($f['section_name']) ?></span>
                                             <?php else: ?>
                                                 <span><?= $moduleNames[$moduleKey] ?? $moduleKey ?></span>
                                             <?php endif ?>
                                             <span>·</span>
-                                            <span>Due <?= formatDateTime($f['end_date']) ?></span>
+                                            <span><?= e($LANG['due'] ?? 'Due') ?> <?= formatDateTime($f['end_date']) ?></span>
                                         </div>
                                     </div>
 
@@ -718,9 +718,42 @@ $initials = avatarInitials($user['name']);
                 restoreCurrentDraft(form);
                 form.addEventListener('change', saveCurrentDraft);
 
+                form.addEventListener('change', function (event) {
+                    const fieldset = event.target.closest('[data-survey-question]');
+                    if (!fieldset || !fieldset.querySelector('input[type="radio"]:checked')) return;
+                    fieldset.classList.remove('border-red-400', 'ring-2', 'ring-red-100', 'bg-red-50');
+                    fieldset.querySelector('.survey-question-error')?.classList.add('hidden');
+                });
+
+                function validateSurveyQuestions() {
+                    const unanswered = [];
+                    form.querySelectorAll('[data-survey-question]').forEach(function (fieldset) {
+                        const answered = fieldset.querySelector('input[type="radio"]:checked');
+                        const error = fieldset.querySelector('.survey-question-error');
+                        fieldset.classList.remove('border-red-400', 'ring-2', 'ring-red-100', 'bg-red-50');
+                        if (answered) {
+                            if (error) error.classList.add('hidden');
+                            return;
+                        }
+
+                        unanswered.push(fieldset);
+                        fieldset.classList.add('border-red-400', 'ring-2', 'ring-red-100', 'bg-red-50');
+                        if (error) error.classList.remove('hidden');
+                    });
+
+                    if (unanswered.length === 0) return true;
+
+                    const first = unanswered[0];
+                    first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    window.setTimeout(function () {
+                        first.querySelector('input[type="radio"]')?.focus({ preventScroll: true });
+                    }, 350);
+                    return false;
+                }
+
                 form.addEventListener('submit', async function (event) {
                     event.preventDefault();
-                    if (!form.reportValidity()) return;
+                    if (!validateSurveyQuestions()) return;
 
                     const button = form.querySelector('button[type="submit"]');
                     const originalText = button ? button.textContent : '';

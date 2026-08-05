@@ -62,7 +62,7 @@ $initials = avatarInitials($user['name']);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title><?= e($pageTitle) ?> — SFMS</title>
+    <title><?= e($pageTitle) ?> — SFIS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>tailwind.config = { theme: { extend: { fontFamily: { inter: ['Inter', 'sans-serif'] } } } }</script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -84,7 +84,7 @@ $initials = avatarInitials($user['name']);
                 </div>
                 <div>
                     <p class="text-lg font-bold">
-                        <?= $LANG['student_portal'] ?? 'SFMS Student' ?>
+                        <?= $LANG['student_portal'] ?? 'SFIS Student' ?>
                     </p>
                     <p class="text-[10px] text-cyan-100">
                         <?= $LANG['student_portal_sub'] ?? 'Student Portal' ?>

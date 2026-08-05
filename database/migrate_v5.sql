@@ -1,5 +1,5 @@
 -- ============================================================
--- SFMS Migration v5: Old 25-table → New 14-table schema
+-- SFIS Migration v5: Old 25-table → New 14-table schema
 -- Run this ONCE. Back up your database first!
 -- ============================================================
 USE studentfeedback;

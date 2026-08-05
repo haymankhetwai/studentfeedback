@@ -1,5 +1,5 @@
 -- ============================================================
--- SFMS Migration v7: Make feedback anonymous
+-- SFIS Migration v7: Make feedback anonymous
 -- Remove student_id from feedback_ratings and feedback_comments
 -- feedback_submissions keeps student_id for one-submission-per-form
 -- ============================================================

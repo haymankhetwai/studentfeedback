@@ -308,7 +308,7 @@ $languageUrl = static function (string $language): string {
                 <p class="text-sm font-bold text-slate-800"><?= e($LANG['student_portal'] ?? 'SFIS Student Portal') ?>
                 </p>
                 <p class="text-[10px] text-slate-400 hidden sm:block">
-                    <?= e($LANG['system_name'] ?? 'Student Feedback Management System') ?></p>
+                    <?= e($LANG['system_name'] ?? 'Student Feedback Information System') ?></p>
             </div>
         </div>
         <div class="flex items-center gap-2">

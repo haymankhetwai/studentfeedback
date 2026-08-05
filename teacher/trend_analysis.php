@@ -73,7 +73,7 @@ $activeMenu = 'trend';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= e($pageTitle) ?> — SFMS</title>
+    <title><?= e($pageTitle) ?> — SFIS</title>
     <meta name="description" content="Feedback Trend Analysis — Teacher Portal">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>tailwind.config = { theme: { extend: { fontFamily: { inter: ['Inter', 'sans-serif'] } } } }</script>

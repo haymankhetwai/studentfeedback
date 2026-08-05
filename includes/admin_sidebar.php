@@ -196,7 +196,7 @@ $nav = [
     ],
 
     [
-        'label' => $LANG['nav_academic_trend'] ?? 'Academic Trend',
+        'label' => $LANG['nav_academic_trend'] ?? 'Teaching Quality Trend',
         'href' => '/studentfeedbackucsh/admin/trend_academic.php',
         'key' => 'trend_academic',
         'icon' => 'history',
@@ -206,7 +206,7 @@ $nav = [
     ],
 
     [
-        'label' => $LANG['nav_sa_trend'] ?? 'Student Affairs Trend',
+        'label' => $LANG['nav_sa_trend'] ?? 'Student Support Services Trend',
         'href' => '/studentfeedbackucsh/admin/trend_sa.php',
         'key' => 'trend_sa',
         'icon' => 'shield',
@@ -216,7 +216,7 @@ $nav = [
     ],
 
     [
-        'label' => $LANG['nav_adm_trend'] ?? 'Administration Trend',
+        'label' => $LANG['nav_adm_trend'] ?? 'Learning Environment Trend',
         'href' => '/studentfeedbackucsh/admin/trend_adm.php',
         'key' => 'trend_adm',
         'icon' => 'office',
@@ -245,7 +245,7 @@ $nav = [
         <!-- Brand Text -->
         <div class="min-w-0">
             <p class="text-lg font-bold leading-tight">
-                <?= $LANG['admin_portal'] ?? 'SFMS Admin' ?>
+                <?= $LANG['admin_portal'] ?? 'SFIS Admin' ?>
             </p>
 
             <p class="text-[12px] text-white/70 leading-tight">

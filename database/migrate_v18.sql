@@ -1,5 +1,5 @@
 -- ============================================================
--- SFMS v18 — Add section_master table for centralized section management
+-- SFIS v18 — Add section_master table for centralized section management
 -- ============================================================
 USE studentfeedbackintern;
 

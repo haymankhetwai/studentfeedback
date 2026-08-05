@@ -10,8 +10,8 @@ $initials   = avatarInitials($user['name']);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= e($pageTitle) ?> — SFMS Admin</title>
-    <meta name="description" content="Student Feedback Management System — Admin Panel">
+    <title><?= e($pageTitle) ?> — SFIS Admin</title>
+    <meta name="description" content="Student Feedback Information System — Admin Panel">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {

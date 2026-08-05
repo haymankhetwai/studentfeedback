@@ -1,5 +1,5 @@
 -- ============================================================
--- SFMS v2 Migration — Student Affairs & Administration Modules
+-- SFIS v2 Migration — Student Affairs & Administration Modules
 -- Run this once against the existing `studentfeedback` database
 -- ============================================================
 USE studentfeedback;

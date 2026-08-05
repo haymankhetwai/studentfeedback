@@ -1,5 +1,5 @@
 -- ============================================================
--- SFMS v20 — Survey-only feedback
+-- SFIS v20 — Survey-only feedback
 -- Preserves all survey questions, submissions, and survey answers.
 -- Removes rating/comment response storage and makes every remaining
 -- feedback question implicitly a survey question.

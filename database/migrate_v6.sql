@@ -1,5 +1,5 @@
 -- ============================================================
--- SFMS Migration v6: Questions per module (shared), not per form
+-- SFIS Migration v6: Questions per module (shared), not per form
 -- ============================================================
 USE studentfeedbackintern;
 

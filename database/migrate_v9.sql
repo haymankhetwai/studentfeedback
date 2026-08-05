@@ -1,5 +1,5 @@
 -- ============================================================
--- SFMS Migration v9: Add academic_year column to feedback_forms
+-- SFIS Migration v9: Add academic_year column to feedback_forms
 -- ============================================================
 USE studentfeedbackintern;
 

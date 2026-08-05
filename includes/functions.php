@@ -406,6 +406,67 @@ function normalizeSurveyOptions(array|string|null $options): array
     ];
 }
 
+/**
+ * Load the questions and their Survey Group metadata for one Question Set.
+ * Starting from feedback_questions ensures empty or unrelated groups are never
+ * rendered as feedback sections.
+ */
+function getSurveyQuestionsForSet(mysqli $conn, int $questionSetId): array
+{
+    if ($questionSetId < 1)
+        return [];
+
+    $stmt = $conn->prepare(
+        "SELECT fq.*,
+                sg.id AS group_id,
+                sg.group_code,
+                sg.group_name_en,
+                sg.group_name_mm,
+                sg.instruction_en,
+                sg.instruction_mm
+         FROM feedback_questions fq
+         JOIN survey_groups sg
+           ON sg.id = fq.survey_group_id
+          AND sg.question_set_id = fq.question_set_id
+         WHERE fq.question_set_id = ?
+         ORDER BY sg.id, LENGTH(fq.question_code), fq.question_code, fq.id"
+    );
+    $stmt->bind_param('i', $questionSetId);
+    $stmt->execute();
+    $questions = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $questions;
+}
+
+/** Return ratings only for Survey Groups containing questions in this set. */
+function getSurveyGroupRatings(mysqli $conn, int $formId, int $questionSetId): array
+{
+    if ($formId < 1 || $questionSetId < 1)
+        return [];
+
+    $stmt = $conn->prepare(
+        "SELECT sg.id AS group_id,
+                sg.group_name_en,
+                sg.group_name_mm,
+                COUNT(DISTINCT fq.id) AS question_count,
+                ROUND(AVG(CASE WHEN fs.form_id=? THEN fsa.rating END), 2) AS average
+         FROM survey_groups sg
+         JOIN feedback_questions fq
+           ON fq.survey_group_id = sg.id
+          AND fq.question_set_id = sg.question_set_id
+         LEFT JOIN feedback_survey_answers fsa ON fsa.question_id = fq.id
+         LEFT JOIN feedback_submissions fs ON fs.id = fsa.submission_id
+         WHERE sg.question_set_id = ?
+         GROUP BY sg.id, sg.group_name_en, sg.group_name_mm
+         ORDER BY sg.id"
+    );
+    $stmt->bind_param('ii', $formId, $questionSetId);
+    $stmt->execute();
+    $groups = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $groups;
+}
+
 function surveyCategoryCounts(array $options, array $optionCounts): array
 {
     $counts = [];
@@ -421,6 +482,43 @@ function surveyCategoryPercentages(array $categoryCounts): array
     $result=[];
     foreach(normalizeSurveyOptions(null) as $option) $result[$option['label']]=$total?round(($categoryCounts[$option['label']]??0)*100/$total,1):0.0;
     return $result;
+}
+
+/** Student-style performance grade for an already-calculated overall percentage. */
+function performanceGradeFromPercentage(float $percentage): array
+{
+    global $LANG;
+
+    if ($percentage >= 90) {
+        $key = 'excellent';
+        $color = 'emerald';
+        $icon = '🏆';
+    } elseif ($percentage >= 80) {
+        $key = 'good';
+        $color = 'blue';
+        $icon = '⭐';
+    } elseif ($percentage >= 70) {
+        $key = 'fair';
+        $color = 'cyan';
+        $icon = '👍';
+    } elseif ($percentage >= 60) {
+        $key = 'poor';
+        $color = 'amber';
+        $icon = '⚠️';
+    } else {
+        $key = 'very_poor';
+        $color = 'red';
+        $icon = '❌';
+    }
+
+    $label = $LANG['performance_grade_' . $key] ?? ucwords(str_replace('_', ' ', $key));
+
+    return [
+        'key' => $key,
+        'label' => $label,
+        'color' => $color,
+        'icon' => $icon,
+    ];
 }
 
 function moduleBadge(string $module): string

@@ -1,4 +1,4 @@
--- SFMS v21: add Good/Fair/Bad analysis metadata to Survey options.
+-- SFIS v21: add Good/Fair/Bad analysis metadata to Survey options.
 -- MySQL 8.0+. Array order is preserved, so existing selected_option_index
 -- values continue to reference the same student-visible label.
 

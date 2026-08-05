@@ -284,11 +284,7 @@ if ($loadForm && $formId) {
 
         // Load questions from question_set_id
         if (!empty($form['question_set_id'])) {
-            $q = $conn->prepare("SELECT fq.id, fq.question_code, fq.question_text_en, fq.question_text_mm, fq.survey_group_id, sg.group_name_en, sg.group_name_mm FROM feedback_questions fq JOIN survey_groups sg ON sg.id=fq.survey_group_id WHERE fq.question_set_id = ? ORDER BY sg.id, LENGTH(fq.question_code), fq.question_code, fq.id");
-            $q->bind_param('i', $form['question_set_id']);
-            $q->execute();
-            $questions = $q->get_result()->fetch_all(MYSQLI_ASSOC);
-            $q->close();
+            $questions = getSurveyQuestionsForSet($conn, (int) $form['question_set_id']);
             if (($_SESSION['lang'] ?? 'en') === 'mm') {
                 foreach ($questions as &$localizedQuestion) {
                     $localizedQuestion['question_text_en'] = $localizedQuestion['question_text_mm'];
@@ -369,12 +365,8 @@ if ($loadForm && $formId) {
 $surveyQuestions = $questions;
 $surveyAverages = ['overall' => 0.0, 'groups' => []];
 if ($formId > 0 && !empty($form['question_set_id'])) {
-    $avgStmt = $conn->prepare("SELECT sg.id group_id,sg.group_name_en,sg.group_name_mm,COUNT(DISTINCT fq.id) question_count,ROUND(AVG(CASE WHEN fs.form_id=? THEN fsa.rating END),2) average FROM survey_groups sg JOIN feedback_questions fq ON fq.survey_group_id=sg.id LEFT JOIN feedback_survey_answers fsa ON fsa.question_id=fq.id LEFT JOIN feedback_submissions fs ON fs.id=fsa.submission_id WHERE sg.question_set_id=? GROUP BY sg.id,sg.group_name_en,sg.group_name_mm ORDER BY sg.id");
     $questionSetId = (int) $form['question_set_id'];
-    $avgStmt->bind_param('ii', $formId, $questionSetId);
-    $avgStmt->execute();
-    $avgRows = $avgStmt->get_result()->fetch_all(MYSQLI_ASSOC);
-    $avgStmt->close();
+    $avgRows = getSurveyGroupRatings($conn, $formId, $questionSetId);
     foreach ($avgRows as $row)
         $surveyAverages['groups'][] = ['name_en' => $row['group_name_en'], 'name_mm' => $row['group_name_mm'], 'question_count' => (int) $row['question_count'], 'average' => $row['average'] === null ? null : (float) $row['average']];
     $overallStmt = $conn->prepare("SELECT ROUND(AVG(fsa.rating),2) average FROM feedback_survey_answers fsa JOIN feedback_submissions fs ON fs.id=fsa.submission_id WHERE fs.form_id=?");
@@ -409,63 +401,24 @@ foreach (normalizeSurveyOptions(null) as $option)
     $earnedScore += $likertTotals[$option['label']] * $option['value'];
 $maxScore = $completedCount * $numRatingQuestions * 5;
 $overallPct = $maxScore > 0 ? round(($earnedScore / $maxScore) * 100, 1) : 0;
-
-// if ($overallPct >= 90) {
-//     $grade = 'Excellent';
-//     $gradeColor = 'emerald';
-//     $gradeIcon = iconSvg('star','w-6 h-6');
-// } elseif ($overallPct >= 80) {
-//     $grade = 'High';
-//     $gradeColor = 'blue';
-//     $gradeIcon = iconSvg('star','w-6 h-6');
-// } elseif ($overallPct >= 70) {
-//     $grade = 'Positive';
-//     $gradeColor = 'cyan';
-//     $gradeIcon = iconSvg('check','w-6 h-6');
-// } elseif ($overallPct >= 60) {
-//     $grade = 'Moderate';
-//     $gradeColor = 'amber';
-//     $gradeIcon = iconSvg('clipboard','w-6 h-6');
-// } else {
-//     $grade = 'Needs Improvement';
-//     $gradeColor = 'red';
-//     $gradeIcon = iconSvg('question','w-6 h-6');
-// }
-
-
-if ($overallPct >= 90) {
-    $grade = 'Excellent';
-    $gradeColor = 'emerald';
-    $gradeIcon = '🏆';
-} elseif ($overallPct >= 80) {
-    $grade = 'High';
-    $gradeColor = 'blue';
-    $gradeIcon = '⭐';
-} elseif ($overallPct >= 70) {
-    $grade = 'Positive';
-    $gradeColor = 'cyan';
-    $gradeIcon = '👍';
-} elseif ($overallPct >= 60) {
-    $grade = 'Moderate';
-    $gradeColor = 'amber';
-    $gradeIcon = '📋';
-} else {
-    $grade = 'Needs Improvement';
-    $gradeColor = 'red';
-    $gradeIcon = '⚠️';
-}
+$gradeInfo = $completedCount > 0 ? performanceGradeFromPercentage($overallPct) : null;
+$gradeKey = $gradeInfo['key'] ?? null;
+$grade = $gradeInfo['label'] ?? '--';
+$gradeColor = $gradeInfo['color'] ?? 'slate';
+$gradeIcon = $gradeInfo['icon'] ?? '';
+$gradeDisplay = $gradeIcon !== '' ? $gradeIcon . ' ' . $grade : '--';
 $circleRadius = 54;
 $circleCircumference = 2 * M_PI * $circleRadius;
 $circleOffset = $circleCircumference - ($overallPct / 100) * $circleCircumference;
 
 $conclusions = [
-    'Excellent' => 'The teacher has demonstrated outstanding performance based on student feedback. Students are highly satisfied with the teaching quality, methodology, and classroom engagement. It is recommended to recognize and commend this performance.',
-    'High' => 'The teacher has shown high performance with strong student satisfaction. Minor areas for improvement may exist, but overall teaching quality is well above expectations.',
-    'Positive' => 'The teacher has achieved a positive performance rating. There are opportunities for further improvement in certain areas.',
-    'Moderate' => 'The teacher\'s performance is at an acceptable level. There are notable areas requiring improvement.',
-    'Needs Improvement' => 'The teacher\'s performance falls below the expected standard. Significant improvement is needed in teaching methodology, student engagement, and overall classroom effectiveness. Immediate attention and support are recommended.',
+    'excellent' => 'The teacher has demonstrated outstanding performance based on student feedback. Students are highly satisfied with the teaching quality, methodology, and classroom engagement. It is recommended to recognize and commend this performance.',
+    'good' => 'The teacher has shown good performance with strong student satisfaction. Minor areas for improvement may exist, but overall performance is above expectations.',
+    'fair' => 'The teacher has achieved a fair performance rating. There are opportunities for further improvement in certain areas.',
+    'poor' => 'The teacher\'s performance is below the expected level. There are notable areas requiring improvement.',
+    'very_poor' => 'The teacher\'s performance falls well below the expected standard. Significant improvement and support are recommended.',
 ];
-$conclusionText = $conclusions[$grade] ?? '';
+$conclusionText = $gradeKey !== null ? ($conclusions[$gradeKey] ?? '') : '';
 
 include '../includes/admin_header.php';
 include '../includes/admin_sidebar.php';
@@ -884,6 +837,17 @@ include '../includes/admin_sidebar.php';
             color: #475569 !important;
         }
 
+        .print-participation-note {
+            margin: 4px 0 0 !important;
+            color: #334155 !important;
+            font-size: 8.5pt !important;
+            font-weight: 600;
+            line-height: 1.3;
+            text-align: center;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
         .print-section {
             margin-bottom: 14px;
             break-inside: avoid;
@@ -1003,6 +967,154 @@ include '../includes/admin_sidebar.php';
             padding-top: 8px;
             margin-top: 20px;
         }
+
+        /* Report-type visibility. The default/all report keeps the existing layout. */
+        .print-signatures {
+            display: none !important;
+        }
+
+        body.print-report-graph .print-details-page {
+            display: none !important;
+        }
+
+        body.print-report-graph .print-cover-page,
+        body.print-report-details .print-cover-page {
+            break-after: auto !important;
+            page-break-after: auto !important;
+        }
+
+        body.print-report-graph .print-group-ratings,
+        body.print-report-details .print-group-ratings,
+        body.print-report-details .print-cover-chart,
+        body.print-report-details .print-percentage-summary {
+            display: none !important;
+        }
+
+        .print-report-bottom-space {
+            display: none !important;
+            min-height: 35mm;
+        }
+
+        body.print-report-graph .print-graph-bottom-space {
+            display: block !important;
+        }
+
+        /* Detailed-only content must remain in one natural document flow. */
+        body.print-report-details .print-cover-page,
+        body.print-report-details .print-cover-content,
+        body.print-report-details .print-details-page,
+        body.print-report-details .print-results-fit,
+        body.print-report-details .print-results-fit-content,
+        body.print-report-details .print-results-page {
+            display: block !important;
+            height: auto !important;
+            min-height: 0 !important;
+            max-height: none !important;
+            break-before: auto !important;
+            page-break-before: auto !important;
+            break-after: auto !important;
+            page-break-after: auto !important;
+            break-inside: auto !important;
+            page-break-inside: auto !important;
+        }
+
+        body.print-report-details .print-cover-page {
+            margin: 0 0 8px !important;
+            padding: 0 !important;
+        }
+
+        body.print-report-details .print-details-page,
+        body.print-report-details .print-results-page {
+            margin-top: 0 !important;
+            padding-top: 0 !important;
+        }
+
+        body.print-report-details .print-overall-summary {
+            margin-bottom: 8px !important;
+        }
+
+        body.print-report-details .print-details-bottom-space {
+            display: none !important;
+            min-height: 0 !important;
+        }
+
+        body.print-report-details .print-table tbody tr {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+        }
+
+        body.print-report-details .print-table tbody tr:nth-last-child(-n+3),
+        body.print-report-details .print-total-row {
+            break-after: avoid-page !important;
+            page-break-after: avoid !important;
+        }
+
+        body.print-report-details .print-total-row {
+            break-before: avoid-page !important;
+            page-break-before: avoid !important;
+        }
+
+        .print-details-approval {
+            display: none !important;
+        }
+
+        body.print-report-details .print-details-approval {
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12mm;
+            min-height: 42mm;
+            margin-top: 14mm;
+            padding-top: 5mm;
+            border-top: 1px solid #cbd5e1;
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+            break-before: avoid-page !important;
+            page-break-before: avoid !important;
+        }
+
+        .print-approval-column {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            text-align: center;
+            min-height: 35mm;
+            color: #334155;
+            font-size: 9pt;
+        }
+
+        .print-approval-space {
+            flex: 1 1 auto;
+            min-height: 20mm;
+        }
+
+        .print-approval-line {
+            border-top: 1px solid #334155;
+            padding-top: 4px;
+            font-weight: 700;
+        }
+
+        .print-approval-meta {
+            margin-top: 5px;
+            font-size: 8pt;
+            color: #64748b;
+        }
+
+        .print-all-sss-bottom-space {
+            display: none !important;
+        }
+
+        body.print-report-all .print-all-sss-bottom-space {
+            display: block !important;
+            width: 100%;
+            height: 32mm !important;
+            min-height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            break-inside: auto !important;
+            page-break-inside: auto !important;
+            break-before: auto !important;
+            page-break-before: auto !important;
+        }
     }
 </style>
 
@@ -1013,10 +1125,22 @@ include '../includes/admin_sidebar.php';
             Learning Environment." ?></p>
     </div>
     <?php if ($form): ?>
-        <button onclick="prepareAndPrintReport()"
-            class="no-print inline-flex items-center gap-2 bg-slate-700 hover:bg-slate-800 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm transition-all hover:-translate-y-0.5">
-            <?= iconSvg('document', 'w-4 h-4') ?>     <?= $LANG['print_report'] ?? 'Print Report' ?>
-        </button>
+        <div class="no-print flex flex-col sm:flex-row gap-2 sm:items-end">
+            <label class="block">
+                <span
+                    class="block text-xs font-bold text-slate-500 mb-1"><?= e($LANG['report_type'] ?? 'Report Type') ?></span>
+                <select id="printReportType"
+                    class="min-w-[190px] border border-slate-200 rounded-xl px-3 py-2.5 text-sm bg-white font-semibold text-slate-700 outline-none focus:border-slate-500">
+                    <option value="all"><?= e($LANG['report_type_all'] ?? 'All') ?></option>
+                    <option value="graph"><?= e($LANG['report_type_graph_only'] ?? 'Graph Only') ?></option>
+                    <option value="details"><?= e($LANG['report_type_details_only'] ?? 'Detailed Results Only') ?></option>
+                </select>
+            </label>
+            <button onclick="prepareAndPrintReport()"
+                class="inline-flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-800 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm transition-all hover:-translate-y-0.5">
+                <?= iconSvg('document', 'w-4 h-4') ?>     <?= $LANG['print_report'] ?? 'Print Report' ?>
+            </button>
+        </div>
     <?php endif ?>
 </div>
 
@@ -1166,10 +1290,10 @@ include '../includes/admin_sidebar.php';
                         </div>
                         <div class="md:col-span-4 space-y-4">
                             <div class="flex items-center gap-3">
-                                <span class="text-2xl"><?= $gradeIcon ?></span>
+                                <?php if ($gradeIcon !== ''): ?><span class="text-2xl"><?= e($gradeIcon) ?></span><?php endif; ?>
                                 <div>
                                     <span
-                                        class="grade-badge inline-block px-4 py-1.5 rounded-lg text-sm font-extrabold <?= match ($gradeColor) { 'emerald' => 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30', 'blue' => 'bg-blue-500/20 text-blue-300 border border-blue-400/30', 'cyan' => 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/30', 'amber' => 'bg-amber-500/20 text-amber-300 border border-amber-400/30', 'red' => 'bg-red-500/20 text-red-300 border border-red-400/30', default => 'bg-slate-500/20 text-slate-300 border border-slate-400/30'} ?>"><?= $grade ?></span>
+                                        class="grade-badge inline-block px-4 py-1.5 rounded-lg text-sm font-extrabold <?= match ($gradeColor) { 'emerald' => 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30', 'blue' => 'bg-blue-500/20 text-blue-300 border border-blue-400/30', 'cyan' => 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/30', 'amber' => 'bg-amber-500/20 text-amber-300 border border-amber-400/30', 'red' => 'bg-red-500/20 text-red-300 border border-red-400/30', default => 'bg-slate-500/20 text-slate-300 border border-slate-400/30'} ?>"><?= e($grade) ?></span>
                                     <p class="text-[10px] text-slate-400 mt-1">
                                         <?= $LANG['performance_grade'] ?? 'Performance Grade' ?>
                                     </p>
@@ -1482,7 +1606,8 @@ include '../includes/admin_sidebar.php';
                                             <th class="w-28 text-center shadow-sm">
                                                 <div class="text-sm font-semibold leading-tight"><?= e($option['label']) ?></div>
                                                 <div class="mt-1 text-[10px] font-medium text-white/90 tracking-wide">
-                                                    <?= e($LANG['count_pct'] ?? 'COUNT / %') ?></div>
+                                                    <?= e($LANG['count_pct'] ?? 'COUNT / %') ?>
+                                                </div>
                                             </th><?php endforeach; ?>
                                     </tr>
                                 </thead>
@@ -1731,6 +1856,12 @@ class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.
                             <?= $LANG['report_generated_date'] ?? 'Report Generated Date' ?>:
                             <?= date('F d, Y') ?>
                         </p>
+                        <!-- <p class="print-participation-note">
+                        <?= e(sprintf(
+                            $LANG['report_student_participation'] ?? 'The results are calculated based on feedback provided by %d students.',
+                            $completedCount
+                        )) ?>
+                        </p> -->
                     </div>
 
                     <div class="print-section">
@@ -1753,6 +1884,12 @@ class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.
                             <?php endif; ?>
                         </dl>
                     </div>
+                    <p class="print-participation-note">
+                        <?= e(sprintf(
+                            $LANG['report_student_participation'] ?? 'The results are calculated based on feedback provided by %d students.',
+                            $completedCount
+                        )) ?>
+                    </p>
 
                     <div class="print-overall-summary">
                         <div>
@@ -1760,7 +1897,7 @@ class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.
                             <span><?= $LANG['overall_rating'] ?? 'Overall Rating' ?></span>
                         </div>
                         <div>
-                            <strong><?= e($grade) ?></strong>
+                            <strong><?= e($gradeDisplay) ?></strong>
                             <span><?= $LANG['performance_grade'] ?? 'Performance Grade' ?></span>
                         </div>
                     </div>
@@ -1808,6 +1945,8 @@ class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.
                             </table>
                         </section>
                     <?php endif; ?>
+
+                    <div class="print-report-bottom-space print-graph-bottom-space" aria-hidden="true"></div>
 
                 </div>
             </section>
@@ -1875,7 +2014,7 @@ class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.
                                 <div class="label"><?= $LANG["overall_rating"] ?? "Overall Rating" ?></div>
                             </div>
                             <div class="print-rating-item">
-                                <div class="value"><span class="print-grade-badge"><?= $grade ?></span></div>
+                                <div class="value"><span class="print-grade-badge"><?= e($gradeDisplay) ?></span></div>
                                 <div class="label" style="margin-top:6px;"><?= $LANG['performance_grade'] ?? 'Performance Grade' ?>
                                 </div>
                             </div>
@@ -1907,7 +2046,8 @@ class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.
                                         <tr>
                                             <th style="width:40px;"><?= $LANG['col_no'] ?? 'No.' ?></th>
                                             <th style="text-align:left;">
-                                                <?= $LANG['eval_questions_header'] ?? 'Evaluation Questions' ?></th>
+                                                <?= $LANG['eval_questions_header'] ?? 'Evaluation Questions' ?>
+                                            </th>
                                             <?php foreach (normalizeSurveyOptions(null) as $option): ?>
                                                 <th style="width:80px;"><?= e($option['label']) ?></th><?php endforeach; ?>
                                             <th style="width:60px;"><?= $LANG['total'] ?? 'Total' ?></th>
@@ -1930,7 +2070,7 @@ class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.
                                                 <td style="text-align:center; font-weight:700;"><?= $tv ?></td>
                                             </tr>
                                         <?php endforeach ?>
-                                        <tr
+                                        <tr class="print-total-row"
                                             style="font-weight:700; background:#e2e8f0 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact;">
                                             <td colspan="2" style="text-align:right; padding-right:12px;">
                                                 <?= $LANG['total'] ?? 'TOTALS' ?>:
@@ -2065,7 +2205,7 @@ class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.
                         <?= $LANG['recommendation_label'] ?? 'Recommendation' ?>
                     </div>
                     <div class="print-conclusion">
-                        <strong>Grade: <?= $grade ?> (<?= $overallPct ?>%)</strong><br><br>
+                        <strong>Grade: <?= e($gradeDisplay) ?><?= $completedCount > 0 ? ' (' . $overallPct . '%)' : '' ?></strong><br><br>
                         <?= $conclusionText ?>
                     </div>
                 </div>
@@ -2090,11 +2230,38 @@ class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.
                     </div>
                 </div> -->
 
+                <?php if ($module === 'learning_environment'): ?>
+                    <!-- <section class="print-details-approval" aria-label="<?= e($LANG['approval_signature_area'] ?? 'Approval and signature area') ?>">
+                        <div class="print-approval-column">
+                            <div class="print-approval-space"></div>
+                            <div class="print-approval-line"><?= e($LANG['department_label'] ?? 'Department') ?></div>
+                            <div class="print-approval-meta"><?= e($LANG['signature_date'] ?? 'Signature / Date') ?></div>
+                        </div>
+                        <div class="print-approval-column">
+                            <div class="print-approval-space"></div>
+                            <div class="print-approval-line"><?= e($LANG['head_of_department'] ?? 'Head of Department') ?></div>
+                            <div class="print-approval-meta"><?= e($LANG['signature_date'] ?? 'Signature / Date') ?></div>
+                        </div>
+                        <div class="print-approval-column">
+                            <div class="print-approval-space"><?= e($LANG['official_stamp'] ?? 'Official Stamp') ?></div>
+                            <div class="print-approval-line"><?= e($LANG['vice_rector'] ?? 'Vice Rector') ?></div>
+                            <div class="print-approval-meta"><?= e($LANG['signature_date'] ?? 'Signature / Date') ?></div>
+                        </div>
+                    </section> -->
+                <?php endif; ?>
+
+                <?php if ($module === 'student_support_services'): ?>
+                    <div class="print-all-sss-bottom-space" aria-hidden="true"></div>
+                <?php endif; ?>
+
+                <div class="print-report-bottom-space print-details-bottom-space" aria-hidden="true"></div>
+
             </section>
+
 
             <!-- Footer -->
             <div class="print-footer print-exclude">
-                Generated by Student Feedback Management System (SFMS) — University of Computer Studies(Hinthada) —
+                Generated by Student Feedback Information System (SFIS) — University of Computer Studies(Hinthada) —
                 <?= date('F d, Y') ?>
             </div>
         </div>
@@ -2579,12 +2746,19 @@ class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.
 
 <script>
     async function prepareAndPrintReport() {
+        const reportType = document.getElementById('printReportType')?.value || 'all';
+        document.body.classList.remove('print-report-all', 'print-report-graph', 'print-report-details');
+        document.body.classList.add('print-report-' + reportType);
         if (document.fonts && document.fonts.ready)
             await document.fonts.ready;
         window.setTimeout(function () {
             window.print();
         }, 150);
     }
+
+    window.addEventListener('afterprint', function () {
+        document.body.classList.remove('print-report-all', 'print-report-graph', 'print-report-details');
+    });
 </script>
 
 <?php include '../includes/admin_footer.php'; ?>
