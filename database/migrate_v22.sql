@@ -1,4 +1,4 @@
-﻿-- SFMS v22: normalized bilingual survey groups/questions and fixed Likert ratings.
+-- SFIS v22: normalized bilingual survey groups/questions and fixed Likert ratings.
 START TRANSACTION;
 
 CREATE TABLE survey_groups (

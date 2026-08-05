@@ -1,5 +1,5 @@
 -- ============================================================
--- SFMS v17 — Remove redundant text columns
+-- SFIS v17 — Remove redundant text columns
 -- Keeps FK columns (academic_year_id, semester_id) as sole references.
 -- Safe to run multiple times (uses IF EXISTS / column-existence checks).
 -- ============================================================

@@ -11,7 +11,11 @@ requireRole('student');
 
 $user     = getCurrentUser();
 $initials = avatarInitials($user['name']);
-$pageTitle = 'Congratulations!';
+$pageTitle = $LANG['completion_congratulations'] ?? 'Congratulations!';
+$currentLang = $_SESSION['lang'] ?? 'en';
+$completionLanguageUrl = static function (string $language): string {
+    return ($_SERVER['PHP_SELF'] ?? '/studentfeedbackucsh/student/completion.php') . '?lang=' . $language;
+};
 ?>
 <!DOCTYPE html>
 <html lang="<?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'my' : 'en' ?>">
@@ -77,7 +81,7 @@ $pageTitle = 'Congratulations!';
         }
     </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-slate-50 via-cyan-50/20 to-indigo-50/20 flex flex-col">
+<body class="min-h-screen bg-gradient-to-br from-slate-50 via-cyan-50/20 to-indigo-50/20 flex flex-col <?= $currentLang === 'mm' ? 'lang-mm' : '' ?>">
 
     <!-- Minimal branded header -->
     <header class="bg-white/90 backdrop-blur-sm border-b border-slate-100 px-6 py-3.5 flex items-center justify-between sticky top-0 z-20 shadow-sm">
@@ -86,11 +90,15 @@ $pageTitle = 'Congratulations!';
                 <img src="/studentfeedbackucsh/assets/uploads/profiles/image.png" alt="UCSH" class="w-full h-full object-contain">
             </div>
             <div>
-                <p class="text-sm font-bold text-slate-800">SFIS Student Portal</p>
-                <p class="text-[10px] text-slate-400 hidden sm:block">Student Feedback Management System</p>
+                <p class="text-sm font-bold text-slate-800"><?= e($LANG['student_portal'] ?? 'SFIS Student Portal') ?></p>
+                <p class="text-[10px] text-slate-400 hidden sm:block"><?= e($LANG['system_name'] ?? 'Student Feedback Information System') ?></p>
             </div>
         </div>
         <div class="flex items-center gap-2">
+            <div class="flex items-center gap-0.5 rounded-lg border border-cyan-100 bg-cyan-50 p-0.5 text-xs font-semibold">
+                <a href="<?= e($completionLanguageUrl('en')) ?>" class="rounded-md px-3 py-1 <?= $currentLang === 'en' ? 'bg-white text-cyan-700 shadow' : 'text-cyan-400' ?>">ENG</a>
+                <a href="<?= e($completionLanguageUrl('mm')) ?>" class="rounded-md px-3 py-1 <?= $currentLang === 'mm' ? 'bg-white text-cyan-700 shadow' : 'text-cyan-400' ?>">မြန်မာ</a>
+            </div>
             <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
                 <?= e($initials) ?>
             </div>
@@ -118,15 +126,15 @@ $pageTitle = 'Congratulations!';
 
                 <div class="p-8 text-center">
                     <!-- Title -->
-                    <h1 class="text-3xl font-extrabold text-slate-900 mb-2 slide-up-3">🎉 Congratulations!</h1>
+                    <h1 class="text-3xl font-extrabold text-slate-900 mb-2 slide-up-3">&#127881; <?= e($LANG['completion_congratulations'] ?? 'Congratulations!') ?></h1>
                     <p class="text-slate-500 text-sm mb-6 max-w-sm mx-auto leading-relaxed slide-up-3">
-                        Thank you for participating in the Student Feedback Management System.
+                        <?= e($LANG['completion_thank_participation'] ?? 'Thank you for participating in the Student Feedback Information System.') ?>
                     </p>
 
                     <!-- Intro statement -->
                     <div class="bg-gradient-to-r from-cyan-50 to-indigo-50 rounded-2xl px-5 py-3.5 mb-6 border border-indigo-100 slide-up-4">
                         <p class="text-sm font-semibold text-indigo-800">
-                            You have successfully completed all required feedback forms:
+                            <?= e($LANG['completion_all_required'] ?? 'You have successfully completed all required feedback forms:') ?>
                         </p>
                     </div>
 
@@ -140,8 +148,8 @@ $pageTitle = 'Congratulations!';
                                 </svg>
                             </div>
                             <div>
-                                <p class="text-sm font-semibold text-green-800">Teaching Quality</p>
-                                <p class="text-xs text-green-600">All forms submitted</p>
+                                <p class="text-sm font-semibold text-green-800"><?= e($LANG['academic'] ?? 'Teaching Quality') ?></p>
+                                <p class="text-xs text-green-600"><?= e($LANG['all_forms_submitted'] ?? 'All forms submitted') ?></p>
                             </div>
                         </div>
 
@@ -152,8 +160,8 @@ $pageTitle = 'Congratulations!';
                                 </svg>
                             </div>
                             <div>
-                                <p class="text-sm font-semibold text-green-800">Student Support Services</p>
-                                <p class="text-xs text-green-600">Form submitted</p>
+                                <p class="text-sm font-semibold text-green-800"><?= e($LANG['student_affairs'] ?? 'Student Support Services') ?></p>
+                                <p class="text-xs text-green-600"><?= e($LANG['form_submitted'] ?? 'Form submitted') ?></p>
                             </div>
                         </div>
 
@@ -164,8 +172,8 @@ $pageTitle = 'Congratulations!';
                                 </svg>
                             </div>
                             <div>
-                                <p class="text-sm font-semibold text-green-800">Learning Environment</p>
-                                <p class="text-xs text-green-600">Form submitted</p>
+                                <p class="text-sm font-semibold text-green-800"><?= e($LANG['administration'] ?? 'Learning Environment') ?></p>
+                                <p class="text-xs text-green-600"><?= e($LANG['form_submitted'] ?? 'Form submitted') ?></p>
                             </div>
                         </div>
 
@@ -174,8 +182,7 @@ $pageTitle = 'Congratulations!';
                     <!-- Appreciation quote -->
                     <div class="bg-slate-50 rounded-2xl p-4 mb-8 border border-slate-100 slide-up-5">
                         <p class="text-xs text-slate-500 leading-relaxed italic">
-                            "Your valuable feedback will help improve teaching quality, student support services,
-                            and the learning environment. We sincerely appreciate your participation."
+                            <?= e($LANG['completion_appreciation'] ?? 'Your valuable feedback will help improve teaching quality, student support services, and the learning environment. We sincerely appreciate your participation.') ?>
                         </p>
                     </div>
 
@@ -187,7 +194,7 @@ $pageTitle = 'Congratulations!';
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
                         </svg>
-                        Return to Dashboard
+                        <?= e($LANG['return_to_dashboard'] ?? 'Return to Dashboard') ?>
                     </a>
 
                 </div>

@@ -1,5 +1,5 @@
 -- ============================================================
--- SFMS Migration v11: DATE → DATETIME for feedback periods
+-- SFIS Migration v11: DATE → DATETIME for feedback periods
 -- Changes start_date/end_date from DATE to DATETIME
 -- Removes manual status column (status is now computed dynamically)
 -- ============================================================

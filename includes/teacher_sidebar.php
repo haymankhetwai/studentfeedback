@@ -36,7 +36,7 @@ $iconColors = [
                     class="w-full h-full object-contain rounded-xl">
             </div>
             <div>
-                <p class="text-lg font-bold tracking-wide"><?= $LANG['teacher_portal'] ?? 'SFMS Teacher' ?></p>
+                <p class="text-lg font-bold tracking-wide"><?= $LANG['teacher_portal'] ?? 'SFIS Teacher' ?></p>
                 <p class="text-sm text-white/70"><?= $LANG['teacher_portal_sub'] ?? 'Faculty Portal' ?></p>
             </div>
             <button onclick="closeSidebar()" class="ml-auto lg:hidden text-white/60 hover:text-white">

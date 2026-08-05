@@ -1,5 +1,5 @@
 -- ============================================================
--- SFMS v4 Migration — Global SA & Admin Feedback Questions
+-- SFIS v4 Migration — Global SA & Admin Feedback Questions
 -- Questions are now shared across all forms (same as academic)
 -- ============================================================
 USE studentfeedback;

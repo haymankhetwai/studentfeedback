@@ -219,11 +219,11 @@ if ($formId && $teacherId) {
 
     if ($form) {
         if (!empty($form['question_set_id'])) {
-$q = $conn->prepare("SELECT fq.*, sg.group_name_en, sg.group_name_mm, 'rating' AS question_type FROM feedback_questions fq JOIN survey_groups sg ON sg.id=fq.survey_group_id WHERE fq.question_set_id=? ORDER BY sg.id,LENGTH(fq.question_code),fq.question_code,fq.id");
-            $q->bind_param('i', $form['question_set_id']);
-            $q->execute();
-            $questions = $q->get_result()->fetch_all(MYSQLI_ASSOC);
-            $q->close();
+            $questions = getSurveyQuestionsForSet($conn, (int) $form['question_set_id']);
+            foreach ($questions as &$surveyQuestion) {
+                $surveyQuestion['question_type'] = 'rating';
+            }
+            unset($surveyQuestion);
             if (($_SESSION['lang'] ?? 'en') === 'mm') {
                 foreach ($questions as &$localizedQuestion) {
                     $localizedQuestion['question_text_en'] = $localizedQuestion['question_text_mm'];
@@ -299,8 +299,7 @@ $q = $conn->prepare("SELECT fq.*, sg.group_name_en, sg.group_name_mm, 'rating' A
 
 $surveyGroupRatings=[];$surveyOverallAverage=0.0;
 if($formId>0&&!empty($form['question_set_id'])){
-$groupStmt=$conn->prepare("SELECT sg.group_name_en,sg.group_name_mm,COUNT(DISTINCT fq.id) question_count,ROUND(AVG(CASE WHEN fs.form_id=? THEN fsa.rating END),2) average FROM survey_groups sg JOIN feedback_questions fq ON fq.survey_group_id=sg.id LEFT JOIN feedback_survey_answers fsa ON fsa.question_id=fq.id LEFT JOIN feedback_submissions fs ON fs.id=fsa.submission_id WHERE sg.question_set_id=? GROUP BY sg.id,sg.group_name_en,sg.group_name_mm ORDER BY sg.id");
-    $questionSetId=(int)$form['question_set_id'];$groupStmt->bind_param('ii',$formId,$questionSetId);$groupStmt->execute();$rows=$groupStmt->get_result()->fetch_all(MYSQLI_ASSOC);$groupStmt->close();
+    $questionSetId=(int)$form['question_set_id'];$rows=getSurveyGroupRatings($conn,$formId,$questionSetId);
     foreach($rows as $row)$surveyGroupRatings[]=['name_en'=>$row['group_name_en'],'name_mm'=>$row['group_name_mm'],'question_count'=>(int)$row['question_count'],'average'=>$row['average']===null?null:(float)$row['average']];
     $overallStmt=$conn->prepare("SELECT ROUND(AVG(fsa.rating),2) average FROM feedback_survey_answers fsa JOIN feedback_submissions fs ON fs.id=fsa.submission_id WHERE fs.form_id=?");$overallStmt->bind_param('i',$formId);$overallStmt->execute();$overallRow=$overallStmt->get_result()->fetch_assoc();$overallStmt->close();$surveyOverallAverage=$overallRow['average']===null?0.0:(float)$overallRow['average'];
 }
@@ -328,50 +327,11 @@ $completedCount = $completedCount ?? 0;
 $earnedScore=0; foreach(normalizeSurveyOptions(null) as $option)$earnedScore+=$likertTotals[$option['label']]*$option['value'];
 $maxScore = $completedCount * $numRatingQuestions * 5;
 $overallPct = $maxScore > 0 ? round(($earnedScore / $maxScore) * 100, 1) : 0;
-
-// if ($overallPct >= 90) {
-//     $grade = 'Excellent';
-//     $gradeColor = 'emerald';
-//     $gradeIcon = iconSvg('star','w-6 h-6');
-// } elseif ($overallPct >= 80) {
-//     $grade = 'High';
-//     $gradeColor = 'blue';
-//     $gradeIcon = iconSvg('star','w-6 h-6');
-// } elseif ($overallPct >= 70) {
-//     $grade = 'Positive';
-//     $gradeColor = 'cyan';
-//     $gradeIcon = iconSvg('check','w-6 h-6');
-// } elseif ($overallPct >= 60) {
-//     $grade = 'Moderate';
-//     $gradeColor = 'amber';
-//     $gradeIcon = iconSvg('clipboard','w-6 h-6');
-// } else {
-//     $grade = 'Needs Improvement';
-//     $gradeColor = 'red';
-//     $gradeIcon = iconSvg('question','w-6 h-6');
-// }
-
-if ($overallPct >= 90) {
-    $grade = 'Excellent';
-    $gradeColor = 'emerald';
-    $gradeIcon = '🏆';
-} elseif ($overallPct >= 80) {
-    $grade = 'High';
-    $gradeColor = 'blue';
-    $gradeIcon = '⭐';
-} elseif ($overallPct >= 70) {
-    $grade = 'Positive';
-    $gradeColor = 'cyan';
-    $gradeIcon = '👍';
-} elseif ($overallPct >= 60) {
-    $grade = 'Moderate';
-    $gradeColor = 'amber';
-    $gradeIcon = '📋';
-} else {
-    $grade = 'Needs Improvement';
-    $gradeColor = 'red';
-    $gradeIcon = '⚠️';
-}
+$gradeInfo = $completedCount > 0 ? performanceGradeFromPercentage($overallPct) : null;
+$grade = $gradeInfo['label'] ?? '--';
+$gradeColor = $gradeInfo['color'] ?? 'slate';
+$gradeIcon = $gradeInfo['icon'] ?? '';
+$gradeDisplay = $gradeIcon !== '' ? $gradeIcon . ' ' . $grade : '--';
 
 
 ?>
@@ -381,7 +341,7 @@ if ($overallPct >= 90) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title><?= e($pageTitle) ?> — SFMS</title>
+    <title><?= e($pageTitle) ?> — SFIS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>tailwind.config = { theme: { extend: { fontFamily: { sans: ['Pyidaungsu', 'Inter', 'sans-serif'] } } } }</script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -594,10 +554,10 @@ if ($overallPct >= 90) {
                                         </div>
                                         <div class="md:col-span-4 space-y-4">
                                             <div class="flex items-center gap-3">
-                                                <span class="text-2xl"><?= $gradeIcon ?></span>
+                                                <?php if ($gradeIcon !== ''): ?><span class="text-2xl"><?= e($gradeIcon) ?></span><?php endif; ?>
                                                 <div>
                                                     <span
-                                                        class="grade-badge inline-block px-4 py-1.5 rounded-lg text-sm font-extrabold <?= match ($gradeColor) { 'emerald' => 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30', 'blue' => 'bg-blue-500/20 text-blue-300 border border-blue-400/30', 'cyan' => 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/30', 'amber' => 'bg-amber-500/20 text-amber-300 border border-amber-400/30', 'red' => 'bg-red-500/20 text-red-300 border border-red-400/30', default => 'bg-slate-500/20 text-slate-300 border border-slate-400/30'} ?>"><?= $grade ?></span>
+                                                        class="grade-badge inline-block px-4 py-1.5 rounded-lg text-sm font-extrabold <?= match ($gradeColor) { 'emerald' => 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30', 'blue' => 'bg-blue-500/20 text-blue-300 border border-blue-400/30', 'cyan' => 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/30', 'amber' => 'bg-amber-500/20 text-amber-300 border border-amber-400/30', 'red' => 'bg-red-500/20 text-red-300 border border-red-400/30', default => 'bg-slate-500/20 text-slate-300 border border-slate-400/30'} ?>"><?= e($grade) ?></span>
                                                     <p class="text-[10px] text-slate-400 mt-1">
                                                         <?= $LANG['performance_grade'] ?? 'Performance Grade' ?>
                                                     </p>

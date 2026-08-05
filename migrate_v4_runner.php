@@ -29,9 +29,9 @@ foreach ($statements as $stmt) {
 ?>
 <!DOCTYPE html>
 <html>
-<head><title>SFMS v4 Migration</title></head>
+<head><title>SFIS v4 Migration</title></head>
 <body style="font-family:system-ui;padding:40px">
-    <h1>SFMS v4 — Global SA & Admin Questions Migration</h1>
+    <h1>SFIS v4 — Global SA & Admin Questions Migration</h1>
     <p style="color:green">Statements succeeded: <?= $success ?></p>
     <p style="color:<?= $failed ? 'red' : 'green' ?>">Statements failed: <?= $failed ?></p>
     <?php if ($failed === 0): ?>

@@ -1,5 +1,5 @@
 -- ============================================================
--- SFMS Migration v12: Restore status column to feedback_forms
+-- SFIS Migration v12: Restore status column to feedback_forms
 -- ENUM('Upcoming','Active','Expired') with auto-calculation
 -- ============================================================
 USE studentfeedbackintern;

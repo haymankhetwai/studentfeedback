@@ -106,7 +106,7 @@ if ($r)
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UCSH Student Feedback Management System</title>
+    <title>UCSH Student Feedback Information System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -391,7 +391,7 @@ if ($r)
                     </h2>
 
                     <!-- <p class="hero-sub text-xl sm:text-2xl lg:text-3xl font-semibold text-sky-300 tracking-tight leading-snug bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400">
-                        <?= $LANG['student_feedback_system'] ?? 'Student Feedback Management System' ?>
+                        <?= $LANG['student_feedback_system'] ?? 'Student Feedback Information System' ?>
                     </p> -->
 
                     <!-- Gradient accent line -->
@@ -481,10 +481,10 @@ if ($r)
                                     <img src="/studentfeedbackucsh/assets/uploads/profiles/image.png" alt="UCSH Logo"
                                         class="w-full h-full object-contain rounded-xl">
                                 </div>
-                                <h1 class="text-xl font-bold text-white tracking-wide"><?= $LANG['sfms'] ?? 'SFMS' ?>
+                                <h1 class="text-xl font-bold text-white tracking-wide"><?= $LANG['sfms'] ?? 'SFIS' ?>
                                 </h1>
                                 <p class="text-blue-100 text-xs mt-0.5">
-                                    <?= $LANG['sfms_full'] ?? 'Student Feedback Management System' ?>
+                                    <?= $LANG['sfms_full'] ?? 'Student Feedback Information System' ?>
                                 </p>
                             </div>
 
@@ -604,7 +604,7 @@ if ($r)
                     <?= $LANG['system_overview'] ?? 'System Overview' ?>
                 </h2>
                 <p class="mt-3 text-slate-500 max-w-2xl mx-auto text-sm sm:text-base">
-                    <?= $LANG['system_overview_desc'] ?? 'Real-time overview of the Student Feedback Management System at UCSH (Hinthada)' ?>
+                    <?= $LANG['system_overview_desc'] ?? 'Real-time overview of the Student Feedback Information System at UCSH (Hinthada)' ?>
                 </p>
             </div>
 
@@ -673,7 +673,7 @@ if ($r)
                     </div>
                     <div>
                         <p class="text-sm font-bold text-blue-900">
-                            <?= $LANG['footer_system'] ?? 'Student Feedback Management System' ?>
+                            <?= $LANG['footer_system'] ?? 'Student Feedback Information System' ?>
                         </p>
                         <p class="text-xs text-blue-500/70 font-medium">
                             <?= $LANG['footer_university'] ?? 'University of Computer Studies (Hinthada)' ?>

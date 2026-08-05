@@ -1,4 +1,4 @@
--- SFMS v23: remove manual survey display ordering.
+-- SFIS v23: remove manual survey display ordering.
 -- Groups now use creation order (id); questions use their generated question_code.
 START TRANSACTION;
 

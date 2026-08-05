@@ -1,5 +1,5 @@
 -- ============================================================
--- SFMS v13 — Complete Database Migration
+-- SFIS v13 — Complete Database Migration
 -- Academic Year Versioning & Question Set System
 -- ============================================================
 -- Run this file against the studentfeedbackintern database.

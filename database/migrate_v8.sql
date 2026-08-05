@@ -1,5 +1,5 @@
 -- ============================================================
--- SFMS Migration v8: Shared questions per module + form_id on ratings/comments
+-- SFIS Migration v8: Shared questions per module + form_id on ratings/comments
 -- ============================================================
 USE studentfeedbackintern;
 

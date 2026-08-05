@@ -17,7 +17,7 @@ function moduleQuestionsPage($module)
 
 function cloneSurveyArchitecture(mysqli $conn, int $sourceSetId, int $targetSetId): int
 {
-    $groups = $conn->prepare("SELECT * FROM survey_groups WHERE question_set_id=? ORDER BY id");
+    $groups = $conn->prepare("SELECT sg.* FROM survey_groups sg WHERE sg.question_set_id=? AND EXISTS (SELECT 1 FROM feedback_questions fq WHERE fq.question_set_id=sg.question_set_id AND fq.survey_group_id=sg.id) ORDER BY sg.id");
     $groups->bind_param('i', $sourceSetId); $groups->execute();
     $sourceGroups = $groups->get_result()->fetch_all(MYSQLI_ASSOC); $groups->close();
     $groupMap = []; $copied = 0;
@@ -28,8 +28,7 @@ function cloneSurveyArchitecture(mysqli $conn, int $sourceSetId, int $targetSetI
         if (!$insertGroup->execute()) throw new RuntimeException($insertGroup->error);
         $groupMap[(int)$group['id']] = (int)$conn->insert_id;
     }
-    $questions = $conn->prepare("SELECT * FROM feedback_questions WHERE question_set_id=? ORDER BY survey_group_id,LENGTH(question_code),question_code,id");
-    $questions->bind_param('i',$sourceSetId); $questions->execute(); $rows=$questions->get_result()->fetch_all(MYSQLI_ASSOC); $questions->close();
+    $rows = getSurveyQuestionsForSet($conn, $sourceSetId);
     foreach ($rows as $q) {
         $newGroupId=$groupMap[(int)$q['survey_group_id']];
         $insertQuestion->bind_param('iisss',$targetSetId,$newGroupId,$q['question_code'],$q['question_text_en'],$q['question_text_mm']);

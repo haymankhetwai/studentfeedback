@@ -9,7 +9,7 @@
 $currentLang = $_SESSION['lang'] ?? 'en';
 $universityEn = 'UNIVERSITY OF COMPUTER<br>STUDIES (HINTHADA)';
 $universityMm = 'ကွန်ပျူတာတက္ကသိုလ် (ဟင်္သာတ)';
-$portalLabel = $LANG['student_feedback_system'] ?? 'Student Feedback Management System';
+$portalLabel = $LANG['student_feedback_system'] ?? 'Student Feedback Information System';
 ?>
 
 <!-- Typewriter University Title Box -->

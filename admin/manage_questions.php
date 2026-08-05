@@ -39,16 +39,40 @@ function nextQuestionCode(mysqli $conn, int $groupId, int $setId): string
     $codes->bind_param('i', $groupId);
     $codes->execute();
     $result = $codes->get_result();
-    $used = [];
+    $highestNumber = 0;
     while ($codeRow = $result->fetch_assoc()) {
         if (preg_match('/^' . preg_quote($prefix, '/') . '([1-9][0-9]*)$/i', $codeRow['question_code'], $match))
-            $used[(int) $match[1]] = true;
+            $highestNumber = max($highestNumber, (int) $match[1]);
     }
     $codes->close();
-    $number = 1;
-    while (isset($used[$number]))
-        $number++;
-    return $prefix . $number;
+    return $prefix . ($highestNumber + 1);
+}
+
+function renumberQuestionCodes(mysqli $conn, int $groupId, int $setId): void
+{
+    $group = $conn->prepare("SELECT group_code FROM survey_groups WHERE id=? AND question_set_id=? FOR UPDATE");
+    $group->bind_param('ii', $groupId, $setId);
+    $group->execute();
+    $row = $group->get_result()->fetch_assoc();
+    $group->close();
+    if (!$row)
+        throw new RuntimeException(surveyAdminText('invalid_survey_group', 'Invalid Survey Group.'));
+
+    $prefix = strtoupper(trim($row['group_code']));
+    $questions = $conn->prepare("SELECT id FROM feedback_questions WHERE survey_group_id=? AND question_set_id=? ORDER BY LENGTH(question_code), question_code, id FOR UPDATE");
+    $questions->bind_param('ii', $groupId, $setId);
+    $questions->execute();
+    $questionRows = $questions->get_result()->fetch_all(MYSQLI_ASSOC);
+    $questions->close();
+
+    $update = $conn->prepare("UPDATE feedback_questions SET question_code=? WHERE id=? AND survey_group_id=? AND question_set_id=?");
+    foreach ($questionRows as $index => $questionRow) {
+        $questionCode = $prefix . ($index + 1);
+        $questionId = (int) $questionRow['id'];
+        $update->bind_param('siii', $questionCode, $questionId, $groupId, $setId);
+        $update->execute();
+    }
+    $update->close();
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -169,10 +193,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 setFlash('success', surveyAdminText('survey_question_saved', 'Survey Question saved.'));
             } elseif ($action === 'delete_question') {
                 $id = (int) ($_POST['id'] ?? 0);
+
+                $conn->begin_transaction();
+                $questionTransaction = true;
+
+                $current = $conn->prepare("SELECT survey_group_id FROM feedback_questions WHERE id=? AND question_set_id=? FOR UPDATE");
+                $current->bind_param('ii', $id, $setId);
+                $current->execute();
+                $currentRow = $current->get_result()->fetch_assoc();
+                $current->close();
+                if (!$currentRow)
+                    throw new RuntimeException(surveyAdminText('survey_question_not_found', 'Survey Question not found.'));
+
+                $groupId = (int) $currentRow['survey_group_id'];
                 $s = $conn->prepare("DELETE FROM feedback_questions WHERE id=? AND question_set_id=?");
                 $s->bind_param('ii', $id, $setId);
                 $s->execute();
                 $s->close();
+
+                renumberQuestionCodes($conn, $groupId, $setId);
+                $conn->commit();
+                $questionTransaction = false;
                 setFlash('success', surveyAdminText('survey_question_deleted', 'Survey Question deleted.'));
             }
         } catch (Throwable $e) {

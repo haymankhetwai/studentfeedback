@@ -1,5 +1,5 @@
 -- ============================================================
--- SFMS v3 Migration — Shared Global Feedback Questions
+-- SFIS v3 Migration — Shared Global Feedback Questions
 -- All semesters/forms now share one set of questions.
 -- ============================================================
 USE studentfeedback;

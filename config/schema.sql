@@ -1,5 +1,5 @@
 -- ============================================================
--- SFMS v15 — Final Database Schema
+-- SFIS v15 — Final Database Schema
 -- Question Sets scoped by (academic_year_id, module) only.
 -- One question set per academic year + module, shared across all semesters.
 -- ============================================================
