@@ -2180,6 +2180,7 @@ $LANG = [
     'duplicate_feedback_form_academic' => 'A feedback form already exists for the selected Academic Year, Semester, Section, Course, and Teacher.',
     'duplicate_feedback_form_module' => 'A feedback form already exists for the selected Academic Year and Semester.',
     'student_dashboard_title' => 'Student Dashboard',
+    'teacher_dashboard_title' => 'Teacher Dashboard',
     'dashboard_feedback_instruction' => 'Please complete all required feedback forms for this semester.',
     'required_feedback_forms' => 'Required Feedback Forms',
     'feedback_forms_required_count' => '%d Feedback Forms Required',

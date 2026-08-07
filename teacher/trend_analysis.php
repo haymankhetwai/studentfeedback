@@ -13,10 +13,6 @@ require_once '../includes/functions.php';
 require_once '../includes/trend_helpers.php';
 
 // Portal entry check (matches existing teacher pages)
-if (!isset($_SESSION['entry_allowed']) || $_SESSION['selected_role'] !== 'teacher') {
-    header('Location: /studentfeedbackucsh/index.php');
-    exit;
-}
 
 requireRole('teacher');
 

@@ -349,7 +349,8 @@ $currentLang = $_SESSION['lang'] ?? 'en';
                 </p>
 
                 <!-- Main Heading -->
-                <h1 class="hero-heading text-3xl sm:text-4xl lg:text-5xl xl:text-6xl text-sky-300 font-bold tracking-tight leading-[1.25] fade-up-2">
+                <h1
+                    class="hero-heading text-3xl sm:text-4xl lg:text-5xl xl:text-6xl text-sky-300 font-bold tracking-tight leading-[1.25] fade-up-2">
                     <?= $LANG['welcome_to'] ?? 'Welcome to Student Feedback Information System' ?>
                 </h1>
                 <!-- <h1 class="hero-heading text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-extrabold tracking-tight leading-[1.25] fade-up-2 bg-gradient-to-r from-cyan-300 via-sky-400 to-indigo-400 bg-clip-text text-transparent drop-shadow-sm">
@@ -364,7 +365,8 @@ $currentLang = $_SESSION['lang'] ?? 'en';
                 </div> -->
 
                 <!-- Description -->
-                <p class="hero-desc text-base sm:text-lg text-blue-50/70 font-light max-w-xl mx-auto leading-relaxed mt-6 fade-up-3">
+                <p
+                    class="hero-desc text-base sm:text-lg text-blue-50/70 font-light max-w-xl mx-auto leading-relaxed mt-6 fade-up-3">
                     <?= $LANG['welcome_desc'] ?? 'Select your role below to access the feedback portal.' ?>
                 </p>
             </div>

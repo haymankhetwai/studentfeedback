@@ -3,10 +3,6 @@ require_once '../config/db.php';
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 
-if (!isset($_SESSION['entry_allowed']) || ($_SESSION['selected_role'] ?? '') !== 'student') {
-    header('Location: /studentfeedbackucsh/index.php');
-    exit;
-}
 requireRole('student');
 updateAllFeedbackStatuses($conn);
 
