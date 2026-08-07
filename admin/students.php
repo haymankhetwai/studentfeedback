@@ -172,7 +172,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             $check->close();
 
 
-            if ($exists) {
+            $userCheck = $conn->prepare(
+                "SELECT u.id FROM users u
+                 WHERE u.id = ? AND u.role = 'student'
+                   AND NOT EXISTS (SELECT 1 FROM students existing WHERE existing.user_id = u.id)
+                 LIMIT 1"
+            );
+            $userCheck->bind_param('i', $uid);
+            $userCheck->execute();
+            $validStudentUser = $userCheck->get_result()->num_rows === 1;
+            $userCheck->close();
+
+            if (!$validStudentUser) {
+                setFlash('error', 'The selected user is not an available student account.');
+            } elseif ($exists) {
 
                 setFlash(
                     'error',
@@ -377,33 +390,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
         if ($id) {
 
-            $stmt = $conn->prepare("
-                DELETE FROM students
-                WHERE id = ?
-            ");
+            $conn->begin_transaction();
+            try {
+                // Explicit cleanup also protects databases created before the
+                // cascading foreign keys were introduced.
+                $stmt = $conn->prepare("DELETE fsa FROM feedback_survey_answers fsa JOIN feedback_submissions fs ON fs.id = fsa.submission_id WHERE fs.student_id = ?");
+                $stmt->bind_param('i', $id);
+                if (!$stmt->execute()) throw new RuntimeException('Unable to remove feedback answers.');
+                $stmt->close();
 
-            $stmt->bind_param(
-                'i',
-                $id
-            );
+                $stmt = $conn->prepare("DELETE FROM feedback_submissions WHERE student_id = ?");
+                $stmt->bind_param('i', $id);
+                if (!$stmt->execute()) throw new RuntimeException('Unable to remove feedback submissions.');
+                $stmt->close();
 
+                $stmt = $conn->prepare("DELETE FROM section_assignments WHERE student_id = ?");
+                $stmt->bind_param('i', $id);
+                if (!$stmt->execute()) throw new RuntimeException('Unable to remove section assignments.');
+                $stmt->close();
 
-            if ($stmt->execute()) {
+                $stmt = $conn->prepare("DELETE FROM students WHERE id = ?");
+                $stmt->bind_param('i', $id);
+                if (!$stmt->execute() || $stmt->affected_rows !== 1) throw new RuntimeException('Student not found or could not be removed.');
+                $stmt->close();
 
-                setFlash(
-                    'success',
-                    'Student removed.'
-                );
-
-            } else {
-
-                setFlash(
-                    'error',
-                    'Cannot delete.'
-                );
+                $conn->commit();
+                setFlash('success', 'Student and all related assignment and feedback records were removed.');
+            } catch (Throwable $e) {
+                $conn->rollback();
+                setFlash('error', 'Cannot delete student because related records could not be cleaned up safely.');
             }
-
-            $stmt->close();
         }
     }
 
@@ -658,7 +674,7 @@ include '../includes/admin_sidebar.php';
 
     <div class="overflow-x-auto">
 
-        <table  class="w-full">
+        <table class="w-full">
 
             <thead class="bg-slate-200 border-b border-slate-200">
 
@@ -1105,7 +1121,7 @@ include '../includes/admin_sidebar.php';
 
             <p class="text-sm text-slate-500 mt-2">
 
-                <?= $LANG['remove_student_confirm'] ?? 'Remove' ?>
+
 
                 <strong id="delete_name" class="text-slate-700"></strong>
 

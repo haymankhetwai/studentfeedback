@@ -179,10 +179,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
         $sec = (int) ($_POST['section_id'] ?? 0);
 
-        $universityName = clean($_POST['university_name'] ?? '');
-        $universityCampus = clean($_POST['university_campus'] ?? '');
-
-
         /* ---------------------------------------------
            Auto-detect Question Set
         --------------------------------------------- */
@@ -257,6 +253,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
             header('Location: feedback_forms_all.php');
             exit;
+        }
+
+        if ($module === 'teaching_quality') {
+            $sectionConsistencyStmt = $conn->prepare("
+                SELECT id
+                FROM sections
+                WHERE id = ?
+                  AND academic_year_id = ?
+                  AND semester_id = ?
+                LIMIT 1
+            ");
+            $sectionConsistencyStmt->bind_param('iii', $sec, $ayId, $semId);
+            $sectionConsistencyStmt->execute();
+            $sectionIsConsistent = (bool) $sectionConsistencyStmt->get_result()->fetch_assoc();
+            $sectionConsistencyStmt->close();
+
+            if (!$sectionIsConsistent) {
+                setFlash(
+                    'error',
+                    'Selected section does not belong to the selected academic year and semester.'
+                );
+
+                header('Location: feedback_forms_all.php');
+                exit;
+            }
         }
 
 
@@ -436,15 +457,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                     title,
                     start_date,
                     end_date,
-                    status,
-                    university_name,
-                    university_campus
+                    status
                 )
 
                 VALUES
                 (
-                    ?,
-                    ?,
                     ?,
                     ?,
                     ?,
@@ -457,7 +474,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             ");
 
             $stmt->bind_param(
-                'siiissssss',
+                'siiissss',
                 $module,
                 $ayId,
                 $semId,
@@ -465,9 +482,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                 $title,
                 $start,
                 $end,
-                $formStatus,
-                $universityName,
-                $universityCampus
+                $formStatus
             );
         }
 
@@ -530,15 +545,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         $end = clean(
             $_POST['end_date'] ?? ''
         );
-
-        $universityName = clean(
-            $_POST['university_name'] ?? ''
-        );
-
-        $universityCampus = clean(
-            $_POST['university_campus'] ?? ''
-        );
-
 
         if ($id && $title) {
 
@@ -721,10 +727,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
                 if ($dupRow) {
 
-                setFlash(
-                    'error',
-                    $LANG['duplicate_feedback_form_module']
-                );
+                    setFlash(
+                        'error',
+                        $LANG['duplicate_feedback_form_module']
+                    );
 
                     header('Location: feedback_forms_all.php');
                     exit;
@@ -740,15 +746,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                         status = ?,
                         academic_year_id = ?,
                         semester_id = ?,
-                        question_set_id = ?,
-                        university_name = ?,
-                        university_campus = ?
+                        question_set_id = ?
 
                     WHERE id = ?
                 ");
 
                 $stmt->bind_param(
-                    'ssssiiissi',
+                    'ssssiiii',
                     $title,
                     $start,
                     $end,
@@ -756,8 +760,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                     $editAyId,
                     $editSemId,
                     $editQsId,
-                    $universityName,
-                    $universityCampus,
                     $id
                 );
             }
@@ -1857,8 +1859,7 @@ include '../includes/admin_sidebar.php';
 
                                     </button>
                                      -->
-                                    <button
-    onclick='openDelete(
+                                    <button onclick='openDelete(
         <?= (int) $row['id'] ?>,
         <?= json_encode(
             $row['title'],
@@ -1867,17 +1868,16 @@ include '../includes/admin_sidebar.php';
             JSON_HEX_QUOT |
             JSON_HEX_AMP
         ) ?>
-    )'
-    class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg">
+    )' class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg">
 
-    <?= iconSvg(
-        'trash',
-        'w-3.5 h-3.5'
-    ) ?>
+                                        <?= iconSvg(
+                                            'trash',
+                                            'w-3.5 h-3.5'
+                                        ) ?>
 
-    <?= $LANG["delete"] ?? "Delete" ?>
+                                        <?= $LANG["delete"] ?? "Delete" ?>
 
-</button>
+                                    </button>
 
                                 </div>
 
@@ -1994,15 +1994,15 @@ include '../includes/admin_sidebar.php';
 
             </h3>
 
-
-            <button onclick="closeModal('addModal')" class="text-slate-400 hover:text-slate-600">
+<!-- 
+            <button type="button" onclick="closeCreateFormModal()" class="text-slate-400 hover:text-slate-600">
 
                 <?= iconSvg(
                     'x',
                     'w-5 h-5'
                 ) ?>
 
-            </button>
+            </button> -->
 
         </div>
 
@@ -2100,7 +2100,8 @@ include '../includes/admin_sidebar.php';
                     </label>
 
 
-                    <select name="academic_year_id" id="add_academic_year_id" required onchange="loadQuestionSets()"
+                    <select name="academic_year_id" id="add_academic_year_id" required
+                        onchange="loadQuestionSets(); filterAddSectionsBySelection()"
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
 
 
@@ -2150,7 +2151,7 @@ include '../includes/admin_sidebar.php';
                     </label>
 
 
-                    <select name="semester_id" id="add_semester_id" required
+                    <select name="semester_id" id="add_semester_id" required onchange="filterAddSectionsBySelection()"
                         class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none bg-white">
 
 
@@ -2209,8 +2210,8 @@ include '../includes/admin_sidebar.php';
 
                     <div class="relative">
 
-                        <input type="text" id="add_section_search"
-                            placeholder="Type to search Course, or Teacher..." autocomplete="off"
+                        <input type="text" id="add_section_search" placeholder="Type to search Course, or Teacher..."
+                            autocomplete="off"
                             class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none"
                             oninput="filterAddSections(this.value)" onfocus="showAddSectionDropdown()"
                             onblur="hideAddSectionDropdown()">
@@ -2223,14 +2224,15 @@ include '../includes/admin_sidebar.php';
                             <?php foreach ($sectionList as $s): ?>
 
                                 <div class="add-section-option px-4 py-2.5 cursor-pointer hover:bg-indigo-50 border-b border-slate-50 last:border-b-0 transition-colors"
-                                    data-id="<?= $s['id'] ?>" data-search="<?= e(strtolower(
-                                          $s['section_name'] . ' ' .
-                                          $s['course_code'] . ' ' .
-                                          $s['course_name'] . ' ' .
-                                          $s['teacher_name'] . ' ' .
-                                          $s['academic_year'] . ' ' .
-                                          $s['semester_name']
-                                      )) ?>" onmousedown="selectAddSection(this)">
+                                    data-id="<?= $s['id'] ?>" data-academic-year-id="<?= (int) $s['academic_year_id'] ?>"
+                                    data-semester-id="<?= (int) $s['semester_id'] ?>" data-search="<?= e(strtolower(
+                                           $s['section_name'] . ' ' .
+                                           $s['course_code'] . ' ' .
+                                           $s['course_name'] . ' ' .
+                                           $s['teacher_name'] . ' ' .
+                                           $s['academic_year'] . ' ' .
+                                           $s['semester_name']
+                                       )) ?>" onmousedown="selectAddSection(this)">
 
 
                                     <div class="font-semibold text-sm text-slate-700">
@@ -2382,60 +2384,6 @@ include '../includes/admin_sidebar.php';
                 </div>
 
 
-                <!-- SA / ADMIN UNIVERSITY -->
-
-                <div id="university_fields_wrapper" class="hidden space-y-4">
-
-
-                    <div>
-
-                        <label class="flex items-center gap-2 text-sm font-medium text-slate-700 mb-1">
-
-                            <span
-                                class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-cyan-100 text-cyan-700 text-[10px] font-bold">
-
-                                6
-
-                            </span>
-
-                            University Name
-
-                        </label>
-
-
-                        <input type="text" name="university_name" id="add_university_name"
-                            placeholder="e.g. University of Computer Studies (Hinthada)"
-                            value="University of Computer Studies (Hinthada)"
-                            class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
-
-                    </div>
-
-
-                    <div>
-
-                        <label class="flex items-center gap-2 text-sm font-medium text-slate-700 mb-1">
-
-                            <span
-                                class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-cyan-100 text-cyan-700 text-[10px] font-bold">
-
-                                7
-
-                            </span>
-
-                            University Campus
-
-                        </label>
-
-
-                        <input type="text" name="university_campus" id="add_university_campus"
-                            placeholder="e.g. Main Campus" value="Main Campus"
-                            class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none">
-
-                    </div>
-
-                </div>
-
-
                 <!-- DATE -->
 
                 <div class="grid grid-cols-2 gap-4">
@@ -2487,7 +2435,7 @@ include '../includes/admin_sidebar.php';
             <div class="flex gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
 
 
-                <button type="button" onclick="closeModal('addModal')"
+                <button type="button" onclick="closeCreateFormModal()"
                     class="flex-1 px-4 py-2.5 text-sm font-semibold bg-slate-500 text-white hover:bg-slate-600 rounded-xl transition-colors">
 
                     <?= $LANG["cancel"] ?? "Cancel" ?>
@@ -2871,45 +2819,6 @@ include '../includes/admin_sidebar.php';
                 </div>
 
 
-                <!-- SA / ADMIN -->
-
-                <div id="edit_university_fields" class="hidden space-y-4">
-
-
-                    <div>
-
-                        <label class="block text-sm font-medium text-slate-700 mb-1">
-
-                            <?= $LANG["university_name"] ??
-                                "University Name" ?>
-
-                        </label>
-
-
-                        <input type="text" name="university_name" id="edit_university_name"
-                            class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none">
-
-                    </div>
-
-
-                    <div>
-
-                        <label class="block text-sm font-medium text-slate-700 mb-1">
-
-                            <?= $LANG["university_campus"] ??
-                                "University Campus" ?>
-
-                        </label>
-
-
-                        <input type="text" name="university_campus" id="edit_university_campus"
-                            class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none">
-
-                    </div>
-
-                </div>
-
-
             </div>
 
 
@@ -2974,11 +2883,12 @@ include '../includes/admin_sidebar.php';
 
             <p class="text-sm text-slate-500 mt-2">
 
-                Delete
 
-                <strong id="delete_name" class="text-slate-700"></strong>?
 
-                All submissions will be lost.
+                <strong id="delete_name"
+                    class="text-slate-700"></strong>  <?= $LANG['delete_section_name_confirm'] ?? 'Delete' ?>?
+
+                <!-- All submissions will be lost. -->
 
             </p>
 
@@ -3026,6 +2936,43 @@ include '../includes/admin_sidebar.php';
 
 <script>
 
+    let questionSetRequestToken = 0;
+
+    function resetCreateFormModal() {
+
+        const form = document.getElementById('createForm');
+
+        if (!form) {
+            return;
+        }
+
+        // Invalidate any Question Set request started by the previous modal state.
+        questionSetRequestToken++;
+        form.reset();
+
+        document.getElementById('add_question_set_id').value = '0';
+        document.getElementById('add_section_id').value = '';
+        document.getElementById('add_section_search').value = '';
+        document.getElementById('add_section_dropdown').classList.add('hidden');
+        document.querySelectorAll('.add-section-option').forEach(function (option) {
+            option.style.display = '';
+        });
+
+        document.getElementById('add_section_wrapper').style.display = 'none';
+        document.getElementById('qs_loading').classList.add('hidden');
+        document.getElementById('qs_empty').classList.add('hidden');
+        document.getElementById('qs_found').classList.add('hidden');
+        document.getElementById('qs_found_title').textContent = '';
+        document.getElementById('qs_found_count').textContent = '';
+        document.getElementById('addSubmitBtn').disabled = true;
+    }
+
+    function closeCreateFormModal() {
+
+        resetCreateFormModal();
+        closeModal('addModal');
+    }
+
     /* =====================================================
        LANGUAGE
     ===================================================== */
@@ -3052,12 +2999,6 @@ include '../includes/admin_sidebar.php';
         const sectionWrapper =
             document.getElementById(
                 'add_section_wrapper'
-            );
-
-
-        const uniWrapper =
-            document.getElementById(
-                'university_fields_wrapper'
             );
 
 
@@ -3096,11 +3037,6 @@ include '../includes/admin_sidebar.php';
                 '';
 
 
-            uniWrapper.classList.remove(
-                'hidden'
-            );
-
-
         } else {
 
             sectionWrapper.style.display =
@@ -3115,9 +3051,6 @@ include '../includes/admin_sidebar.php';
                 '';
 
 
-            uniWrapper.classList.add(
-                'hidden'
-            );
         }
 
 
@@ -3133,6 +3066,12 @@ include '../includes/admin_sidebar.php';
 
         const search =
             query.trim().toLowerCase();
+
+        const academicYear =
+            document.getElementById('add_academic_year_id').value;
+
+        const semester =
+            document.getElementById('add_semester_id').value;
 
 
         const options =
@@ -3150,9 +3089,21 @@ include '../includes/admin_sidebar.php';
                 opt.dataset.search || '';
 
 
+            const belongsToAcademicYear =
+                academicYear !== '' &&
+                opt.dataset.academicYearId === academicYear;
+
+            const belongsToSemester =
+                semester === '' ||
+                opt.dataset.semesterId === semester;
+
+            const matchesSearch =
+                !search || text.includes(search);
+
             const show =
-                !search ||
-                text.includes(search);
+                belongsToAcademicYear &&
+                belongsToSemester &&
+                matchesSearch;
 
 
             opt.style.display =
@@ -3186,6 +3137,55 @@ include '../includes/admin_sidebar.php';
     }
 
 
+    function filterAddSectionsBySelection() {
+
+        const academicYear =
+            document.getElementById('add_academic_year_id').value;
+
+        const semester =
+            document.getElementById('add_semester_id').value;
+
+        const selectedSection =
+            document.getElementById('add_section_id');
+
+        const search =
+            document.getElementById('add_section_search');
+
+        const sectionWrapper =
+            document.getElementById('add_section_wrapper');
+
+        const module =
+            document.getElementById('add_module').value;
+
+        // Semester/Year filtering must never remove the Section control itself.
+        sectionWrapper.style.display = module === 'teaching_quality' ? '' : 'none';
+
+        if (selectedSection.value) {
+            const selectedOption = document.querySelector(
+                '.add-section-option[data-id="' + selectedSection.value + '"]'
+            );
+
+            const selectionStillMatches =
+                selectedOption &&
+                selectedOption.dataset.academicYearId === academicYear &&
+                (semester === '' || selectedOption.dataset.semesterId === semester);
+
+            if (!selectionStillMatches) {
+                selectedSection.value = '';
+                search.value = '';
+            }
+        }
+
+        // Do not retain a search phrase from a previous Year/Semester after its
+        // selected Section has been cleared; it can incorrectly hide every option.
+        if (!selectedSection.value) {
+            search.value = '';
+        }
+
+        filterAddSections(search.value);
+    }
+
+
     function showAddSectionDropdown() {
 
         const dropdown =
@@ -3200,23 +3200,8 @@ include '../includes/admin_sidebar.php';
             );
 
 
-        const options =
-            document.querySelectorAll(
-                '.add-section-option'
-            );
-
-
-        options.forEach(function (opt) {
-
-            opt.style.display = '';
-        });
-
-
         if (search) {
-
-            dropdown.classList.remove(
-                'hidden'
-            );
+            filterAddSections(search.value);
         }
     }
 
@@ -3287,6 +3272,8 @@ include '../includes/admin_sidebar.php';
     ===================================================== */
 
     function loadQuestionSets() {
+
+        const requestToken = ++questionSetRequestToken;
 
         const module =
             document.getElementById(
@@ -3399,6 +3386,14 @@ include '../includes/admin_sidebar.php';
             .then(
                 data => {
 
+                    if (
+                        requestToken !== questionSetRequestToken ||
+                        document.getElementById('add_module').value !== module ||
+                        document.getElementById('add_academic_year_id').value !== academicYear
+                    ) {
+                        return;
+                    }
+
                     qsLoading.classList.add(
                         'hidden'
                     );
@@ -3472,6 +3467,10 @@ include '../includes/admin_sidebar.php';
 
             .catch(
                 () => {
+
+                    if (requestToken !== questionSetRequestToken) {
+                        return;
+                    }
 
                     qsLoading.classList.add(
                         'hidden'
@@ -3565,9 +3564,21 @@ include '../includes/admin_sidebar.php';
 
         if (addModal) {
 
+            let addModalWasOpen = !addModal.classList.contains('hidden');
+
             const obs =
                 new MutationObserver(
                     function () {
+
+                        const addModalIsOpen = !addModal.classList.contains('hidden');
+
+                        // Also reset for backdrop clicks and Escape, which use the
+                        // shared closeModal helper rather than the modal buttons.
+                        if (addModalWasOpen && !addModalIsOpen) {
+                            resetCreateFormModal();
+                        }
+
+                        addModalWasOpen = addModalIsOpen;
 
                         if (addStart) {
 
@@ -4024,55 +4035,10 @@ include '../includes/admin_sidebar.php';
                 );
 
 
-        const uniFields =
-            document.getElementById(
-                'edit_university_fields'
-            );
-
-
         const secWrapper =
             document.getElementById(
                 'edit_section_wrapper'
             );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Student Affairs / Administration
-        |--------------------------------------------------------------------------
-        */
-
-        if (
-            row.module ===
-            'student_support_services' ||
-            row.module ===
-            'learning_environment'
-        ) {
-
-            uniFields.classList.remove(
-                'hidden'
-            );
-
-
-            document.getElementById(
-                'edit_university_name'
-            ).value =
-                row.university_name ||
-                '';
-
-
-            document.getElementById(
-                'edit_university_campus'
-            ).value =
-                row.university_campus ||
-                '';
-
-        } else {
-
-            uniFields.classList.add(
-                'hidden'
-            );
-        }
 
 
         /*

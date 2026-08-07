@@ -110,7 +110,7 @@ include '../includes/admin_sidebar.php';
             <?= $total !== 1 ? ($LANG['records'] ?? 'records') : ($LANG['record'] ?? 'record') ?></span>
     </div>
     <div class="overflow-x-auto">
-        <table  class="w-full">
+        <table class="w-full">
             <thead class="bg-slate-200 border-b border-slate-200">
                 <tr>
                     <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">#</th>
@@ -242,8 +242,10 @@ include '../includes/admin_sidebar.php';
                 <?= iconSvg('trash', 'w-7 h-7 text-red-600') ?>
             </div>
             <h3 class="text-lg font-semibold text-slate-800"><?= $LANG['delete_course_modal'] ?? 'Delete Course' ?></h3>
-            <p class="text-sm text-slate-500 mt-2"><?= $LANG['delete'] ?? 'Delete' ?> <strong id="delete_name"
-                    class="text-slate-700"></strong>?</p>
+            <p class="text-sm text-slate-500 mt-2"> <strong id="delete_name" class="text-slate-700"></strong>
+                <?= $LANG['delete'] ?? 'Delete' ?>?
+
+            </p>
         </div>
         <form method="POST"><?= csrfField() ?><input type="hidden" name="action" value="delete"><input type="hidden"
                 name="id" id="delete_id">

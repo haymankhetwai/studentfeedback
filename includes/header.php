@@ -35,7 +35,7 @@
 
             <div>
                 <h1 class="text-3xl font-bold">UCSH</h1>
-                <p class="text-sm"><?= $LANG['university_name'] ?? 'University of Computer Studies (Hinthada)' ?></p>
+                <p class="text-sm"><?= $LANG['university_name_title'] ?? 'University of Computer Studies (Hinthada)' ?></p>
             </div>
 
             <ul class="hidden md:flex gap-10 items-center font-medium">

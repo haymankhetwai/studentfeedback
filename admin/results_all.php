@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require_once '../config/db.php';
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
@@ -186,7 +186,7 @@ if ($filterSem) {
     $formTypes .= 'i';
 }
 $formWhere = $formConds ? 'WHERE ' . implode(' AND ', $formConds) : '';
-$formSql = "SELECT ff.id, ff.title, ff.module, ff.section_id, ff.academic_year_id, ff.semester_id, ff.university_name, ff.university_campus,
+$formSql = "SELECT ff.id, ff.title, ff.module, ff.section_id, ff.academic_year_id, ff.semester_id,
     ay.year_name AS academic_year_name, sm.semester_name,
     c.course_code, c.course_name, sm_sec.section_name AS section_name, u.name AS teacher_name
     FROM feedback_forms ff
@@ -307,8 +307,6 @@ if ($loadForm && $formId) {
         } elseif ($module === 'student_support_services' || $module === 'learning_environment') {
             $formMeta = [
                 'title' => $form['title'] ?? '',
-                'university_name' => $form['university_name'] ?? '',
-                'university_campus' => $form['university_campus'] ?? '',
                 'academic_year' => $form['academic_year_name'] ?? '',
                 'semester' => $form['semester_name'] ?? '',
                 'module' => $module,
@@ -1536,18 +1534,6 @@ include '../includes/admin_sidebar.php';
                         <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                             <div>
                                 <p class="text-[11px] font-semibold text-slate-400 uppercase">
-                                    <?= $LANG["university_name"] ?? "University Name" ?>
-                                </p>
-                                <p class="text-sm font-bold text-slate-800"><?= e($formMeta['university_name'] ?? '—') ?></p>
-                            </div>
-                            <div>
-                                <p class="text-[11px] font-semibold text-slate-400 uppercase">
-                                    <?= $LANG["university_campus"] ?? "Campus" ?>
-                                </p>
-                                <p class="text-sm font-bold text-slate-800"><?= e($formMeta['university_campus'] ?? '—') ?></p>
-                            </div>
-                            <div>
-                                <p class="text-[11px] font-semibold text-slate-400 uppercase">
                                     <?= $LANG["academic_year"] ?? "Academic Year" ?>
                                 </p>
                                 <p class="text-sm font-bold text-slate-800"><?= e($formMeta['academic_year'] ?? '—') ?></p>
@@ -1982,14 +1968,6 @@ class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.
                         <?php else: ?>
                             <dt><?= $LANG['module'] ?? 'Module' ?>:</dt>
                             <dd><?= moduleBadge($module) ?></dd>
-                            <?php if (!empty($formMeta['university_name'])): ?>
-                                <dt><?= $LANG['university_name'] ?? 'University' ?>:</dt>
-                                <dd><?= e($formMeta['university_name'] ?? '') ?></dd>
-                            <?php endif; ?>
-                            <?php if (!empty($formMeta['university_campus'])): ?>
-                                <dt><?= $LANG['university_campus'] ?? 'Campus' ?>:</dt>
-                                <dd><?= e($formMeta['university_campus'] ?? '') ?></dd>
-                            <?php endif; ?>
                         <?php endif; ?>
                         <dt><?= $LANG['feedback_period'] ?? 'Feedback Period' ?>:</dt>
                         <dd><?= formatDateTime($form['start_date']) ?> — <?= formatDateTime($form['end_date']) ?></dd>
@@ -2331,8 +2309,8 @@ class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[85vh] flex flex-col">
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
             <h3 id="modalTitle" class="font-semibold text-slate-800"><?= $LANG['student_list'] ?? 'Student List' ?></h3>
-            <button onclick="closeStudentModal()"
-                class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors"><?= iconSvg('x', 'w-5 h-5') ?></button>
+            <!-- <button onclick="closeStudentModal()"
+                class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors"><?= iconSvg('x', 'w-5 h-5') ?></button> -->
         </div>
         <div id="modalBody" class="px-6 py-4 overflow-y-auto flex-1"></div>
     </div>

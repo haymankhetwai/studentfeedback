@@ -39,18 +39,19 @@ if ($studentId) {
                 u.name AS teacher_name,
                 (SELECT COUNT(*) FROM feedback_submissions fs WHERE fs.form_id=ff.id AND fs.student_id=?) AS submitted
          FROM feedback_forms ff
-         JOIN section_assignments sa ON ff.section_id = sa.section_id
          JOIN sections s ON ff.section_id = s.id
          JOIN courses c ON s.course_id = c.id
          JOIN teachers t ON s.teacher_id = t.id
          JOIN users u ON t.user_id = u.id
+         JOIN section_assignments sa ON sa.section_id = s.id
          LEFT JOIN section_master sm_sec ON s.section_id = sm_sec.id
          LEFT JOIN academic_years ay ON s.academic_year_id = ay.id
          LEFT JOIN semesters sm ON s.semester_id = sm.id
          WHERE sa.student_id = ? AND ff.module = 'teaching_quality'
+           AND (ff.status = 'Active' OR EXISTS (SELECT 1 FROM feedback_submissions done WHERE done.form_id = ff.id AND done.student_id = ?))
          ORDER BY ff.end_date ASC"
     );
-    $acadFormsStmt->bind_param('ii', $studentId, $studentId);
+    $acadFormsStmt->bind_param('iii', $studentId, $studentId, $studentId);
     $acadFormsStmt->execute();
     $acadRows = $acadFormsStmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $acadFormsStmt->close();

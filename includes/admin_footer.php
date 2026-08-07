@@ -49,5 +49,39 @@ document.addEventListener('keydown', function(e) {
     if (flash) setTimeout(() => flash.style.opacity === '' && flash.remove(), 5000);
 })();
 </script>
+<style>
+/* Admin table delete confirmations: keep both existing actions visible and equal. */
+#deleteModal form > .flex.gap-3,
+[id$="DeleteModal"] form > .flex.gap-3 {
+    display: flex !important;
+    align-items: stretch;
+    gap: 0.75rem !important;
+    width: 100%;
+}
+
+#deleteModal form > .flex.gap-3 > button,
+[id$="DeleteModal"] form > .flex.gap-3 > button {
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    flex: 1 1 0% !important;
+    width: 0 !important;
+    min-width: 0;
+    align-items: center;
+    justify-content: center;
+}
+
+#deleteModal form > .flex.gap-3 > button[type="button"],
+[id$="DeleteModal"] form > .flex.gap-3 > button[type="button"] {
+    background-color: #64748b !important;
+    color: #fff !important;
+}
+
+#deleteModal form > .flex.gap-3 > button[type="button"]:hover,
+[id$="DeleteModal"] form > .flex.gap-3 > button[type="button"]:hover {
+    background-color: #475569 !important;
+}
+</style>
+<?php require __DIR__ . '/admin_missing_modal_closers.php'; ?>
 </body>
 </html>
