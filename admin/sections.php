@@ -693,7 +693,8 @@ include '../includes/admin_sidebar.php';
 
                 <?php foreach ($sectionList as $secRow): ?>
 
-                    <option value="<?= e($secRow['section_name']) ?>" <?= strtoupper($filterSec) === strtoupper($secRow['section_name']) ? 'selected' : '' ?>>
+                    <option value="<?= e($secRow['section_name']) ?>"
+                        <?= strtoupper($filterSec) === strtoupper($secRow['section_name']) ? 'selected' : '' ?>>
 
                         <?= $LANG['section_label'] ?? 'Section' ?>
                         <?= e($secRow['section_name']) ?>
@@ -749,7 +750,7 @@ include '../includes/admin_sidebar.php';
 
     <div class="overflow-x-auto">
 
-        <table  class="w-full">
+        <table class="w-full">
 
             <thead class="bg-slate-200 border-b border-slate-200">
 
@@ -822,7 +823,7 @@ include '../includes/admin_sidebar.php';
                                 <span
                                     class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-cyan-100 text-cyan-800">
 
-                                    <?= $LANG['section_label'] ?? 'Section' ?> <?= e($row['section_name']) ?>
+                                    <?= $LANG['section_label'] ?? 'Section' ?>         <?= e($row['section_name']) ?>
 
                                 </span>
 
@@ -1057,7 +1058,7 @@ include '../includes/admin_sidebar.php';
 
                         <?php foreach ($sectionList as $secRow): ?>
 
-                            <option value="<?= (int)$secRow['id'] ?>">
+                            <option value="<?= (int) $secRow['id'] ?>">
 
                                 <?= $LANG['section_label'] ?? 'Section' ?>
 
@@ -1286,7 +1287,7 @@ include '../includes/admin_sidebar.php';
 
                         <?php foreach ($sectionList as $secRow): ?>
 
-                            <option value="<?= (int)$secRow['id'] ?>">
+                            <option value="<?= (int) $secRow['id'] ?>">
 
                                 <?= $LANG['section_label'] ?? 'Section' ?>
 
@@ -1423,9 +1424,10 @@ include '../includes/admin_sidebar.php';
 
             <p class="text-sm text-slate-500 mt-2">
 
-                <?= $LANG['delete'] ?? 'Delete' ?>
 
-                <strong id="delete_name" class="text-slate-700"></strong>?
+
+                <strong id="delete_name" class="text-slate-700"></strong>
+                <?= $LANG['delete'] ?? 'Delete' ?>?
 
             </p>
 

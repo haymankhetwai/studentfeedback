@@ -305,7 +305,9 @@ include '../includes/admin_sidebar.php';
                 <?= iconSvg('trash', 'w-7 h-7 text-red-600') ?>
             </div>
             <h3 class="text-lg font-semibold text-slate-800"><?= $LANG["delete_semester"] ?? "Delete Semester" ?></h3>
-            <p class="text-sm text-slate-500 mt-2">Delete <strong id="delete_name" class="text-slate-700"></strong>?</p>
+            <p class="text-sm text-slate-500 mt-2"><strong id="delete_name" class="text-slate-700"></strong>
+                <?= $LANG['delete_section_name_confirm'] ?? 'Delete' ?>?
+            </p>
         </div>
         <form method="POST"><?= csrfField() ?><input type="hidden" name="action" value="delete"><input type="hidden"
                 name="id" id="delete_id">

@@ -63,9 +63,10 @@ if ($studentId) {
          LEFT JOIN academic_years ay ON s.academic_year_id = ay.id
          LEFT JOIN semesters sm ON s.semester_id = sm.id
          WHERE sa.student_id = ? AND ff.module = 'teaching_quality'
+           AND (ff.status = 'Active' OR EXISTS (SELECT 1 FROM feedback_submissions done WHERE done.form_id = ff.id AND done.student_id = ?))
          ORDER BY ff.end_date ASC, ff.id ASC"
     );
-    $acadStmt->bind_param('ii', $studentId, $studentId);
+    $acadStmt->bind_param('iii', $studentId, $studentId, $studentId);
     $acadStmt->execute();
     $acadRows = $acadStmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $acadStmt->close();

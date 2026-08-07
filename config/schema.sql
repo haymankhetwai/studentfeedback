@@ -103,7 +103,8 @@ CREATE TABLE IF NOT EXISTS section_assignments (
     section_id INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
-    FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE
+    FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE,
+    UNIQUE KEY uq_section_assignment (student_id, section_id)
 ) ENGINE=InnoDB;
 
 -- ============================================================
@@ -132,13 +133,12 @@ CREATE TABLE IF NOT EXISTS feedback_forms (
     semester_id INT DEFAULT NULL,
     question_set_id INT DEFAULT NULL,
     title VARCHAR(150) NOT NULL,
-    university_name VARCHAR(200) DEFAULT NULL,
-    university_campus VARCHAR(200) DEFAULT NULL,
     start_date DATETIME NOT NULL,
     end_date DATETIME NOT NULL,
     status ENUM('Upcoming','Active','Expired') NOT NULL DEFAULT 'Upcoming',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE,
     FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE SET NULL,
     FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE SET NULL,
     FOREIGN KEY (question_set_id) REFERENCES feedback_question_sets(id) ON DELETE SET NULL,

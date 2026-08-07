@@ -281,7 +281,7 @@ include '../includes/admin_sidebar.php';
             </div>
             <h3 class="text-lg font-semibold text-slate-800"><?= $LANG['remove_teacher_modal'] ?? 'Remove Teacher' ?>
             </h3>
-            <p class="text-sm text-slate-500 mt-2"><?= $LANG['remove_teacher_confirm'] ?? 'Remove teacher' ?> <strong
+            <p class="text-sm text-slate-500 mt-2"><strong
                     id="delete_name" class="text-slate-700"></strong> <?= $LANG["from_system"] ?? "from the system?" ?>
             </p>
         </div>

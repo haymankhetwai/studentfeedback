@@ -344,8 +344,9 @@ include '../includes/admin_sidebar.php';
                 <?= $LANG['delete_section_name'] ?? 'Delete Section Name' ?>
             </h3>
             <p class="text-sm text-slate-500 mt-2">
-                <?= $LANG['delete_section_name_confirm'] ?? 'Delete' ?>
-                <strong id="delete_name" class="text-slate-700"></strong>?
+
+                <strong id="delete_name" class="text-slate-700"></strong>
+                <?= $LANG['delete_section_name_confirm'] ?? 'Delete' ?>?
             </p>
             <p class="text-xs text-slate-400 mt-2">
                 <?= $LANG['delete_section_name_hint'] ?? 'Only possible if no course sections use this name.' ?>

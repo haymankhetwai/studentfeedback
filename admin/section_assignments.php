@@ -28,9 +28,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
         if (!is_array($sectionIds))
             $sectionIds = [];
-        $sectionIds = array_map('intval', array_filter($sectionIds));
+        $sectionIds = array_values(array_unique(array_map('intval', array_filter($sectionIds))));
 
-        if ($academicYearId && $semesterId && $classSection && $roll_from && $roll_to && count($sectionIds) > 0) {
+        // Never trust the filtered checkbox list: every selected course section
+        // must belong to the year, semester, and class section chosen by admin.
+        $validAssignmentSelection = false;
+        if ($academicYearId && $semesterId && $classSection && count($sectionIds) > 0) {
+            $sectionPH = implode(',', array_fill(0, count($sectionIds), '?'));
+            $validationStmt = $conn->prepare(
+                "SELECT COUNT(*) AS cnt
+                 FROM sections s
+                 JOIN section_master sm ON sm.id = s.section_id
+                 WHERE s.id IN ($sectionPH)
+                   AND s.academic_year_id = ? AND s.semester_id = ?
+                   AND sm.section_name = ?"
+            );
+            $validationTypes = str_repeat('i', count($sectionIds)) . 'iis';
+            $validationStmt->bind_param($validationTypes, ...array_merge($sectionIds, [$academicYearId, $semesterId, $classSection]));
+            $validationStmt->execute();
+            $validAssignmentSelection = (int) $validationStmt->get_result()->fetch_assoc()['cnt'] === count($sectionIds);
+            $validationStmt->close();
+        }
+
+        if ($academicYearId && $semesterId && $classSection && $roll_from && $roll_to && count($sectionIds) > 0 && $validAssignmentSelection) {
             // Parse prefix and numeric suffix from both roll numbers
             $fromParts = explode('-', $roll_from, 2);
             $toParts = explode('-', $roll_to, 2);
@@ -54,38 +74,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
             if (count($matchedStudents) > 0) {
                 // ── Duplicate range check: block entirely if any student already assigned ──
-                $studentIds = array_column($matchedStudents, 'id');
-                $ph = implode(',', array_fill(0, count($studentIds), '?'));
-                $sph = implode(',', array_fill(0, count($sectionIds), '?'));
-                $eStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM section_assignments WHERE student_id IN ($ph) AND section_id IN ($sph)");
-                $eTypes = str_repeat('i', count($studentIds)) . str_repeat('i', count($sectionIds));
-                $eStmt->bind_param($eTypes, ...array_merge($studentIds, $sectionIds));
-                $eStmt->execute();
-                $duplicateCount = (int) $eStmt->get_result()->fetch_assoc()['cnt'];
-                $eStmt->close();
-
-                if ($duplicateCount > 0) {
+                // Existing pairs are skipped by INSERT IGNORE below. A
+                // recreated student can therefore join an already-assigned
+                // class range without being blocked by classmates' records.
+                // Add every missing student/section pair idempotently.
                     // Block the entire assignment — do NOT insert anything
-                    setFlash('error', $LANG['duplicate_range_error'] ?? 'This student range has already been assigned. Duplicate assignments are not allowed.');
-                } else {
+                    // Continue into the idempotent insert for every matched student.
                     // No duplicates — safe to insert all assignments
                     $added = 0;
-                    $stmt = $conn->prepare("INSERT INTO section_assignments (student_id, section_id) VALUES (?,?)");
+                    $stmt = $conn->prepare("INSERT IGNORE INTO section_assignments (student_id, section_id) VALUES (?,?)");
                     foreach ($matchedStudents as $stud) {
                         foreach ($sectionIds as $secId) {
                             $stmt->bind_param('ii', $stud['id'], $secId);
-                            $stmt->execute();
-                            $added++;
+                            if ($stmt->execute() && $stmt->affected_rows === 1) $added++;
                         }
                     }
                     $stmt->close();
                     setFlash('success', "ကိုက်ညီသော ကျောင်းသား " . count($matchedStudents) . " ယောက်ကို ရွေးချယ်ထားသော ဘာသာရပ်များထဲသို့ အစုလိုက် အောင်မြင်စွာ ထည့်သွင်းပြီးပါပြီ။");
-                }
             } else {
                 setFlash('error', 'ရိုက်ထည့်ထားသော Roll နံပါတ် အပိုင်းအခြားအတွင်း မည်သည့်ကျောင်းသားမှ မရှိပါ။');
             }
         } else {
-            setFlash('error', $LANG['assignment_required_fields'] ?? 'Academic Year, Semester, Class Section, roll number range, and at least one course are required.');
+            setFlash('error', !$validAssignmentSelection && count($sectionIds) > 0
+                ? 'One or more selected courses do not belong to the chosen academic year, semester, and class section.'
+                : ($LANG['assignment_required_fields'] ?? 'Academic Year, Semester, Class Section, roll number range, and at least one course are required.'));
         }
     }
 
@@ -549,7 +561,7 @@ include '../includes/admin_sidebar.php';
 
 <div id="addModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4 modal-backdrop"
     data-modal-backdrop>
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl modal-box overflow-hidden">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl modal-box overflow-hidden">
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
             <div>
                 <h3 class="font-bold text-slate-800 text-lg">

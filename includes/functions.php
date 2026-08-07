@@ -574,3 +574,52 @@ function getStudentSemesterIds($conn, int $studentId): array
     $stmt->close();
     return $ids;
 }
+
+
+/**
+ * Check whether a Question Set's questions/groups may still be modified.
+ *
+ * Synchronisation (add / edit / delete questions or groups) is ONLY allowed
+ * when EVERY feedback form that references this question set satisfies BOTH:
+ *   1.  NOW() < start_date   (the form is still Upcoming)
+ *   2.  submission_count = 0  (no student has submitted yet)
+ *
+ * @return array{allowed: bool, reason: string}
+ *   reason is empty when allowed; otherwise 'active_or_expired_form' or 'has_submissions'.
+ */
+function canSyncQuestionSet(mysqli $conn, int $questionSetId): array
+{
+    if ($questionSetId < 1)
+        return ['allowed' => true, 'reason' => ''];
+
+    $stmt = $conn->prepare("
+        SELECT ff.id,
+               ff.start_date,
+               (SELECT COUNT(*)
+                FROM feedback_submissions fs
+                WHERE fs.form_id = ff.id) AS submission_count
+        FROM feedback_forms ff
+        WHERE ff.question_set_id = ?
+    ");
+    $stmt->bind_param('i', $questionSetId);
+    $stmt->execute();
+    $forms = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+
+    $now = time();
+    foreach ($forms as $form) {
+        $startTs = strtotime($form['start_date']);
+
+        // Block if form is Active or Expired (NOW >= start_date)
+        if ($startTs !== false && $now >= $startTs) {
+            return ['allowed' => false, 'reason' => 'active_or_expired_form'];
+        }
+
+        // Block if form already has student submissions
+        if ((int) $form['submission_count'] > 0) {
+            return ['allowed' => false, 'reason' => 'has_submissions'];
+        }
+    }
+
+    return ['allowed' => true, 'reason' => ''];
+}
