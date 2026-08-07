@@ -24,7 +24,6 @@ $buttonText = "Get Started";
 $showBadge = true;
 
 $heroDescriptions = [
-    'admin' => $LANG['hero_admin_desc'] ?? 'Admin can review reports and manage feedback efficiently.',
     'teacher' => $LANG['hero_teacher_desc'] ?? 'Teachers can review reports and feedback results.',
     'student' => $LANG['hero_student_desc'] ?? 'Students can submit feedback only for the semester assigned by the admin.',
 ];
@@ -36,10 +35,6 @@ if ($loginType === 'student') {
     $badgeText = "";
     $showBadge = false;
     $buttonText = $LANG['login_teacher_myanmar'] ?? "ဆရာ/ဆရာမ အကောင့်ဖြင့် လော့ဂ်အင်ဝင်ရန်";
-} elseif ($loginType === 'admin') {
-    $badgeText = "";
-    $showBadge = false;
-    $buttonText = $LANG['login_admin_myanmar'] ?? "အက်ဒမင် အကောင့်ဖြင့် လော့ဂ်အင်ဝင်ရန်";
 }
 
 $error = '';
@@ -298,7 +293,6 @@ if ($r)
                     </div>
                 </div>
                 <div class="flex items-center gap-5">
-                    <?php if (($loginType ?? '') !== 'admin'): ?>
                         <a href="/studentfeedbackucsh/index.php"
                             class="inline-flex items-center gap-1.5 text-blue-600/80 hover:text-blue-700 font-semibold text-sm transition-colors">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -307,7 +301,6 @@ if ($r)
                             </svg>
                             <?= $LANG['home'] ?? 'Home' ?>
                         </a>
-                    <?php endif; ?>
                     <!-- <span
                         class="text-xs text-blue-700/70 hidden md:block font-semibold capitalize tracking-wide"><?= e($loginType) ?>
                         <?= $LANG['portal'] ?? 'Portal' ?></span> -->

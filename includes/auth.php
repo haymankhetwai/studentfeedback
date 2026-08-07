@@ -35,9 +35,9 @@ function requireRole(string $role): void {
     if (!isLoggedIn()) {
         $redirect = match ($role) {
             'admin'   => '/studentfeedbackucsh/admin/',
-            'teacher' => '/studentfeedbackucsh/teacher/',
-            'student' => '/studentfeedbackucsh/student/',
-            default   => '/studentfeedbackucsh/auth/login.php',
+            'teacher' => '/studentfeedbackucsh/index.php',
+            'student' => '/studentfeedbackucsh/index.php',
+            default   => '/studentfeedbackucsh/index.php',
         };
         header("Location: $redirect");
         exit;

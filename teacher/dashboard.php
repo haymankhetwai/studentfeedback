@@ -3,17 +3,12 @@ require_once '../config/db.php';
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 
-// Prevent direct URL access — must come through index.php portal flow
-if (!isset($_SESSION['entry_allowed']) || $_SESSION['selected_role'] !== 'teacher') {
-    header('Location: /studentfeedbackucsh/index.php');
-    exit;
-}
 
 requireRole('teacher');
 
 updateAllFeedbackStatuses($conn);
 
-$pageTitle = 'Teacher Dashboard';
+$pageTitle = $LANG['teacher_dashboard_title'] ?? 'Teacher Dashboard';
 $activeMenu = 'dashboard';
 $user = getCurrentUser();
 
