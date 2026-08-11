@@ -12,9 +12,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     if ($action === 'add') {
         $semesterName = trim(clean($_POST['semester_name'] ?? ''));
         if (!$semesterName) {
-            setFlash('error', 'Please enter a semester name.');
+            setFlash('error', $LANG['flash_admin_please_enter_a_semester_name'] ?? 'Please enter a semester name.');
         } elseif (!preg_match('/^Semester\s+(I{1,3}|IV|V|VI{0,3}|IX|X{1,3}(?:I{1,3}|IV|V|VI{0,3}|IX)?)$/i', $semesterName)) {
-            setFlash('error', 'Invalid format. Use Roman numeral format, e.g. Semester I, Semester II, Semester III.');
+            setFlash('error', $LANG['flash_admin_invalid_format_use_roman_numeral_format'] ?? 'Invalid format. Use Roman numeral format, e.g. Semester I, Semester II, Semester III.');
         } else {
             // Normalize: "Semester" + space + uppercase Roman numeral
             preg_match('/^Semester\s+(.+)$/i', $semesterName, $m);
@@ -23,11 +23,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             $chk->bind_param('s', $semesterName);
             $chk->execute();
             if ($chk->get_result()->num_rows > 0) {
-                setFlash('error', 'This semester already exists.');
+                setFlash('error', $LANG['flash_admin_this_semester_already_exists'] ?? 'This semester already exists.');
             } else {
                 $stmt = $conn->prepare("INSERT INTO semesters (semester_name) VALUES (?)");
                 $stmt->bind_param('s', $semesterName);
-                $stmt->execute() ? setFlash('success', 'Semester added.') : setFlash('error', 'Failed.');
+                $stmt->execute() ? setFlash('success', $LANG['flash_admin_semester_added'] ?? 'Semester added.') : setFlash('error', $LANG['flash_admin_failed'] ?? 'Failed.');
                 $stmt->close();
             }
             $chk->close();
@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         $semesterName = trim(clean($_POST['semester_name'] ?? ''));
         if ($id && $semesterName) {
             if (!preg_match('/^Semester\s+(I{1,3}|IV|V|VI{0,3}|IX|X{1,3}(?:I{1,3}|IV|V|VI{0,3}|IX)?)$/i', $semesterName)) {
-                setFlash('error', 'Invalid format. Use Roman numeral format, e.g. Semester I, Semester II, Semester III.');
+                setFlash('error', $LANG['flash_admin_invalid_format_use_roman_numeral_format'] ?? 'Invalid format. Use Roman numeral format, e.g. Semester I, Semester II, Semester III.');
             } else {
                 preg_match('/^Semester\s+(.+)$/i', $semesterName, $m);
                 $semesterName = 'Semester ' . strtoupper(trim($m[1]));
@@ -46,11 +46,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                 $chk->bind_param('si', $semesterName, $id);
                 $chk->execute();
                 if ($chk->get_result()->num_rows > 0) {
-                    setFlash('error', 'This semester name already exists.');
+                    setFlash('error', $LANG['flash_admin_this_semester_name_already_exists'] ?? 'This semester name already exists.');
                 } else {
                     $stmt = $conn->prepare("UPDATE semesters SET semester_name=? WHERE id=?");
                     $stmt->bind_param('si', $semesterName, $id);
-                    $stmt->execute() ? setFlash('success', 'Semester updated.') : setFlash('error', 'Update failed.');
+                    $stmt->execute() ? setFlash('success', $LANG['flash_admin_semester_updated'] ?? 'Semester updated.') : setFlash('error', $LANG['flash_admin_update_failed'] ?? 'Update failed.');
                     $stmt->close();
                 }
                 $chk->close();
@@ -74,11 +74,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                     break;
             }
             if ($inUse) {
-                setFlash('error', 'Cannot delete: this semester is referenced by sections or forms.');
+                setFlash('error', $LANG['flash_admin_cannot_delete_this_semester_is_referenced'] ?? 'Cannot delete: this semester is referenced by sections or forms.');
             } else {
                 $stmt = $conn->prepare("DELETE FROM semesters WHERE id=?");
                 $stmt->bind_param('i', $id);
-                $stmt->execute() ? setFlash('success', 'Semester deleted.') : setFlash('error', 'Cannot delete.');
+                $stmt->execute() ? setFlash('success', $LANG['flash_admin_semester_deleted'] ?? 'Semester deleted.') : setFlash('error', $LANG['flash_admin_cannot_delete'] ?? 'Cannot delete.');
                 $stmt->close();
             }
         }

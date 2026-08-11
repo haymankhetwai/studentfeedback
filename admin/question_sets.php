@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         $title = clean($_POST['title'] ?? '');
 
         if (!$ayId || !$title) {
-            setFlash('error', 'All fields are required.');
+            setFlash('error', $LANG['flash_admin_all_fields_are_required'] ?? 'All fields are required.');
             header('Location: question_sets.php');
             exit;
         }
@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         $chk->close();
 
         if ($dup) {
-            setFlash('error', 'Question Set already exists for this Academic Year and Module.');
+            setFlash('error', $LANG['flash_admin_question_set_already_exists_for_this'] ?? 'Question Set already exists for this Academic Year and Module.');
             header('Location: question_sets.php');
             exit;
         }
@@ -114,13 +114,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
             $conn->commit();
             if ($copied > 0) {
-                setFlash('success', "Question Set created with $copied questions copied from previous year.");
+                setFlash('success', str_replace(':copied', $copied, $LANG['flash_admin_question_set_copied'] ?? "Question Set created with :copied questions copied from previous year."));
             } else {
-                setFlash('success', 'Question Set created. No previous year data found — add questions manually.');
+                setFlash('success', $LANG['flash_admin_question_set_created_no_previous_year'] ?? 'Question Set created. No previous year data found — add questions manually.');
             }
         } catch (Exception $e) {
             $conn->rollback();
-            setFlash('error', 'Failed to create Question Set: ' . $e->getMessage());
+            setFlash('error', str_replace(':msg', $e->getMessage(), $LANG['flash_admin_question_set_failed'] ?? 'Failed to create Question Set: :msg'));
         }
 
         header('Location: question_sets.php');
@@ -133,14 +133,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         $status = in_array($_POST['status'] ?? '', ['active', 'inactive']) ? $_POST['status'] : 'active';
 
         if (!$id || !$title) {
-            setFlash('error', 'All fields required.');
+            setFlash('error', $LANG['flash_admin_all_fields_required'] ?? 'All fields required.');
             header('Location: question_sets.php');
             exit;
         }
 
         $stmt = $conn->prepare("UPDATE feedback_question_sets SET title=?, status=? WHERE id=?");
         $stmt->bind_param('ssi', $title, $status, $id);
-        $stmt->execute() ? setFlash('success', 'Question Set updated.') : setFlash('error', 'Update failed.');
+        $stmt->execute() ? setFlash('success', $LANG['flash_admin_question_set_updated'] ?? 'Question Set updated.') : setFlash('error', $LANG['flash_admin_update_failed'] ?? 'Update failed.');
         $stmt->close();
         header('Location: question_sets.php');
         exit;
@@ -153,14 +153,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         $targetTitle = clean($_POST['target_title'] ?? '');
 
         if (!$sourceId || !$targetAyId || !$targetTitle) {
-            setFlash('error', 'All fields are required.');
+            setFlash('error', $LANG['flash_admin_all_fields_are_required'] ?? 'All fields are required.');
             header('Location: question_sets.php');
             exit;
         }
 
         $srcRow = $conn->query("SELECT id, title, module FROM feedback_question_sets WHERE id=" . (int) $sourceId)->fetch_assoc();
         if (!$srcRow) {
-            setFlash('error', 'Source Question Set not found.');
+            setFlash('error', $LANG['flash_admin_source_question_set_not_found'] ?? 'Source Question Set not found.');
             header('Location: question_sets.php');
             exit;
         }
@@ -172,7 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         $chk->close();
 
         if ($exists) {
-            setFlash('error', 'Question Set already exists for this Academic Year and Module.');
+            setFlash('error', $LANG['flash_admin_question_set_already_exists_for_this'] ?? 'Question Set already exists for this Academic Year and Module.');
             header('Location: question_sets.php');
             exit;
         }
@@ -194,12 +194,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             $copied = cloneSurveyArchitecture($conn, $sourceId, $newSetId);
 
             $conn->commit();
-            setFlash('success', 'Question Set cloned successfully with ' . $copied . ' questions.');
+            setFlash('success', str_replace(':copied', $copied, $LANG['flash_admin_question_set_cloned'] ?? 'Question Set cloned successfully with :copied questions.'));
             header('Location: question_sets.php');
             exit;
         } catch (Exception $e) {
             $conn->rollback();
-            setFlash('error', 'Clone failed: ' . $e->getMessage());
+            setFlash('error', str_replace(':msg', $e->getMessage(), $LANG['flash_admin_clone_failed'] ?? 'Clone failed: :msg'));
             header('Location: question_sets.php');
             exit;
         }
@@ -212,7 +212,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             $chk->bind_param('i', $id);
             $chk->execute();
             if ($chk->get_result()->num_rows > 0) {
-                setFlash('error', 'Cannot delete: this Question Set is used by feedback forms.');
+                setFlash('error', $LANG['flash_admin_cannot_delete_this_question_set_is'] ?? 'Cannot delete: this Question Set is used by feedback forms.');
             } else {
                 $conn->begin_transaction();
                 try {
@@ -227,10 +227,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                     $delS->close();
 
                     $conn->commit();
-                    setFlash('success', 'Question Set deleted.');
+                    setFlash('success', $LANG['flash_admin_question_set_deleted'] ?? 'Question Set deleted.');
                 } catch (Exception $e) {
                     $conn->rollback();
-                    setFlash('error', 'Cannot delete.');
+                    setFlash('error', $LANG['flash_admin_cannot_delete'] ?? 'Cannot delete.');
                 }
             }
             $chk->close();

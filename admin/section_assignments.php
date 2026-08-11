@@ -4,7 +4,7 @@ require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 requireRole('admin');
 
-$pageTitle = $LANG['assignments_title'] ?? 'Section Assignments';
+$pageTitle = $LANG['nav_assignments'] ?? 'Student Assignments';
 $activeMenu = 'assignments';
 
 $sectionList = $conn->query("SELECT s.id, c.course_name, c.course_code, sm_sec.section_name, COALESCE(ay.year_name, '') AS academic_year, COALESCE(sm.semester_name, '') AS semester_name FROM sections s JOIN courses c ON s.course_id=c.id LEFT JOIN section_master sm_sec ON s.section_id=sm_sec.id LEFT JOIN academic_years ay ON s.academic_year_id=ay.id LEFT JOIN semesters sm ON s.semester_id=sm.id ORDER BY c.course_name, sm_sec.section_name")->fetch_all(MYSQLI_ASSOC);
@@ -73,30 +73,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             }
 
             if (count($matchedStudents) > 0) {
-                // ── Duplicate range check: block entirely if any student already assigned ──
-                // Existing pairs are skipped by INSERT IGNORE below. A
-                // recreated student can therefore join an already-assigned
-                // class range without being blocked by classmates' records.
-                // Add every missing student/section pair idempotently.
-                    // Block the entire assignment — do NOT insert anything
-                    // Continue into the idempotent insert for every matched student.
-                    // No duplicates — safe to insert all assignments
-                    $added = 0;
-                    $stmt = $conn->prepare("INSERT IGNORE INTO section_assignments (student_id, section_id) VALUES (?,?)");
-                    foreach ($matchedStudents as $stud) {
-                        foreach ($sectionIds as $secId) {
-                            $stmt->bind_param('ii', $stud['id'], $secId);
-                            if ($stmt->execute() && $stmt->affected_rows === 1) $added++;
+                $added = 0;
+                $duplicates = 0;
+                $failed = 0;
+                $checkStmt = $conn->prepare("SELECT 1 FROM section_assignments WHERE student_id=? AND section_id=? LIMIT 1");
+                $insertStmt = $conn->prepare("INSERT INTO section_assignments (student_id, section_id) VALUES (?,?)");
+                foreach ($matchedStudents as $stud) {
+                    foreach ($sectionIds as $secId) {
+                        $studentId = (int) $stud['id'];
+                        $checkStmt->bind_param('ii', $studentId, $secId);
+                        if (!$checkStmt->execute()) {
+                            $failed++;
+                            continue;
+                        }
+                        $checkStmt->store_result();
+                        $assignmentExists = $checkStmt->num_rows > 0;
+                        $checkStmt->free_result();
+                        if ($assignmentExists) {
+                            $duplicates++;
+                            continue;
+                        }
+
+                        $insertStmt->bind_param('ii', $studentId, $secId);
+                        if ($insertStmt->execute() && $insertStmt->affected_rows === 1) {
+                            $added++;
+                        } else {
+                            $failed++;
                         }
                     }
-                    $stmt->close();
-                    setFlash('success', "ကိုက်ညီသော ကျောင်းသား " . count($matchedStudents) . " ယောက်ကို ရွေးချယ်ထားသော ဘာသာရပ်များထဲသို့ အစုလိုက် အောင်မြင်စွာ ထည့်သွင်းပြီးပါပြီ။");
+                }
+                $checkStmt->close();
+                $insertStmt->close();
+
+                if ($failed > 0) {
+                    setFlash('error', $LANG['flash_admin_one_or_more_student_assignments_could'] ?? 'One or more student assignments could not be saved.');
+                } elseif ($added > 0) {
+                    setFlash('success', $duplicates > 0
+                        ? str_replace(':duplicates', $duplicates, $LANG['flash_admin_assignments_added_with_duplicates'] ?? "New assignments were added successfully. This student is already assigned to this section for :duplicates existing assignment(s), which were skipped.")
+                        : str_replace(':added', $added, $LANG['flash_admin_assignments_added'] ?? ":added student assignment(s) added successfully."));
+                } else {
+                    setFlash('error', $LANG['duplicate_range_error'] ?? 'This student range has already been assigned. Duplicate assignments are not allowed.');
+                }
             } else {
-                setFlash('error', 'ရိုက်ထည့်ထားသော Roll နံပါတ် အပိုင်းအခြားအတွင်း မည်သည့်ကျောင်းသားမှ မရှိပါ။');
+                setFlash('error', $LANG['flash_admin_roll'] ?? 'ရိုက်ထည့်ထားသော Roll နံပါတ် အပိုင်းအခြားအတွင်း မည်သည့်ကျောင်းသားမှ မရှိပါ။');
             }
         } else {
             setFlash('error', !$validAssignmentSelection && count($sectionIds) > 0
-                ? 'One or more selected courses do not belong to the chosen academic year, semester, and class section.'
+                ? ($LANG['flash_admin_invalid_courses_selection'] ?? 'One or more selected courses do not belong to the chosen academic year, semester, and class section.')
                 : ($LANG['assignment_required_fields'] ?? 'Academic Year, Semester, Class Section, roll number range, and at least one course are required.'));
         }
     }
@@ -108,13 +131,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             $stmt = $conn->prepare("UPDATE section_assignments SET section_id=? WHERE id=?");
             $stmt->bind_param('ii', $sectionId, $id);
             if ($stmt->execute()) {
-                setFlash('success', 'Assignment updated successfully.');
+                setFlash('success', $LANG['flash_admin_assignment_updated_successfully'] ?? 'Assignment updated successfully.');
             } else {
-                setFlash('error', 'Failed to update assignment (may already exist).');
+                setFlash('error', $LANG['flash_admin_failed_to_update_assignment_may_already'] ?? 'Failed to update assignment (may already exist).');
             }
             $stmt->close();
         } else {
-            setFlash('error', 'Invalid assignment or section.');
+            setFlash('error', $LANG['flash_admin_invalid_assignment_or_section'] ?? 'Invalid assignment or section.');
         }
     }
 
@@ -123,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         if ($id) {
             $stmt = $conn->prepare("DELETE FROM section_assignments WHERE id=?");
             $stmt->bind_param('i', $id);
-            $stmt->execute() ? setFlash('success', 'Assignment removed.') : setFlash('error', 'Failed.');
+            $stmt->execute() ? setFlash('success', $LANG['flash_admin_assignment_removed'] ?? 'Assignment removed.') : setFlash('error', $LANG['flash_admin_failed'] ?? 'Failed.');
             $stmt->close();
         }
     }
@@ -134,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             $stmt = $conn->prepare("DELETE FROM section_assignments WHERE student_id=?");
             $stmt->bind_param('i', $student);
             $stmt->execute();
-            setFlash('success', 'All assignments for student removed.');
+            setFlash('success', $LANG['flash_admin_all_assignments_for_student_removed'] ?? 'All assignments for student removed.');
             $stmt->close();
         }
     }

@@ -160,9 +160,9 @@ $LANG = [
     'total_students_stat' => 'Total Students',
     'total_teachers_stat' => 'Total Teachers',
     'departments_stat' => 'Departments',
-    'section_assignments_stat' => 'Section Assignments',
+    'section_assignments_stat' => 'Student Assignments',
     'courses_stat' => 'Courses',
-    'sections_stat' => 'Sections',
+    'sections_stat' => 'Teaching Assignments',
     'quick_actions' => 'Quick Actions',
     'ql_students' => 'Students',
     'ql_sections' => 'Sections',
@@ -225,7 +225,7 @@ $LANG = [
 
     // ─── Teachers ────────────────────────────────────────────
     'teachers_title' => 'Teachers',
-    'teachers_subtitle' => 'Manage teacher profiles and assignments',
+    'teachers_subtitle' => 'Manage teacher assignments',
     'add_teacher' => 'Add Teacher',
     'search_teachers' => 'Search teachers...',
     'no_teachers_found' => 'No teachers found. First create a user with role "teacher" in Users page.',
@@ -237,10 +237,11 @@ $LANG = [
     'edit_teacher_modal' => 'Edit Teacher',
     'remove_teacher_modal' => 'Remove Teacher',
     'remove_teacher_confirm' => 'Remove teacher from the system?',
+    'select_year' => 'Select Academic Year',
 
     // ─── Students ────────────────────────────────────────────
     'students_title' => 'Students',
-    'students_subtitle' => 'Manage student profiles and enrollment',
+    'students_subtitle' => 'Manage student enrollment',
     'add_student' => 'Add Student',
     'search_students' => 'Search students...',
     'no_students_found' => 'No students found.',
@@ -270,7 +271,7 @@ $LANG = [
     // ─── Sections ────────────────────────────────────────────
     'sections_title' => 'Sections',
     'sections_subtitle' => 'Manage course sections per semester',
-    'add_section' => 'Add Section',
+    'add_section' => 'Assign Course',
     'search_sections' => 'Search sections...',
     'no_sections_found' => 'No sections found.',
     'select_course' => 'Course',
@@ -281,7 +282,7 @@ $LANG = [
     'academic_year_placeholder' => '2024-2025',
     'semester' => 'Semester',
     'select_semester' => 'Select Semester',
-    'add_section_btn' => 'Add Section',
+    'add_section_btn' => 'Assign Course',
     'edit_section_modal' => 'Edit Section',
     'delete_section_modal' => 'Delete Section',
     'year_semester' => 'Year / Semester',
@@ -404,6 +405,7 @@ $LANG = [
     'remove_all_confirm' => 'Are you sure you want to completely clear all course enrollments for',
     'no_assignments_found' => 'No assignments found.',
     'no_assignments_for_filter' => 'No assigned courses found for the selected semester and section.',
+    'student_already_assigned' => 'This student is already assigned to this section.',
 
     // ─── Reports & Analytics ─────────────────────────────────
     'reports_title' => 'Reports & Analytics',
@@ -441,6 +443,10 @@ $LANG = [
     'update_password' => 'Update Password',
     'username_label' => 'Username',
     'member_since' => 'Member Since',
+    'flash_photo_removed' => 'Profile photo removed successfully.',
+    'confirm_remove_photo' => 'Are you sure you want to remove your profile photo?',
+    'remove_photo' => 'Remove Photo',
+
 
     // ─── Teacher Dashboard ───────────────────────────────────
     'teacher_welcome' => 'Welcome to',
@@ -493,8 +499,19 @@ $LANG = [
     'flash_password_fields_required' => 'All password fields are required.',
     'flash_cannot_delete_self' => 'You cannot delete your own account.',
     'flash_cannot_delete' => 'Cannot delete.',
+    'flash_admin_academic_year_exists' => 'Academic Year :year already exists.',
+    'flash_admin_academic_year_must_be_sequential' => 'Academic Year must be sequential. The next required year is :expected.',
+    'flash_admin_question_set_copied' => 'Question Set created with :copied questions copied from previous year.',
+    'flash_admin_question_set_failed' => 'Failed to create Question Set: :msg',
+    'flash_admin_question_set_cloned' => 'Question Set cloned successfully with :copied questions.',
+    'flash_admin_clone_failed' => 'Clone failed: :msg',
+    'flash_admin_assignments_added_with_duplicates' => 'New assignments were added successfully. This student is already assigned to this section for :duplicates existing assignment(s), which were skipped.',
+    'flash_admin_assignments_added' => ':added student assignment(s) added successfully.',
+    'flash_admin_invalid_courses_selection' => 'One or more selected courses do not belong to the chosen academic year, semester, and class section.',
     'flash_has_sections' => 'Cannot delete (has sections).',
     'flash_has_assignments' => 'Cannot delete (has assignments).',
+    'flash_student_added' => 'Student added successfully.',
+    'flash_admin_this_semester_already_exists' => 'This semester already exists.',
 
     // ─── Validation Messages ─────────────────────────────────
     'val_name_invalid' => 'Full Name may contain only letters, single spaces, and a period (.) for titles such as Dr. or Prof.',
@@ -504,6 +521,9 @@ $LANG = [
     'val_email_domain' => 'Invalid email address. Email must use either @ucsh.edu.mm or @gmail.com.',
     'val_email_invalid' => 'Invalid email address. Email must use either @ucsh.edu.mm or @gmail.com.',
     'val_password_invalid' => 'Password must be at least 6 characters. Only letters, numbers, and @ are allowed.',
+    'val_password_strong' => 'Password must be at least 6 characters, and include at least one uppercase letter, one lowercase letter, one number, and one special character (no spaces).',
+    'password_placeholder_strong' => 'Min 6 chars, uppercase, lowercase, number, special char',
+    'password_hint_strong' => 'Min 6 chars: 1 uppercase, 1 lowercase, 1 number, 1 special char. No spaces.',
     'val_passwords_mismatch' => 'Passwords do not match.',
     'val_name_required' => 'Full Name',
     'val_required' => '*',
@@ -899,7 +919,7 @@ $LANG = [
     'overall_survey_summary' => 'Overall Survey Summary',
     'based_on_rating_only' => 'Based on Rating Questions Only',
     'performance_grade' => 'Performance Grade',
-    'total_responses' => 'Total Responses',
+    'total_responses' => 'Total Ratings',
     'scoring_scale' => 'Scoring Scale',
     'rating_distribution' => 'Rating Distribution',
     'not_in_overall' => 'Not included in Overall Rating',
@@ -912,16 +932,31 @@ $LANG = [
     'option_label' => 'Option',
 
     // ─── Flash Messages (extra) ──────────────────────────────
-    'flash_section_added' => 'Section added.',
-    'flash_section_add_failed' => 'Failed to add section.',
-    'flash_section_updated' => 'Section updated.',
-    'flash_section_deleted' => 'Section deleted.',
+    // 'flash_section_added' => 'Section added.',
+    // 'flash_section_add_failed' => 'Failed to add section.',
+    // 'flash_section_updated' => 'Section updated.',
+    // 'flash_section_deleted' => 'Section deleted.',
+    // 'flash_user_created' => 'User created successfully.',
+    // 'flash_user_create_failed' => 'Failed to create user.',
+    // 'flash_user_updated' => 'User updated.',
+    // 'flash_user_update_failed' => 'Failed to update user.',
+    // 'flash_user_deleted' => 'User deleted.',
+    // 'flash_profile_failed' => 'Failed to update profile.',
+    // 'flash_section_duplicate' => 'A section with this name already exists for the same course, teacher, year, and semester.',
+
+
+
+    'flash_section_added' => 'Course assigned successfully.',
+    'flash_section_add_failed' => 'Failed to assign course.',
+    'flash_section_updated' => 'Course assignment updated successfully.',
+    'flash_section_deleted' => 'Course assignment deleted successfully.',
     'flash_user_created' => 'User created successfully.',
     'flash_user_create_failed' => 'Failed to create user.',
-    'flash_user_updated' => 'User updated.',
+    'flash_user_updated' => 'User updated successfully.',
     'flash_user_update_failed' => 'Failed to update user.',
     'flash_user_deleted' => 'User deleted.',
     'flash_profile_failed' => 'Failed to update profile.',
+    'flash_section_duplicate' => 'This course is already assigned to the same teacher, academic year, semester, and section.',
 
     // ─── Import (Users) ──────────────────────────────────────
     'import_students_excel' => 'Import Students (Excel)',
@@ -2097,6 +2132,7 @@ $LANG = [
     'mod_academic' => 'Teaching Quality',
     'mod_student_affairs' => 'Student Support Services',
     'mod_administration' => 'Learning Environment',
+    'error_roll_no_exists' => 'Roll No ":rollno" already exists. Please use a different Roll No.',
 
     // ─── Student Module Redesign ────────────────────────────────
     'nav_feedback_forms' => 'Feedback Forms',
@@ -2119,7 +2155,7 @@ $LANG = [
     'flash_please_complete_previous' => 'Please complete the previous feedback form first.',
     'section_names_title' => 'Section Names',
     'section_names_subtitle' => 'Manage reusable section names. These appear in all section dropdowns.',
-    'add_section_name' => 'Add Section Name',
+    'add_section_name' => 'Add Section',
     'flash_section_name_empty' => 'Section name cannot be empty.',
     'flash_section_invalid' => 'Section must contain only capital letters (e.g. A, B, C, D).',
     'flash_section_name_exists' => 'This section name already exists.',
@@ -2251,4 +2287,84 @@ $LANG = [
     'sync_locked_title' => 'Read-Only — Questions Locked',
     'sync_locked_desc_active' => 'A feedback form using this Question Set is currently Active or Expired. Questions cannot be modified.',
     'sync_locked_desc_submissions' => 'A feedback form using this Question Set already has student submissions. Questions cannot be modified.',
+
+    'flash_admin_this_course_code_already_exists' => 'This course code already exists.',
+    'flash_admin_this_course_name_already_exists' => 'This course name already exists.',
 ];
+
+// --- Admin Flash Messages ---
+$LANG['flash_admin_you_cannot_delete_your_own_account'] = 'You cannot delete your own account.';
+$LANG['flash_admin_section_is_required_for_teaching_quality'] = 'Section is required for Teaching Quality forms.';
+$LANG['flash_admin_course_updated'] = 'Course updated.';
+$LANG['flash_admin_department_deleted'] = 'Department deleted.';
+$LANG['flash_admin_failed_to_update'] = 'Failed to update.';
+$LANG['flash_admin_user_created_successfully'] = 'User created successfully.';
+$LANG['flash_admin_source_question_set_not_found'] = 'Source Question Set not found.';
+$LANG['flash_admin_failed'] = 'Failed.';
+$LANG['flash_admin_failed_to_add_student'] = 'Failed to add student.';
+$LANG['flash_admin_major_deleted'] = 'Major deleted.';
+$LANG['flash_admin_academic_year_deleted'] = 'Academic Year deleted.';
+$LANG['flash_admin_all_fields_required'] = 'All fields required.';
+$LANG['flash_admin_form_updated'] = 'Form updated.';
+$LANG['flash_admin_cannot_delete'] = 'Cannot delete.';
+$LANG['flash_admin_all_fields_are_required_make_sure'] = 'All fields are required. Make sure a Question Set exists for the selected Year + Module.';
+$LANG['flash_admin_invalid_assignment_or_section'] = 'Invalid assignment or section.';
+$LANG['flash_admin_teacher_removed'] = 'Teacher removed.';
+$LANG['flash_admin_semester_deleted'] = 'Semester deleted.';
+$LANG['flash_admin_student_updated_successfully'] = 'Student updated successfully.';
+$LANG['flash_admin_please_enter_a_valid_year_format'] = 'Please enter a valid year format (e.g. 2025-2026).';
+$LANG['flash_admin_failed_to_create_user'] = 'Failed to create user.';
+$LANG['flash_admin_user_deleted'] = 'User deleted.';
+$LANG['flash_admin_department_added'] = 'Department added.';
+$LANG['flash_admin_feedback_form_created'] = 'Feedback form created.';
+$LANG['flash_admin_invalid_format_use_roman_numeral_format'] = 'Invalid format. Use Roman numeral format, e.g. Semester I, Semester II, Semester III.';
+$LANG['flash_admin_question_set_not_found'] = 'Question Set not found.';
+$LANG['flash_admin_cannot_delete_this_semester_is_referenced'] = 'Cannot delete: this semester is referenced by sections or forms.';
+$LANG['flash_admin_failed_code_may_already_exist'] = 'Failed. Code may already exist.';
+$LANG['flash_admin_please_enter_a_semester_name'] = 'Please enter a semester name.';
+$LANG['flash_admin_department_name_is_required'] = 'Department name is required.';
+$LANG['flash_admin_one_or_more_student_assignments_could'] = 'One or more student assignments could not be saved.';
+$LANG['flash_admin_major_updated'] = 'Major updated.';
+$LANG['flash_admin_this_semester_name_already_exists'] = 'This semester name already exists.';
+$LANG['flash_admin_roll_no_is_required'] = 'Roll No is required.';
+$LANG['flash_admin_form_deleted'] = 'Form deleted.';
+$LANG['flash_admin_assignment_updated_successfully'] = 'Assignment updated successfully.';
+$LANG['flash_admin_semester_updated'] = 'Semester updated.';
+$LANG['flash_admin_selected_section_does_not_belong_to'] = 'Selected section does not belong to the selected academic year and semester.';
+$LANG['flash_admin_student_and_all_related_assignment_and'] = 'Student and all related assignment and feedback records were removed.';
+$LANG['flash_admin_start_date_cannot_be_before_now'] = 'Start date cannot be before now.';
+$LANG['flash_admin_this_department_already_exists'] = 'This department already exists.';
+$LANG['flash_admin_this_semester_already_exists'] = 'This semester already exists.';
+$LANG['flash_admin_course_added'] = 'Course added.';
+$LANG['flash_admin_invalid_request'] = 'Invalid request.';
+$LANG['flash_admin_failed_to_add_teacher'] = 'Failed to add teacher.';
+$LANG['flash_admin_question_set_updated'] = 'Question Set updated.';
+$LANG['flash_admin_user_updated'] = 'User updated.';
+$LANG['flash_admin_the_selected_user_is_not_an'] = 'The selected user is not an available student account.';
+$LANG['flash_admin_question_set_already_exists_for_this'] = 'Question Set already exists for this Academic Year and Module.';
+$LANG['flash_admin_teacher_added'] = 'Teacher added.';
+$LANG['flash_admin_invalid_academic_year_the_second_year'] = 'Invalid Academic Year. The second year must be exactly one year after the first (e.g. 2025-2026).';
+$LANG['flash_admin_cannot_delete_this_academic_year_is'] = 'Cannot delete: this Academic Year is referenced by sections.';
+$LANG['flash_admin_cannot_delete_this_question_set_is'] = 'Cannot delete: this Question Set is used by feedback forms.';
+$LANG['flash_admin_failed_to_add_department'] = 'Failed to add department.';
+$LANG['flash_admin_cannot_delete_has_courses_or_students'] = 'Cannot delete (has courses or students).';
+$LANG['flash_admin_teacher_updated'] = 'Teacher updated.';
+$LANG['flash_admin_roll'] = 'ရိုက်ထည့်ထားသော Roll နံပါတ် အပိုင်းအခြားအတွင်း မည်သည့်ကျောင်းသားမှ မရှိပါ။';
+$LANG['flash_admin_all_assignments_for_student_removed'] = 'All assignments for student removed.';
+$LANG['flash_admin_assignment_removed'] = 'Assignment removed.';
+$LANG['flash_admin_semester_added'] = 'Semester added.';
+$LANG['flash_admin_all_fields_are_required'] = 'All fields are required.';
+$LANG['flash_admin_question_set_deleted'] = 'Question Set deleted.';
+$LANG['flash_admin_cannot_delete_student_because_related_records'] = 'Cannot delete student because related records could not be cleaned up safely.';
+$LANG['flash_admin_major_added'] = 'Major added.';
+$LANG['flash_admin_update_failed'] = 'Update failed.';
+$LANG['flash_admin_cannot_delete_has_sections'] = 'Cannot delete (has sections).';
+$LANG['flash_admin_academic_year_added'] = 'Academic Year added.';
+$LANG['flash_admin_failed_to_update_assignment_may_already'] = 'Failed to update assignment (may already exist).';
+$LANG['flash_admin_academic_year_updated'] = 'Academic Year updated.';
+$LANG['flash_admin_cannot_delete_this_academic_year_is_1'] = 'Cannot delete: this Academic Year is referenced by feedback forms.';
+$LANG['flash_admin_department_updated'] = 'Department updated.';
+$LANG['flash_admin_invalid_roll_no_format_first_year'] = 'Invalid Roll No format. First Year: 1CST-1 or 1CST1-1. Other Years: 2CS-1, 2CT-1, 5CS1-1, or 5CT1-1.';
+$LANG['flash_admin_course_deleted'] = 'Course deleted.';
+$LANG['flash_admin_end_date_must_be_after_start'] = 'End date must be after start date.';
+$LANG['flash_admin_question_set_created_no_previous_year'] = 'Question Set created. No previous year data found — add questions manually.';

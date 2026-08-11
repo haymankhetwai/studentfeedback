@@ -14,11 +14,11 @@ require_once '../includes/trend_helpers.php';
 
 requireRole('admin');
 
-$pageTitle  = $LANG['academic_trend_analysis'] ?? 'Teaching Quality Trend Analysis';
+$pageTitle = $LANG['academic_trend_analysis'] ?? 'Teaching Quality Trend Analysis';
 $activeMenu = 'trend_academic';
 
 // --- AJAX: Search teachers by name (all teachers in DB) --------
-if (isset($_GET['ajax_teachers']) && (int)($_GET['ajax_teachers']) === 1) {
+if (isset($_GET['ajax_teachers']) && (int) ($_GET['ajax_teachers']) === 1) {
     header('Content-Type: application/json');
     $q = trim($_GET['q'] ?? '');
     $sql = "SELECT t.id, u.name
@@ -35,12 +35,12 @@ if (isset($_GET['ajax_teachers']) && (int)($_GET['ajax_teachers']) === 1) {
     $stmt->execute();
     $result = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
-    echo json_encode(array_map(fn($t) => ['id' => (int)$t['id'], 'name' => $t['name']], $result));
+    echo json_encode(array_map(fn($t) => ['id' => (int) $t['id'], 'name' => $t['name']], $result));
     exit;
 }
 
 // --- AJAX: Return courses for a teacher as JSON ----------------
-if (isset($_GET['ajax_courses']) && (int)($_GET['ajax_courses']) === 1) {
+if (isset($_GET['ajax_courses']) && (int) ($_GET['ajax_courses']) === 1) {
     header('Content-Type: application/json');
     $ajaxTeacherId = (int) ($_GET['teacher_id'] ?? 0);
     $courses = getTrendCourses($conn, $ajaxTeacherId ?: null);
@@ -50,31 +50,31 @@ if (isset($_GET['ajax_courses']) && (int)($_GET['ajax_courses']) === 1) {
 
 // --- Filters ------------------------------------------------
 $teacherId = (int) ($_GET['teacher_id'] ?? 0);
-$courseId   = (int) ($_GET['course_id'] ?? 0);
+$courseId = (int) ($_GET['course_id'] ?? 0);
 
 // Dropdown data
 $teachers = getTrendTeachers($conn);
-$courses  = getTrendCourses($conn, $teacherId ?: null);
+$courses = getTrendCourses($conn, $teacherId ?: null);
 
 // --- Trend Data (only if both teacher and course selected) --
-$trendData     = [];
+$trendData = [];
 $questionTrend = [];
-$surveyTrend   = [];
-$summary       = null;
+$surveyTrend = [];
+$summary = null;
 $ayImprovements = [];
-$hasData       = false;
+$hasData = false;
 $hasMultipleAY = false;
 
 if ($teacherId && $courseId) {
-    $trendData     = getAcademicRatingTrend($conn, $teacherId, $courseId ?: null);
-    $questionRaw   = getAcademicQuestionTrend($conn, $teacherId, $courseId ?: null);
-    $surveyRaw     = getAcademicSurveyTrend($conn, $teacherId, $courseId ?: null);
+    $trendData = getAcademicRatingTrend($conn, $teacherId, $courseId ?: null);
+    $questionRaw = getAcademicQuestionTrend($conn, $teacherId, $courseId ?: null);
+    $surveyRaw = getAcademicSurveyTrend($conn, $teacherId, $courseId ?: null);
 
     $questionTrend = processQuestionTrend($questionRaw);
-    $surveyTrend   = processSurveyTrend($surveyRaw);
-    $summary       = buildTrendSummary($trendData);
+    $surveyTrend = processSurveyTrend($surveyRaw);
+    $summary = buildTrendSummary($trendData);
 
-    $hasData       = count($trendData) > 0;
+    $hasData = count($trendData) > 0;
     $hasMultipleAY = count($trendData) > 1;
 
     // Per-AY improvement calculations
@@ -129,14 +129,13 @@ include '../includes/admin_sidebar.php';
             <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
                 <?= $LANG['teacher'] ?? 'Teacher' ?>
             </label>
-            <input type="text" id="trendTeacherInput"
-                value="<?= e($selectedTeacherName) ?>"
-                placeholder="<?= $LANG['search_teacher'] ?? 'Search teacher name...' ?>"
-                autocomplete="off"
+            <input type="text" id="trendTeacherInput" value="<?= e($selectedTeacherName) ?>"
+                placeholder="<?= $LANG['search_teacher'] ?? 'Search teacher name...' ?>" autocomplete="off"
                 class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
             <input type="hidden" id="trendTeacherFilter" value="<?= $teacherId ?>">
             <!-- Autocomplete dropdown -->
-            <div id="teacherDropdown" class="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto hidden">
+            <div id="teacherDropdown"
+                class="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto hidden">
             </div>
         </div>
         <!-- Course Filter -->
@@ -144,8 +143,7 @@ include '../includes/admin_sidebar.php';
             <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
                 <?= $LANG['course'] ?? 'Course' ?>
             </label>
-            <select id="trendCourseFilter"
-                onchange="navigateFilters()"
+            <select id="trendCourseFilter" onchange="navigateFilters()"
                 class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
                 <option value=""><?= $LANG['all_courses'] ?? 'All Courses' ?></option>
                 <?php foreach ($courses as $c): ?>
@@ -166,138 +164,138 @@ include '../includes/admin_sidebar.php';
 </div>
 
 <script>
-(function() {
-    const input = document.getElementById('trendTeacherInput');
-    const hidden = document.getElementById('trendTeacherFilter');
-    const dropdown = document.getElementById('teacherDropdown');
-    const courseSelect = document.getElementById('trendCourseFilter');
-    let selectedTeacherId = <?= $teacherId ?>;
-    let debounceTimer;
+    (function () {
+        const input = document.getElementById('trendTeacherInput');
+        const hidden = document.getElementById('trendTeacherFilter');
+        const dropdown = document.getElementById('teacherDropdown');
+        const courseSelect = document.getElementById('trendCourseFilter');
+        let selectedTeacherId = <?= $teacherId ?>;
+        let debounceTimer;
 
-    // --- Teacher AJAX search ---
-    function searchTeachers(query) {
-        const url = 'trend_academic.php?ajax_teachers=1&q=' + encodeURIComponent(query);
-        fetch(url)
-            .then(r => r.json())
-            .then(matches => renderDropdown(matches));
-    }
-
-    function renderDropdown(matches) {
-        dropdown.innerHTML = '';
-        if (matches.length === 0) {
-            dropdown.innerHTML = '<div class="px-3 py-2 text-sm text-slate-400">No teachers found</div>';
-            dropdown.classList.remove('hidden');
-            return;
+        // --- Teacher AJAX search ---
+        function searchTeachers(query) {
+            const url = 'trend_academic.php?ajax_teachers=1&q=' + encodeURIComponent(query);
+            fetch(url)
+                .then(r => r.json())
+                .then(matches => renderDropdown(matches));
         }
-        matches.forEach(t => {
-            const div = document.createElement('div');
-            div.className = 'px-3 py-2.5 text-sm cursor-pointer hover:bg-indigo-50 transition-colors';
-            div.textContent = t.name;
-            div.dataset.id = t.id;
-            div.dataset.name = t.name;
-            div.addEventListener('mousedown', function(e) {
-                e.preventDefault();
-                selectTeacher(t);
-            });
-            dropdown.appendChild(div);
-        });
-        dropdown.classList.remove('hidden');
-    }
 
-    function selectTeacher(teacher) {
-        input.value = teacher.name;
-        hidden.value = teacher.id;
-        selectedTeacherId = teacher.id;
-        dropdown.classList.add('hidden');
-        // Fetch courses for this teacher
-        fetchCourses(teacher.id);
-    }
-
-    function clearTeacher() {
-        input.value = '';
-        hidden.value = '';
-        selectedTeacherId = 0;
-        // Fetch all courses
-        fetchCourses(0);
-    }
-
-    // --- Course AJAX ---
-    function fetchCourses(teacherId) {
-        const url = 'trend_academic.php?ajax_courses=1&teacher_id=' + (teacherId || 0);
-        fetch(url)
-            .then(r => r.json())
-            .then(courses => {
-                const currentVal = courseSelect.value;
-                courseSelect.innerHTML = '<option value=""><?= $LANG["all_courses"] ?? "All Courses" ?></option>';
-                courses.forEach(c => {
-                    const opt = document.createElement('option');
-                    opt.value = c.id;
-                    opt.textContent = c.course_code + ' - ' + c.course_name;
-                    courseSelect.appendChild(opt);
+        function renderDropdown(matches) {
+            dropdown.innerHTML = '';
+            if (matches.length === 0) {
+                dropdown.innerHTML = '<div class="px-3 py-2 text-sm text-slate-400">No teachers found</div>';
+                dropdown.classList.remove('hidden');
+                return;
+            }
+            matches.forEach(t => {
+                const div = document.createElement('div');
+                div.className = 'px-3 py-2.5 text-sm cursor-pointer hover:bg-indigo-50 transition-colors';
+                div.textContent = t.name;
+                div.dataset.id = t.id;
+                div.dataset.name = t.name;
+                div.addEventListener('mousedown', function (e) {
+                    e.preventDefault();
+                    selectTeacher(t);
                 });
-                // Try to keep previous selection if still available
-                if (currentVal && courseSelect.querySelector('option[value="' + currentVal + '"]')) {
-                    courseSelect.value = currentVal;
-                }
+                dropdown.appendChild(div);
             });
-    }
+            dropdown.classList.remove('hidden');
+        }
 
-    // --- Navigate on filter change ---
-    window.navigateFilters = function() {
-        const tid = hidden.value;
-        const cid = courseSelect.value;
-        let url = 'trend_academic.php';
-        const params = [];
-        if (tid) params.push('teacher_id=' + tid);
-        if (cid) params.push('course_id=' + cid);
-        if (params.length) url += '?' + params.join('&');
-        window.location.href = url;
-    };
+        function selectTeacher(teacher) {
+            input.value = teacher.name;
+            hidden.value = teacher.id;
+            selectedTeacherId = teacher.id;
+            dropdown.classList.add('hidden');
+            // Fetch courses for this teacher
+            fetchCourses(teacher.id);
+        }
 
-    // --- Input events ---
-    input.addEventListener('input', function() {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
+        function clearTeacher() {
+            input.value = '';
+            hidden.value = '';
+            selectedTeacherId = 0;
+            // Fetch all courses
+            fetchCourses(0);
+        }
+
+        // --- Course AJAX ---
+        function fetchCourses(teacherId) {
+            const url = 'trend_academic.php?ajax_courses=1&teacher_id=' + (teacherId || 0);
+            fetch(url)
+                .then(r => r.json())
+                .then(courses => {
+                    const currentVal = courseSelect.value;
+                    courseSelect.innerHTML = '<option value=""><?= $LANG["all_courses"] ?? "All Courses" ?></option>';
+                    courses.forEach(c => {
+                        const opt = document.createElement('option');
+                        opt.value = c.id;
+                        opt.textContent = c.course_code + ' - ' + c.course_name;
+                        courseSelect.appendChild(opt);
+                    });
+                    // Try to keep previous selection if still available
+                    if (currentVal && courseSelect.querySelector('option[value="' + currentVal + '"]')) {
+                        courseSelect.value = currentVal;
+                    }
+                });
+        }
+
+        // --- Navigate on filter change ---
+        window.navigateFilters = function () {
+            const tid = hidden.value;
+            const cid = courseSelect.value;
+            let url = 'trend_academic.php';
+            const params = [];
+            if (tid) params.push('teacher_id=' + tid);
+            if (cid) params.push('course_id=' + cid);
+            if (params.length) url += '?' + params.join('&');
+            window.location.href = url;
+        };
+
+        // --- Input events ---
+        input.addEventListener('input', function () {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                searchTeachers(this.value.trim());
+            }, 200);
+        });
+
+        input.addEventListener('focus', function () {
             searchTeachers(this.value.trim());
-        }, 200);
-    });
+        });
 
-    input.addEventListener('focus', function() {
-        searchTeachers(this.value.trim());
-    });
-
-    // Handle Enter key to select first match
-    input.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            const first = dropdown.querySelector('div[data-id]');
-            if (first) {
-                const id = parseInt(first.dataset.id);
-                const name = first.dataset.name;
-                selectTeacher({ id, name });
+        // Handle Enter key to select first match
+        input.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const first = dropdown.querySelector('div[data-id]');
+                if (first) {
+                    const id = parseInt(first.dataset.id);
+                    const name = first.dataset.name;
+                    selectTeacher({ id, name });
+                }
             }
-        }
-        if (e.key === 'Escape') {
-            dropdown.classList.add('hidden');
-        }
-    });
-
-    // Close dropdown on outside click
-    document.addEventListener('click', function(e) {
-        if (!input.contains(e.target) && !dropdown.contains(e.target)) {
-            dropdown.classList.add('hidden');
-        }
-    });
-
-    // Clear teacher if input is emptied
-    input.addEventListener('blur', function() {
-        setTimeout(() => {
-            if (!this.value.trim()) {
-                clearTeacher();
+            if (e.key === 'Escape') {
+                dropdown.classList.add('hidden');
             }
-        }, 200);
-    });
-})();
+        });
+
+        // Close dropdown on outside click
+        document.addEventListener('click', function (e) {
+            if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
+        // Clear teacher if input is emptied
+        input.addEventListener('blur', function () {
+            setTimeout(() => {
+                if (!this.value.trim()) {
+                    clearTeacher();
+                }
+            }, 200);
+        });
+    })();
 </script>
 
 <?php if (!$teacherId || !$courseId): ?>
@@ -317,11 +315,11 @@ include '../includes/admin_sidebar.php';
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-12 text-center">
         <div class="text-5xl mb-4">📭</div>
         <h3 class="text-lg font-semibold text-slate-700 mb-2">
-            <?= $LANG['no_trend_data'] ?? 'No Feedback Data Available' ?>
-        </h3>
-        <p class="text-sm text-slate-500">
             <?= $LANG['no_trend_data_teacher'] ?? 'No feedback data found for this teacher.' ?>
-        </p>
+        </h3>
+        <!-- <p class="text-sm text-slate-500">
+            <?= $LANG['no_trend_data_teacher'] ?? 'No feedback data found for this teacher.' ?>
+        </p> -->
     </div>
 
 <?php elseif (!$hasMultipleAY): ?>
@@ -374,7 +372,7 @@ include '../includes/admin_sidebar.php';
         <div>
             <p class="text-sm font-semibold text-slate-800"><?= e($selectedTeacherName) ?></p>
             <p class="text-xs text-slate-500">
-                <?= $LANG['trend_across'] ?? 'Trend across' ?> <?= count($trendData) ?>
+                <?= $LANG['trend_across'] ?? 'Trend across' ?>     <?= count($trendData) ?>
                 <?= $LANG['academic_years'] ?? 'Academic Years' ?>
             </p>
         </div>
@@ -412,8 +410,7 @@ include '../includes/admin_sidebar.php';
             <p class="text-xl font-bold text-red-700"><?= e($summary['worst_year']) ?></p>
             <p class="text-sm text-slate-500"><?= $summary['worst_avg'] ?>/5</p>
         </div>
-        <div
-            class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-5 <?= $summary['trend_info']['bg'] ?>">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-5 <?= $summary['trend_info']['bg'] ?>">
             <div class="flex items-center gap-3 mb-2">
                 <div class="w-10 h-10 rounded-xl bg-white/60 flex items-center justify-center text-xl">
                     <?= $summary['trend_info']['icon'] ?>
@@ -426,7 +423,7 @@ include '../includes/admin_sidebar.php';
                 <?= e($summary['trend_info']['status']) ?>
             </p>
             <p class="text-sm <?= $summary['trend_info']['color'] ?>">
-                <?= $summary['overall_change_pct'] >= 0 ? '+' : '' ?><?= $summary['overall_change_pct'] ?>%
+                <?= $summary['overall_change_pct'] >= 0 ? '+' : '' ?>    <?= $summary['overall_change_pct'] ?>%
             </p>
         </div>
     </div>
@@ -462,7 +459,8 @@ include '../includes/admin_sidebar.php';
                     <tr class="border-b border-slate-200">
                         <th class="text-left py-3 px-4 text-slate-500"><?= $LANG['academic_year'] ?? 'Academic Year' ?></th>
                         <th class="text-center py-3 px-4 text-slate-500"><?= $LANG['average_rating'] ?? 'Avg Rating' ?></th>
-                        <?php foreach(normalizeSurveyOptions(null) as $option):?><th class="text-center py-3 px-4 text-slate-500"><?=e($option['label'])?></th><?php endforeach;?>
+                        <?php foreach (normalizeSurveyOptions(null) as $option): ?>
+                            <th class="text-center py-3 px-4 text-slate-500"><?= e($option['label']) ?></th><?php endforeach; ?>
                         <th class="text-center py-3 px-4 text-slate-500"><?= $LANG['total'] ?? 'Total' ?></th>
                         <th class="text-center py-3 px-4 text-slate-500"><?= $LANG['change'] ?? 'Change' ?></th>
                         <th class="text-center py-3 px-4 text-slate-500"><?= $LANG['status'] ?? 'Status' ?></th>
@@ -473,11 +471,16 @@ include '../includes/admin_sidebar.php';
                         <tr class="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
                             <td class="py-3 px-4 font-medium text-slate-800"><?= e($row['year_name']) ?></td>
                             <td class="py-3 px-4 text-center">
-                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-bold text-sm">
+                                <span
+                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-bold text-sm">
                                     <?= $row['avg_rating'] ?>
                                 </span>
                             </td>
-                            <td class="py-3 px-4 text-center font-medium"><?=(int)$row['strongly_agree_count']?></td><td class="py-3 px-4 text-center font-medium"><?=(int)$row['agree_count']?></td><td class="py-3 px-4 text-center font-medium"><?=(int)$row['neutral_count']?></td><td class="py-3 px-4 text-center font-medium"><?=(int)$row['disagree_count']?></td><td class="py-3 px-4 text-center font-medium"><?=(int)$row['strongly_disagree_count']?></td>
+                            <td class="py-3 px-4 text-center font-medium"><?= (int) $row['strongly_agree_count'] ?></td>
+                            <td class="py-3 px-4 text-center font-medium"><?= (int) $row['agree_count'] ?></td>
+                            <td class="py-3 px-4 text-center font-medium"><?= (int) $row['neutral_count'] ?></td>
+                            <td class="py-3 px-4 text-center font-medium"><?= (int) $row['disagree_count'] ?></td>
+                            <td class="py-3 px-4 text-center font-medium"><?= (int) $row['strongly_disagree_count'] ?></td>
                             <td class="py-3 px-4 text-center text-slate-600"><?= (int) $row['total_ratings'] ?></td>
                             <td class="py-3 px-4 text-center">
                                 <?php if ($ayImprovements[$i] === null): ?>
@@ -485,9 +488,9 @@ include '../includes/admin_sidebar.php';
                                 <?php else:
                                     $imp = $ayImprovements[$i];
                                     $impColor = $imp > 2 ? 'text-emerald-600' : ($imp < -2 ? 'text-red-600' : 'text-amber-600');
-                                ?>
+                                    ?>
                                     <span class="font-semibold <?= $impColor ?>">
-                                        <?= $imp >= 0 ? '+' : '' ?><?= $imp ?>%
+                                        <?= $imp >= 0 ? '+' : '' ?>            <?= $imp ?>%
                                     </span>
                                 <?php endif; ?>
                             </td>
@@ -496,9 +499,10 @@ include '../includes/admin_sidebar.php';
                                     <span class="text-slate-400">—</span>
                                 <?php else:
                                     $info = trendStatusInfo($ayImprovements[$i]);
-                                ?>
-                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold <?= $info['badge'] ?>">
-                                        <?= $info['icon'] ?> <?= e($info['status']) ?>
+                                    ?>
+                                    <span
+                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold <?= $info['badge'] ?>">
+                                        <?= $info['icon'] ?>             <?= e($info['status']) ?>
                                     </span>
                                 <?php endif; ?>
                             </td>

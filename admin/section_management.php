@@ -4,7 +4,7 @@ require_once '../includes/auth.php';
 require_once '../includes/functions.php';
 requireRole('admin');
 
-$pageTitle = $LANG['section_management_title'] ?? 'Section Management';
+$pageTitle = $LANG['nav_section_management'] ?? 'Class Sections';
 $activeMenu = 'section_management';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {

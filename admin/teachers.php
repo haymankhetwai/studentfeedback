@@ -21,10 +21,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         if ($uid && $dept) {
             $stmt = $conn->prepare("INSERT INTO teachers (user_id, department_id) VALUES (?,?)");
             $stmt->bind_param('ii', $uid, $dept);
-            $stmt->execute() ? setFlash('success', 'Teacher added.') : setFlash('error', 'Failed to add teacher.');
+            $stmt->execute() ? setFlash('success', $LANG['flash_admin_teacher_added'] ?? 'Teacher added.') : setFlash('error', $LANG['flash_admin_failed_to_add_teacher'] ?? 'Failed to add teacher.');
             $stmt->close();
         } else {
-            setFlash('error', 'All fields required.');
+            setFlash('error', $LANG['flash_admin_all_fields_required'] ?? 'All fields required.');
         }
     }
     if ($action === 'edit') {
@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         if ($id && $dept) {
             $stmt = $conn->prepare("UPDATE teachers SET department_id=? WHERE id=?");
             $stmt->bind_param('ii', $dept, $id);
-            $stmt->execute() ? setFlash('success', 'Teacher updated.') : setFlash('error', 'Update failed.');
+            $stmt->execute() ? setFlash('success', $LANG['flash_admin_teacher_updated'] ?? 'Teacher updated.') : setFlash('error', $LANG['flash_admin_update_failed'] ?? 'Update failed.');
             $stmt->close();
         }
     }
@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         if ($id) {
             $stmt = $conn->prepare("DELETE FROM teachers WHERE id=?");
             $stmt->bind_param('i', $id);
-            $stmt->execute() ? setFlash('success', 'Teacher removed.') : setFlash('error', 'Cannot delete (has sections).');
+            $stmt->execute() ? setFlash('success', $LANG['flash_admin_teacher_removed'] ?? 'Teacher removed.') : setFlash('error', $LANG['flash_admin_cannot_delete_has_sections'] ?? 'Cannot delete (has sections).');
             $stmt->close();
         }
     }

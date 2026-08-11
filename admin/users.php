@@ -577,9 +577,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf() && ($_POST['action'] ?
                     $stmt = $conn->prepare("INSERT INTO users (name,username,email,password,role) VALUES (?,?,?,?,?)");
                     $stmt->bind_param('sssss', $name, $username, $email, $hash, $role);
                     if ($stmt->execute()) {
-                        setFlash('success', 'User created successfully.');
+                        setFlash('success', $LANG['flash_admin_user_created_successfully'] ?? 'User created successfully.');
                     } else {
-                        setFlash('error', 'Failed to create user.');
+                        setFlash('error', $LANG['flash_admin_failed_to_create_user'] ?? 'Failed to create user.');
                     }
                     $stmt->close();
                 }
@@ -674,7 +674,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf() && ($_POST['action'] ?
                 $stmt = $conn->prepare("UPDATE users SET name=?,username=?,email=?,role=? WHERE id=?");
                 $stmt->bind_param('ssssi', $name, $username, $email, $role, $id);
             }
-            $stmt->execute() ? setFlash('success', 'User updated.') : setFlash('error', 'Failed to update.');
+            $stmt->execute() ? setFlash('success', $LANG['flash_admin_user_updated'] ?? 'User updated.') : setFlash('error', $LANG['flash_admin_failed_to_update'] ?? 'Failed to update.');
             $stmt->close();
             header('Location: users.php');
             exit;
@@ -686,10 +686,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf() && ($_POST['action'] ?
         if ($id && $id !== (int) $_SESSION['user_id']) {
             $stmt = $conn->prepare("DELETE FROM users WHERE id=?");
             $stmt->bind_param('i', $id);
-            $stmt->execute() ? setFlash('success', 'User deleted.') : setFlash('error', 'Cannot delete.');
+            $stmt->execute() ? setFlash('success', $LANG['flash_admin_user_deleted'] ?? 'User deleted.') : setFlash('error', $LANG['flash_admin_cannot_delete'] ?? 'Cannot delete.');
             $stmt->close();
         } else {
-            setFlash('error', 'You cannot delete your own account.');
+            setFlash('error', $LANG['flash_admin_you_cannot_delete_your_own_account'] ?? 'You cannot delete your own account.');
         }
     }
     header('Location: users.php');

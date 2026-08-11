@@ -116,11 +116,11 @@ include '../includes/admin_sidebar.php';
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-12 text-center">
         <div class="text-5xl mb-4">📭</div>
         <h3 class="text-lg font-semibold text-slate-700 mb-2">
-            <?= $LANG['no_trend_data'] ?? 'No Feedback Data Available' ?>
+            <?= $LANG['no_trend_data_sa'] ?? 'No Student Support Services feedback data found for trend analysis.'  ?>
         </h3>
-        <p class="text-sm text-slate-500">
+        <!-- <p class="text-sm text-slate-500">
             <?= $LANG['no_trend_data_sa'] ?? 'No Student Support Services feedback data found for trend analysis.' ?>
-        </p>
+        </p> -->
     </div>
 
 <?php elseif (!$hasMultipleAY): ?>
