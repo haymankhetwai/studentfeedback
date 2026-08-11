@@ -5,7 +5,7 @@ require_once '../includes/functions.php';
 
 requireRole('admin');
 
-$pageTitle = $LANG['sections_title'] ?? 'Sections';
+$pageTitle = $LANG['nav_sections'] ?? 'Teaching Assignments';
 $activeMenu = 'sections';
 
 $courseList = $conn->query("

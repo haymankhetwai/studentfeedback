@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once '../config/db.php';
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
@@ -129,10 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         */
         if (!$uid || !$rollno) {
 
-            setFlash(
-                'error',
-                'All fields required.'
-            );
+            setFlash('error', $LANG['flash_admin_all_fields_required'] ?? 'All fields required.');
 
             /*
             |--------------------------------------------------------------------------
@@ -141,10 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             */
         } elseif (!isValidRollNo($rollno)) {
 
-            setFlash(
-                'error',
-                'Invalid Roll No format. First Year: 1CST-1 or 1CST1-1. Other Years: 2CS-1, 2CT-1, 5CS1-1, or 5CT1-1.'
-            );
+            setFlash('error', $LANG['flash_admin_invalid_roll_no_format_first_year'] ?? 'Invalid Roll No format. First Year: 1CST-1 or 1CST1-1. Other Years: 2CS-1, 2CT-1, 5CS1-1, or 5CT1-1.');
 
         } else {
 
@@ -184,12 +178,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             $userCheck->close();
 
             if (!$validStudentUser) {
-                setFlash('error', 'The selected user is not an available student account.');
+                setFlash('error', $LANG['flash_admin_the_selected_user_is_not_an'] ?? 'The selected user is not an available student account.');
             } elseif ($exists) {
 
+                // setFlash(
+                //     'error',
+                //     'Roll No "' . $rollno . '" already exists. Please use a different Roll No.'
+                // );
                 setFlash(
                     'error',
-                    'Roll No "' . $rollno . '" already exists. Please use a different Roll No.'
+                    str_replace(':rollno', $rollno, $LANG['error_roll_no_exists'] ?? 'Roll No ":rollno" already exists. Please use a different Roll No.')
                 );
 
             } else {
@@ -216,9 +214,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
                 if ($stmt->execute()) {
 
+                    // setFlash(
+                    //     'success',
+                    //     'Student added successfully.'
+                    // );
                     setFlash(
                         'success',
-                        'Student added successfully.'
+                        $LANG['flash_student_added'] ?? 'Student added successfully.'
                     );
 
                 } else {
@@ -232,15 +234,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
                         setFlash(
                             'error',
-                            'Roll No "' . $rollno . '" already exists. Please use a different Roll No.'
+                            str_replace(':rollno', $rollno, $LANG['error_roll_no_exists'] ?? 'Roll No ":rollno" already exists. Please use a different Roll No.')
                         );
 
                     } else {
 
-                        setFlash(
-                            'error',
-                            'Failed to add student.'
-                        );
+                        setFlash('error', $LANG['flash_admin_failed_to_add_student'] ?? 'Failed to add student.');
                     }
                 }
 
@@ -269,10 +268,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         */
         if (!$id || !$rollno) {
 
-            setFlash(
-                'error',
-                'Roll No is required.'
-            );
+            setFlash('error', $LANG['flash_admin_roll_no_is_required'] ?? 'Roll No is required.');
 
             /*
             |--------------------------------------------------------------------------
@@ -281,10 +277,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             */
         } elseif (!isValidRollNo($rollno)) {
 
-            setFlash(
-                'error',
-                'Invalid Roll No format. First Year: 1CST-1 or 1CST1-1. Other Years: 2CS-1, 2CT-1, 5CS1-1, or 5CT1-1.'
-            );
+            setFlash('error', $LANG['flash_admin_invalid_roll_no_format_first_year'] ?? 'Invalid Roll No format. First Year: 1CST-1 or 1CST1-1. Other Years: 2CS-1, 2CT-1, 5CS1-1, or 5CT1-1.');
 
         } else {
 
@@ -320,7 +313,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
                 setFlash(
                     'error',
-                    'Roll No "' . $rollno . '" already exists. Please use a different Roll No.'
+                    str_replace(':rollno', $rollno, $LANG['error_roll_no_exists'] ?? 'Roll No ":rollno" already exists. Please use a different Roll No.')
                 );
 
             } else {
@@ -345,10 +338,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
                 if ($stmt->execute()) {
 
-                    setFlash(
-                        'success',
-                        'Student updated successfully.'
-                    );
+                    setFlash('success', $LANG['flash_admin_student_updated_successfully'] ?? 'Student updated successfully.');
 
                 } else {
 
@@ -361,15 +351,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
                         setFlash(
                             'error',
-                            'Roll No "' . $rollno . '" already exists. Please use a different Roll No.'
+                            str_replace(':rollno', $rollno, $LANG['error_roll_no_exists'] ?? 'Roll No ":rollno" already exists. Please use a different Roll No.')
                         );
 
                     } else {
 
-                        setFlash(
-                            'error',
-                            'Update failed.'
-                        );
+                        setFlash('error', $LANG['flash_admin_update_failed'] ?? 'Update failed.');
                     }
                 }
 
@@ -396,29 +383,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                 // cascading foreign keys were introduced.
                 $stmt = $conn->prepare("DELETE fsa FROM feedback_survey_answers fsa JOIN feedback_submissions fs ON fs.id = fsa.submission_id WHERE fs.student_id = ?");
                 $stmt->bind_param('i', $id);
-                if (!$stmt->execute()) throw new RuntimeException('Unable to remove feedback answers.');
+                if (!$stmt->execute())
+                    throw new RuntimeException('Unable to remove feedback answers.');
                 $stmt->close();
 
                 $stmt = $conn->prepare("DELETE FROM feedback_submissions WHERE student_id = ?");
                 $stmt->bind_param('i', $id);
-                if (!$stmt->execute()) throw new RuntimeException('Unable to remove feedback submissions.');
+                if (!$stmt->execute())
+                    throw new RuntimeException('Unable to remove feedback submissions.');
                 $stmt->close();
 
                 $stmt = $conn->prepare("DELETE FROM section_assignments WHERE student_id = ?");
                 $stmt->bind_param('i', $id);
-                if (!$stmt->execute()) throw new RuntimeException('Unable to remove section assignments.');
+                if (!$stmt->execute())
+                    throw new RuntimeException('Unable to remove section assignments.');
                 $stmt->close();
 
                 $stmt = $conn->prepare("DELETE FROM students WHERE id = ?");
                 $stmt->bind_param('i', $id);
-                if (!$stmt->execute() || $stmt->affected_rows !== 1) throw new RuntimeException('Student not found or could not be removed.');
+                if (!$stmt->execute() || $stmt->affected_rows !== 1)
+                    throw new RuntimeException('Student not found or could not be removed.');
                 $stmt->close();
 
                 $conn->commit();
-                setFlash('success', 'Student and all related assignment and feedback records were removed.');
+                setFlash('success', $LANG['flash_admin_student_and_all_related_assignment_and'] ?? 'Student and all related assignment and feedback records were removed.');
             } catch (Throwable $e) {
                 $conn->rollback();
-                setFlash('error', 'Cannot delete student because related records could not be cleaned up safely.');
+                setFlash('error', $LANG['flash_admin_cannot_delete_student_because_related_records'] ?? 'Cannot delete student because related records could not be cleaned up safely.');
             }
         }
     }

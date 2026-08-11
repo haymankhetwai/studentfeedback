@@ -15,7 +15,7 @@ $stmt->execute();
 $questionSet = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 if (!$questionSet) {
-    setFlash('error', 'Question Set not found.');
+    setFlash('error', $LANG['flash_admin_question_set_not_found'] ?? 'Question Set not found.');
     header('Location: question_sets.php');
     exit;
 }

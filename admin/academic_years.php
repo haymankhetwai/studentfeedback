@@ -14,23 +14,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         if ($yearName && preg_match('/^\d{4}-\d{4}$/', $yearName)) {
             [$y1, $y2] = explode('-', $yearName);
             if ((int) $y2 !== (int) $y1 + 1) {
-                setFlash('error', 'Invalid Academic Year. The second year must be exactly one year after the first (e.g. 2025-2026).');
+                setFlash('error', $LANG['flash_admin_invalid_academic_year_the_second_year'] ?? 'Invalid Academic Year. The second year must be exactly one year after the first (e.g. 2025-2026).');
             } else {
                 $chk = $conn->prepare("SELECT 1 FROM academic_years WHERE year_name=?");
                 $chk->bind_param('s', $yearName);
                 $chk->execute();
                 if ($chk->get_result()->num_rows > 0) {
-                    setFlash('error', 'Academic Year ' . e($yearName) . ' already exists.');
+                    setFlash('error', str_replace(':year', e($yearName), $LANG['flash_admin_academic_year_exists'] ?? 'Academic Year :year already exists.'));
                 } else {
-                    $stmt = $conn->prepare("INSERT INTO academic_years (year_name, status) VALUES (?, 'active')");
-                    $stmt->bind_param('s', $yearName);
-                    $stmt->execute() ? setFlash('success', 'Academic Year added.') : setFlash('error', 'Failed.');
-                    $stmt->close();
+                    $maxRes = $conn->query("SELECT MAX(year_name) as max_year FROM academic_years");
+                    $maxRow = $maxRes->fetch_assoc();
+                    $maxYear = $maxRow['max_year'] ?? null;
+                    $expectedYear = null;
+                    if ($maxYear) {
+                        [$maxY1, $maxY2] = explode('-', $maxYear);
+                        $expectedYear = ((int) $maxY1 + 1) . '-' . ((int) $maxY2 + 1);
+                    }
+                    if ($expectedYear && $yearName !== $expectedYear) {
+                        setFlash('error', str_replace(':expected', $expectedYear, $LANG['flash_admin_academic_year_must_be_sequential'] ?? "Academic Year must be sequential. The next required year is :expected."));
+                    } else {
+                        $stmt = $conn->prepare("INSERT INTO academic_years (year_name, status) VALUES (?, 'active')");
+                        $stmt->bind_param('s', $yearName);
+                        $stmt->execute() ? setFlash('success', $LANG['flash_admin_academic_year_added'] ?? 'Academic Year added.') : setFlash('error', $LANG['flash_admin_failed'] ?? 'Failed.');
+                        $stmt->close();
+                    }
                 }
                 $chk->close();
             }
         } else {
-            setFlash('error', 'Please enter a valid year format (e.g. 2025-2026).');
+            setFlash('error', $LANG['flash_admin_please_enter_a_valid_year_format'] ?? 'Please enter a valid year format (e.g. 2025-2026).');
         }
     }
     if ($action === 'edit') {
@@ -40,17 +52,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         if ($id && $yearName && preg_match('/^\d{4}-\d{4}$/', $yearName)) {
             [$y1, $y2] = explode('-', $yearName);
             if ((int) $y2 !== (int) $y1 + 1) {
-                setFlash('error', 'Invalid Academic Year. The second year must be exactly one year after the first (e.g. 2025-2026).');
+                setFlash('error', $LANG['flash_admin_invalid_academic_year_the_second_year'] ?? 'Invalid Academic Year. The second year must be exactly one year after the first (e.g. 2025-2026).');
             } else {
                 $chk = $conn->prepare("SELECT 1 FROM academic_years WHERE year_name=? AND id!=?");
                 $chk->bind_param('si', $yearName, $id);
                 $chk->execute();
                 if ($chk->get_result()->num_rows > 0) {
-                    setFlash('error', 'Academic Year ' . e($yearName) . ' already exists.');
+                    setFlash('error', str_replace(':year', e($yearName), $LANG['flash_admin_academic_year_exists'] ?? 'Academic Year :year already exists.'));
                 } else {
                     $stmt = $conn->prepare("UPDATE academic_years SET year_name=?, status=? WHERE id=?");
                     $stmt->bind_param('ssi', $yearName, $status, $id);
-                    $stmt->execute() ? setFlash('success', 'Academic Year updated.') : setFlash('error', 'Update failed.');
+                    $stmt->execute() ? setFlash('success', $LANG['flash_admin_academic_year_updated'] ?? 'Academic Year updated.') : setFlash('error', $LANG['flash_admin_update_failed'] ?? 'Update failed.');
                     $stmt->close();
                 }
                 $chk->close();
@@ -64,17 +76,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             $chk->bind_param('i', $id);
             $chk->execute();
             if ($chk->get_result()->num_rows > 0) {
-                setFlash('error', 'Cannot delete: this Academic Year is referenced by sections.');
+                setFlash('error', $LANG['flash_admin_cannot_delete_this_academic_year_is'] ?? 'Cannot delete: this Academic Year is referenced by sections.');
             } else {
                 $chk2 = $conn->prepare("SELECT 1 FROM feedback_forms WHERE academic_year_id=? LIMIT 1");
                 $chk2->bind_param('i', $id);
                 $chk2->execute();
                 if ($chk2->get_result()->num_rows > 0) {
-                    setFlash('error', 'Cannot delete: this Academic Year is referenced by feedback forms.');
+                    setFlash('error', $LANG['flash_admin_cannot_delete_this_academic_year_is_1'] ?? 'Cannot delete: this Academic Year is referenced by feedback forms.');
                 } else {
                     $stmt = $conn->prepare("DELETE FROM academic_years WHERE id=?");
                     $stmt->bind_param('i', $id);
-                    $stmt->execute() ? setFlash('success', 'Academic Year deleted.') : setFlash('error', 'Cannot delete.');
+                    $stmt->execute() ? setFlash('success', $LANG['flash_admin_academic_year_deleted'] ?? 'Academic Year deleted.') : setFlash('error', $LANG['flash_admin_cannot_delete'] ?? 'Cannot delete.');
                     $stmt->close();
                 }
                 $chk2->close();
@@ -166,7 +178,7 @@ include '../includes/admin_sidebar.php';
             <?= $total !== 1 ? ($LANG['records'] ?? 'records') : ($LANG['record'] ?? 'record') ?></span>
     </div>
     <div class="overflow-x-auto">
-        <table  class="w-full">
+        <table class="w-full">
             <thead class="bg-slate-200 border-b border-slate-200">
                 <tr>
                     <th class="text-left px-5 py-3 text-slate-500 w-12 text-sm font-semibold">#</th>

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once '../config/db.php';
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
@@ -13,12 +13,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         $code = clean($_POST['course_code'] ?? '');
         $name = clean($_POST['course_name'] ?? '');
         if ($code && $name) {
-            $stmt = $conn->prepare("INSERT INTO courses (course_code, course_name) VALUES (?,?)");
-            $stmt->bind_param('ss', $code, $name);
-            $stmt->execute() ? setFlash('success', 'Course added.') : setFlash('error', 'Failed. Code may already exist.');
-            $stmt->close();
+            $chkCode = $conn->prepare("SELECT 1 FROM courses WHERE LOWER(TRIM(course_code)) = LOWER(?)");
+            $chkCode->bind_param('s', $code);
+            $chkCode->execute();
+            if ($chkCode->get_result()->num_rows > 0) {
+                setFlash('error', $LANG['flash_admin_this_course_code_already_exists'] ?? 'This course code already exists.');
+            } else {
+                $chkName = $conn->prepare("SELECT 1 FROM courses WHERE LOWER(TRIM(course_name)) = LOWER(?)");
+                $chkName->bind_param('s', $name);
+                $chkName->execute();
+                if ($chkName->get_result()->num_rows > 0) {
+                    setFlash('error', $LANG['flash_admin_this_course_name_already_exists'] ?? 'This course name already exists.');
+                } else {
+                    $stmt = $conn->prepare("INSERT INTO courses (course_code, course_name) VALUES (?,?)");
+                    $stmt->bind_param('ss', $code, $name);
+                    $stmt->execute() ? setFlash('success', $LANG['flash_admin_course_added'] ?? 'Course added.') : setFlash('error', $LANG['flash_admin_failed'] ?? 'Failed.');
+                    $stmt->close();
+                }
+                $chkName->close();
+            }
+            $chkCode->close();
         } else {
-            setFlash('error', 'All fields required.');
+            setFlash('error', $LANG['flash_admin_all_fields_required'] ?? 'All fields required.');
         }
     }
     if ($action === 'edit') {
@@ -28,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         if ($id && $code && $name) {
             $stmt = $conn->prepare("UPDATE courses SET course_code=?,course_name=? WHERE id=?");
             $stmt->bind_param('ssi', $code, $name, $id);
-            $stmt->execute() ? setFlash('success', 'Course updated.') : setFlash('error', 'Update failed.');
+            $stmt->execute() ? setFlash('success', $LANG['flash_admin_course_updated'] ?? 'Course updated.') : setFlash('error', $LANG['flash_admin_update_failed'] ?? 'Update failed.');
             $stmt->close();
         }
     }
@@ -37,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         if ($id) {
             $stmt = $conn->prepare("DELETE FROM courses WHERE id=?");
             $stmt->bind_param('i', $id);
-            $stmt->execute() ? setFlash('success', 'Course deleted.') : setFlash('error', 'Cannot delete (has sections).');
+            $stmt->execute() ? setFlash('success', $LANG['flash_admin_course_deleted'] ?? 'Course deleted.') : setFlash('error', $LANG['flash_admin_cannot_delete_has_sections'] ?? 'Cannot delete (has sections).');
             $stmt->close();
         }
     }

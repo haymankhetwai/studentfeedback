@@ -17,9 +17,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         if ($dept && $name) {
             $stmt = $conn->prepare("INSERT INTO majors (department_id, major_name) VALUES (?,?)");
             $stmt->bind_param('is',$dept,$name);
-            $stmt->execute() ? setFlash('success','Major added.') : setFlash('error','Failed.');
+            $stmt->execute() ? setFlash('success', $LANG['flash_admin_major_added'] ?? 'Major added.') : setFlash('error', $LANG['flash_admin_failed'] ?? 'Failed.');
             $stmt->close();
-        } else { setFlash('error','All fields required.'); }
+        } else { setFlash('error', $LANG['flash_admin_all_fields_required'] ?? 'All fields required.'); }
     }
     if ($action === 'edit') {
         $id   = (int)($_POST['id'] ?? 0);
@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         if ($id && $dept && $name) {
             $stmt = $conn->prepare("UPDATE majors SET department_id=?,major_name=? WHERE id=?");
             $stmt->bind_param('isi',$dept,$name,$id);
-            $stmt->execute() ? setFlash('success','Major updated.') : setFlash('error','Update failed.');
+            $stmt->execute() ? setFlash('success', $LANG['flash_admin_major_updated'] ?? 'Major updated.') : setFlash('error', $LANG['flash_admin_update_failed'] ?? 'Update failed.');
             $stmt->close();
         }
     }
@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         if ($id) {
             $stmt=$conn->prepare("DELETE FROM majors WHERE id=?");
             $stmt->bind_param('i',$id);
-            $stmt->execute() ? setFlash('success','Major deleted.') : setFlash('error','Cannot delete (has courses or students).');
+            $stmt->execute() ? setFlash('success', $LANG['flash_admin_major_deleted'] ?? 'Major deleted.') : setFlash('error', $LANG['flash_admin_cannot_delete_has_courses_or_students'] ?? 'Cannot delete (has courses or students).');
             $stmt->close();
         }
     }

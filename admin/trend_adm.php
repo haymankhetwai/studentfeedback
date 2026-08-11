@@ -15,7 +15,7 @@ require_once '../includes/trend_helpers.php';
 
 requireRole('admin');
 
-$pageTitle  = $LANG['adm_trend_analysis'] ?? 'Learning Environment – Trend Analysis';
+$pageTitle = $LANG['adm_trend_analysis'] ?? 'Learning Environment – Trend Analysis';
 $activeMenu = 'trend_adm';
 
 // --- Filters ------------------------------------------------
@@ -25,19 +25,19 @@ $semId = (int) ($_GET['semester_id'] ?? 0);
 $semesters = getTrendSemesters($conn, 'learning_environment');
 
 // --- Trend Data (only if semester selected) -----------------
-$trendData     = [];
+$trendData = [];
 $questionTrend = [];
-$surveyTrend   = [];
-$summary       = null;
-$hasData       = false;
+$surveyTrend = [];
+$summary = null;
+$hasData = false;
 $hasMultipleAY = false;
 $ayImprovements = [];
 
 if ($semId) {
-    $trendData   = getModuleRatingTrend($conn, 'learning_environment', $semId);
-    $hasData     = count($trendData) > 0;
+    $trendData = getModuleRatingTrend($conn, 'learning_environment', $semId);
+    $hasData = count($trendData) > 0;
     $hasMultipleAY = count($trendData) > 1;
-    $summary     = buildTrendSummary($trendData);
+    $summary = buildTrendSummary($trendData);
 
     for ($i = 0; $i < count($trendData); $i++) {
         if ($i === 0) {
@@ -114,11 +114,11 @@ include '../includes/admin_sidebar.php';
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-12 text-center">
         <div class="text-5xl mb-4">📭</div>
         <h3 class="text-lg font-semibold text-slate-700 mb-2">
-            <?= $LANG['no_trend_data'] ?? 'No Feedback Data Available' ?>
-        </h3>
-        <p class="text-sm text-slate-500">
             <?= $LANG['no_trend_data_adm'] ?? 'No Learning Environment feedback data found for trend analysis.' ?>
-        </p>
+        </h3>
+        <!-- <p class="text-sm text-slate-500">
+            <?= $LANG['no_trend_data_adm'] ?? 'No Learning Environment feedback data found for trend analysis.' ?>
+        </p> -->
     </div>
 
 <?php elseif (!$hasMultipleAY): ?>
@@ -166,15 +166,18 @@ include '../includes/admin_sidebar.php';
             <div class="flex items-center gap-3 mb-2">
                 <div class="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center text-xl">⭐</div>
                 <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    <?= $LANG['latest_avg_rating'] ?? 'Latest Avg Rating' ?></p>
+                    <?= $LANG['latest_avg_rating'] ?? 'Latest Avg Rating' ?>
+                </p>
             </div>
-            <p class="text-3xl font-bold text-slate-800"><?= $summary['latest_avg'] ?><span class="text-base font-normal text-slate-400">/5</span></p>
+            <p class="text-3xl font-bold text-slate-800"><?= $summary['latest_avg'] ?><span
+                    class="text-base font-normal text-slate-400">/5</span></p>
         </div>
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-5">
             <div class="flex items-center gap-3 mb-2">
                 <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-xl">🏆</div>
                 <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    <?= $LANG['highest_rating'] ?? 'Highest Rating' ?></p>
+                    <?= $LANG['highest_rating'] ?? 'Highest Rating' ?>
+                </p>
             </div>
             <p class="text-xl font-bold text-emerald-700"><?= e($summary['best_year']) ?></p>
             <p class="text-sm text-slate-500"><?= $summary['best_avg'] ?>/5</p>
@@ -183,7 +186,8 @@ include '../includes/admin_sidebar.php';
             <div class="flex items-center gap-3 mb-2">
                 <div class="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center text-xl">📉</div>
                 <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    <?= $LANG['lowest_rating'] ?? 'Lowest Rating' ?></p>
+                    <?= $LANG['lowest_rating'] ?? 'Lowest Rating' ?>
+                </p>
             </div>
             <p class="text-xl font-bold text-red-700"><?= e($summary['worst_year']) ?></p>
             <p class="text-sm text-slate-500"><?= $summary['worst_avg'] ?>/5</p>
@@ -191,14 +195,18 @@ include '../includes/admin_sidebar.php';
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-5 <?= $summary['trend_info']['bg'] ?>">
             <div class="flex items-center gap-3 mb-2">
                 <div class="w-10 h-10 rounded-xl bg-white/60 flex items-center justify-center text-xl">
-                    <?= $summary['trend_info']['icon'] ?></div>
+                    <?= $summary['trend_info']['icon'] ?>
+                </div>
                 <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    <?= $LANG['trend_status'] ?? 'Trend Status' ?></p>
+                    <?= $LANG['trend_status'] ?? 'Trend Status' ?>
+                </p>
             </div>
             <p class="text-xl font-bold <?= $summary['trend_info']['color'] ?>">
-                <?= e($summary['trend_info']['status']) ?></p>
+                <?= e($summary['trend_info']['status']) ?>
+            </p>
             <p class="text-sm <?= $summary['trend_info']['color'] ?>">
-                <?= $summary['overall_change_pct'] >= 0 ? '+' : '' ?><?= $summary['overall_change_pct'] ?>%</p>
+                <?= $summary['overall_change_pct'] >= 0 ? '+' : '' ?>    <?= $summary['overall_change_pct'] ?>%
+            </p>
         </div>
     </div>
 
@@ -213,7 +221,8 @@ include '../includes/admin_sidebar.php';
         </div> -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-6">
             <h3 class="text-base font-semibold text-slate-800 mb-4">
-                <?= $LANG['rating_comparison'] ?? 'Rating Comparison' ?></h3>
+                <?= $LANG['rating_comparison'] ?? 'Rating Comparison' ?>
+            </h3>
             <div class="relative" style="height: 300px;">
                 <canvas id="trendOverallBarChart"></canvas>
             </div>
@@ -223,14 +232,16 @@ include '../includes/admin_sidebar.php';
     <!-- Per-AY Details Table -->
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-6 mb-6">
         <h3 class="text-base font-semibold text-slate-800 mb-4">
-            <?= $LANG['yearly_breakdown'] ?? 'Year-by-Year Breakdown' ?></h3>
+            <?= $LANG['yearly_breakdown'] ?? 'Year-by-Year Breakdown' ?>
+        </h3>
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead>
                     <tr class="border-b border-slate-200">
                         <th class="text-left py-3 px-4 text-slate-500"><?= $LANG['academic_year'] ?? 'Academic Year' ?></th>
                         <th class="text-center py-3 px-4 text-slate-500"><?= $LANG['average_rating'] ?? 'Avg Rating' ?></th>
-                        <?php foreach(normalizeSurveyOptions(null) as $option):?><th class="text-center py-3 px-4 text-slate-500"><?=e($option['label'])?></th><?php endforeach;?>
+                        <?php foreach (normalizeSurveyOptions(null) as $option): ?>
+                            <th class="text-center py-3 px-4 text-slate-500"><?= e($option['label']) ?></th><?php endforeach; ?>
                         <th class="text-center py-3 px-4 text-slate-500"><?= $LANG['total'] ?? 'Total' ?></th>
                         <th class="text-center py-3 px-4 text-slate-500"><?= $LANG['change'] ?? 'Change' ?></th>
                         <th class="text-center py-3 px-4 text-slate-500"><?= $LANG['status'] ?? 'Status' ?></th>
@@ -241,9 +252,14 @@ include '../includes/admin_sidebar.php';
                         <tr class="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
                             <td class="py-3 px-4 font-medium text-slate-800"><?= e($row['year_name']) ?></td>
                             <td class="py-3 px-4 text-center">
-                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-orange-50 text-orange-700 font-bold text-sm"><?= $row['avg_rating'] ?></span>
+                                <span
+                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-orange-50 text-orange-700 font-bold text-sm"><?= $row['avg_rating'] ?></span>
                             </td>
-                            <td class="py-3 px-4 text-center font-medium"><?=(int)$row['strongly_agree_count']?></td><td class="py-3 px-4 text-center font-medium"><?=(int)$row['agree_count']?></td><td class="py-3 px-4 text-center font-medium"><?=(int)$row['neutral_count']?></td><td class="py-3 px-4 text-center font-medium"><?=(int)$row['disagree_count']?></td><td class="py-3 px-4 text-center font-medium"><?=(int)$row['strongly_disagree_count']?></td>
+                            <td class="py-3 px-4 text-center font-medium"><?= (int) $row['strongly_agree_count'] ?></td>
+                            <td class="py-3 px-4 text-center font-medium"><?= (int) $row['agree_count'] ?></td>
+                            <td class="py-3 px-4 text-center font-medium"><?= (int) $row['neutral_count'] ?></td>
+                            <td class="py-3 px-4 text-center font-medium"><?= (int) $row['disagree_count'] ?></td>
+                            <td class="py-3 px-4 text-center font-medium"><?= (int) $row['strongly_disagree_count'] ?></td>
                             <td class="py-3 px-4 text-center text-slate-600"><?= (int) $row['total_ratings'] ?></td>
                             <td class="py-3 px-4 text-center">
                                 <?php if ($ayImprovements[$i] === null): ?>
@@ -251,7 +267,7 @@ include '../includes/admin_sidebar.php';
                                 <?php else:
                                     $imp = $ayImprovements[$i];
                                     $impColor = $imp > 2 ? 'text-emerald-600' : ($imp < -2 ? 'text-red-600' : 'text-amber-600');
-                                ?>
+                                    ?>
                                     <span class="font-semibold <?= $impColor ?>"><?= $imp >= 0 ? '+' : '' ?><?= $imp ?>%</span>
                                 <?php endif; ?>
                             </td>
@@ -260,9 +276,10 @@ include '../includes/admin_sidebar.php';
                                     <span class="text-slate-400">—</span>
                                 <?php else:
                                     $info = trendStatusInfo($ayImprovements[$i]);
-                                ?>
-                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold <?= $info['badge'] ?>">
-                                        <?= $info['icon'] ?> <?= e($info['status']) ?></span>
+                                    ?>
+                                    <span
+                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold <?= $info['badge'] ?>">
+                                        <?= $info['icon'] ?>             <?= e($info['status']) ?></span>
                                 <?php endif; ?>
                             </td>
                         </tr>

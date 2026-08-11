@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../config/base_url.php';
 require_once '../config/db.php';
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
@@ -238,7 +239,7 @@ $stats = [
         'color' => 'blue',
 
         'href' =>
-            '/studentfeedbackucsh/admin/students.php'
+            BASE_URL . 'admin/students.php'
     ],
 
     [
@@ -256,7 +257,7 @@ $stats = [
         'color' => 'yellow',
 
         'href' =>
-            '/studentfeedbackucsh/admin/teachers.php'
+            BASE_URL . 'admin/teachers.php'
     ],
 
     [
@@ -274,7 +275,7 @@ $stats = [
         'color' => 'red',
 
         'href' =>
-            '/studentfeedbackucsh/admin/departments.php'
+            BASE_URL . 'admin/departments.php'
     ],
 
     [
@@ -292,7 +293,7 @@ $stats = [
         'color' => 'cyan',
 
         'href' =>
-            '/studentfeedbackucsh/admin/section_assignments.php'
+            BASE_URL . 'admin/section_assignments.php'
     ],
 
     [
@@ -310,7 +311,7 @@ $stats = [
         'color' => 'teal',
 
         'href' =>
-            '/studentfeedbackucsh/admin/courses.php'
+            BASE_URL . 'admin/courses.php'
     ],
 
     [
@@ -328,7 +329,7 @@ $stats = [
         'color' => 'purple',
 
         'href' =>
-            '/studentfeedbackucsh/admin/sections.php'
+            BASE_URL . 'admin/sections.php'
     ],
 
     [
@@ -346,7 +347,7 @@ $stats = [
         'color' => 'blue',
 
         'href' =>
-            '/studentfeedbackucsh/admin/academic_years.php'
+            BASE_URL . 'admin/academic_years.php'
     ],
 
     [
@@ -364,7 +365,7 @@ $stats = [
         'color' => 'yellow',
 
         'href' =>
-            '/studentfeedbackucsh/admin/question_sets.php'
+            BASE_URL . 'admin/question_sets.php'
     ]
 ];
 

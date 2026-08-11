@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/base_url.php';
 
 // Set application timezone so PHP date/time functions and MySQL NOW()
 // share the same timezone.  All user-supplied datetime-local values

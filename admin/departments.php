@@ -16,16 +16,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             $chk->bind_param('s', $name);
             $chk->execute();
             if ($chk->get_result()->num_rows > 0) {
-                setFlash('error', 'This department already exists.');
+                setFlash('error', $LANG['flash_admin_this_department_already_exists'] ?? 'This department already exists.');
             } else {
                 $stmt = $conn->prepare("INSERT INTO departments (department_name) VALUES (?)");
                 $stmt->bind_param('s', $name);
-                $stmt->execute() ? setFlash('success', 'Department added.') : setFlash('error', 'Failed to add department.');
+                $stmt->execute() ? setFlash('success', $LANG['flash_admin_department_added'] ?? 'Department added.') : setFlash('error', $LANG['flash_admin_failed_to_add_department'] ?? 'Failed to add department.');
                 $stmt->close();
             }
             $chk->close();
         } else {
-            setFlash('error', 'Department name is required.');
+            setFlash('error', $LANG['flash_admin_department_name_is_required'] ?? 'Department name is required.');
         }
     }
     if ($action === 'edit') {
@@ -36,11 +36,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             $chk->bind_param('si', $name, $id);
             $chk->execute();
             if ($chk->get_result()->num_rows > 0) {
-                setFlash('error', 'This department already exists.');
+                setFlash('error', $LANG['flash_admin_this_department_already_exists'] ?? 'This department already exists.');
             } else {
                 $stmt = $conn->prepare("UPDATE departments SET department_name=? WHERE id=?");
                 $stmt->bind_param('si', $name, $id);
-                $stmt->execute() ? setFlash('success', 'Department updated.') : setFlash('error', 'Update failed.');
+                $stmt->execute() ? setFlash('success', $LANG['flash_admin_department_updated'] ?? 'Department updated.') : setFlash('error', $LANG['flash_admin_update_failed'] ?? 'Update failed.');
                 $stmt->close();
             }
             $chk->close();
@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         if ($id) {
             $stmt = $conn->prepare("DELETE FROM departments WHERE id=?");
             $stmt->bind_param('i', $id);
-            $stmt->execute() ? setFlash('success', 'Department deleted.') : setFlash('error', 'Cannot delete.');
+            $stmt->execute() ? setFlash('success', $LANG['flash_admin_department_deleted'] ?? 'Department deleted.') : setFlash('error', $LANG['flash_admin_cannot_delete'] ?? 'Cannot delete.');
             $stmt->close();
         }
     }

@@ -22,7 +22,13 @@ function isValidEmail($email)
 }
 function isValidPassword($password)
 {
-    return strlen($password) >= 6 && preg_match('/^[a-zA-Z0-9@]+$/', $password);
+    if (strlen($password) < 6) return false;
+    if (preg_match('/[\s\x00-\x1F\x7F]/', $password)) return false;
+    if (!preg_match('/[A-Z]/', $password)) return false;
+    if (!preg_match('/[a-z]/', $password)) return false;
+    if (!preg_match('/[0-9]/', $password)) return false;
+    if (!preg_match('/[^a-zA-Z0-9\s\x00-\x1F\x7F]/', $password)) return false;
+    return true;
 }
 function isValidName($name)
 {
@@ -71,6 +77,26 @@ $borderRed = 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-50
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     $action = $_POST['action'] ?? '';
+    
+    // Handle Remove Photo
+    if (isset($_POST['remove_photo'])) {
+        $profileImage = $userData['profile_image'] ?? null;
+        if ($profileImage && file_exists(__DIR__ . '/../' . $profileImage)) {
+            unlink(__DIR__ . '/../' . $profileImage);
+        }
+        $stmt = $conn->prepare("UPDATE users SET profile_image = NULL WHERE id = ?");
+        $stmt->bind_param('i', $user['id']);
+        if ($stmt->execute()) {
+            $_SESSION['profile_image'] = null;
+            setFlash('success', $LANG['flash_photo_removed'] ?? 'Profile photo removed successfully.');
+        } else {
+            setFlash('error', $LANG['flash_error'] ?? 'An error occurred.');
+        }
+        $stmt->close();
+        header('Location: profile.php');
+        exit;
+    }
+
     if ($action === 'update_info') {
         $rawName = clean($_POST['name'] ?? '');
         $email = strtolower(clean($_POST['email'] ?? ''));
@@ -129,8 +155,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] === UPLOAD_ERR_OK) {
             $file = $_FILES['profile_image'];
             $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-            $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-            if (in_array($ext, $allowed) && $file['size'] <= 5 * 1024 * 1024) {
+            $allowed = ['jpg', 'jpeg', 'png', 'webp'];
+            
+            // Secure validation using finfo
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mime = finfo_file($finfo, $file['tmp_name']);
+            finfo_close($finfo);
+            $allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+
+            if (in_array($ext, $allowed) && in_array($mime, $allowedMimes) && $file['size'] <= 5 * 1024 * 1024) {
                 $uploadDir = __DIR__ . '/../assets/uploads/profiles';
                 if (!is_dir($uploadDir))
                     mkdir($uploadDir, 0755, true);
@@ -143,7 +176,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                     $profileImage = 'assets/uploads/profiles/' . $filename;
                 }
             } else {
-                setFlash('error', $LANG['flash_image_invalid'] ?? 'Image must be JPG, PNG, GIF, or WebP and under 5MB.');
+                setFlash('error', $LANG['flash_image_invalid'] ?? 'Image must be JPG, PNG, or WebP and under 5MB.');
                 header('Location: profile.php');
                 exit;
             }
@@ -291,9 +324,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                                             class="block text-sm font-medium text-slate-700 mb-1"><?= $LANG['profile_image'] ?? 'Profile Image' ?></label>
                                         <input type="file" name="profile_image" id="profileImageInput" accept="image/*"
                                             class="w-full text-sm text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-cyan-50 file:text-cyan-700 hover:file:bg-cyan-100 file:cursor-pointer">
-                                        <p class="text-xs text-slate-400 mt-1">
-                                            <?= $LANG['profile_image_hint'] ?? 'JPG, PNG, GIF, or WebP. Max 5MB.' ?>
-                                        </p>
+                                        <div class="mt-2 flex items-center gap-4">
+                                            <p class="text-xs text-slate-400">
+                                                <?= $LANG['profile_image_hint'] ?? 'JPG, PNG, or WebP. Max 5MB.' ?>
+                                            </p>
+                                            <?php if (!empty($userData['profile_image'])): ?>
+                                                <button type="submit" name="remove_photo" value="1" formnovalidate
+                                                    class="text-xs font-semibold text-white px-3 py-1 bg-red-600 rounded-md hover:bg-red-700"
+                                                    onclick="return confirm('<?= $LANG['confirm_remove_photo'] ?? 'Are you sure you want to remove your profile photo?' ?>');">
+                                                    <?= $LANG['remove_photo'] ?? 'Remove Photo' ?>
+                                                </button>
+                                            <?php endif; ?>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -345,7 +387,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                                     </label>
                                     <div class="relative">
                                         <input type="password" name="password" id="profilePassword" minlength="6"
-                                            placeholder="<?= $LANG['password_placeholder'] ?? 'Letters, numbers, or @' ?>"
+                                             placeholder="••••••••"
                                             class="w-full border <?= $passwordErr ? $borderRed : 'border-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20' ?> rounded-xl px-4 py-2.5 pr-10 text-sm outline-none">
                                         <button type="button" onclick="togglePassword('profilePassword', this)"
                                             class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600">
@@ -354,10 +396,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                                     </div>
                                     <p id="pwErrMsg"
                                         class="text-red-500 text-xs mt-1.5<?= $passwordErr ? '' : ' hidden' ?>">
-                                        <?= $passwordErr ? ($LANG['val_password_invalid'] ?? 'Password must be at least 6 characters. Only letters, numbers, and @ are allowed.') : '' ?>
+                                        <?= $passwordErr ? ($LANG['val_password_strong'] ?? 'Password must be at least 6 characters, and include at least one uppercase letter, one lowercase letter, one number, and one special character (no spaces).') : '' ?>
                                     </p>
                                     <p id="pwHintMsg"
-                                        class="text-xs text-slate-400 mt-1<?= $passwordErr ? ' hidden' : '' ?>"><?= e($LANG['password_hint'] ?? 'At least 6 characters. Only letters, numbers, and @ allowed.') ?></p>
+                                        class="text-xs text-slate-400 mt-1<?= $passwordErr ? ' hidden' : '' ?>"><?= e($LANG['password_hint_strong'] ?? 'Min 6 chars: 1 uppercase, 1 lowercase, 1 number, 1 special char. No spaces.') ?></p>
                                 </div>
 
                                 <div class="flex justify-end gap-3">
@@ -373,6 +415,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         </div>
     </div>
     <script>
+        // ── Auto-hide flash message ───────────────────────────────────────────
+        setTimeout(function() {
+            var flash = document.getElementById('flash-alert');
+            if (flash) {
+                flash.style.transition = 'opacity 0.5s ease';
+                flash.style.opacity = '0';
+                setTimeout(function() { flash.remove(); }, 500);
+            }
+        }, 3000);
+
         function openSidebar() { document.getElementById('sidebar').classList.remove('-translate-x-full'); document.getElementById('overlay').classList.remove('hidden'); }
         function closeSidebar() { document.getElementById('sidebar').classList.add('-translate-x-full'); document.getElementById('overlay').classList.add('hidden'); }
 
@@ -409,7 +461,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             email_required: <?= json_encode($LANG['val_email_required'] ?? 'Email Address is required.') ?>,
             email_invalid: <?= json_encode($LANG['val_email_invalid'] ?? 'Please enter a valid email address.') ?>,
             email_domain: <?= json_encode($LANG['val_email_domain'] ?? 'Only @ucsh.edu.mm and @gmail.com email addresses are allowed.') ?>,
-            password: <?= json_encode($LANG['val_password_invalid'] ?? 'Password must be at least 6 characters. Only letters, numbers, and @ are allowed.') ?>
+            password: <?= json_encode($LANG['val_password_strong'] ?? 'Password must be at least 6 characters, and include at least one uppercase letter, one lowercase letter, one number, and one special character (no spaces).') ?>
         };
 
         function showError(inputEl, msgEl, msg) {
@@ -465,7 +517,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             // --- Password (optional) ---
             var pwVal = pwEl.value;
             if (pwVal !== '') {
-                if (pwVal.length < 6 || !/^[a-zA-Z0-9@]+$/.test(pwVal)) {
+                if (
+                    pwVal.length < 6 || 
+                    /[\s\x00-\x1F\x7F]/.test(pwVal) || 
+                    !/[A-Z]/.test(pwVal) || 
+                    !/[a-z]/.test(pwVal) || 
+                    !/[0-9]/.test(pwVal) || 
+                    !/[^a-zA-Z0-9\s\x00-\x1F\x7F]/.test(pwVal)
+                ) {
                     showError(pwEl, pwErrEl, msgs.password);
                     if (pwHintEl) pwHintEl.classList.add('hidden');
                     valid = false;

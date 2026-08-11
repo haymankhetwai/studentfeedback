@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once '../config/db.php';
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
@@ -1288,7 +1288,8 @@ include '../includes/admin_sidebar.php';
                         </div>
                         <div class="md:col-span-4 space-y-4">
                             <div class="flex items-center gap-3">
-                                <?php if ($gradeIcon !== ''): ?><span class="text-2xl"><?= e($gradeIcon) ?></span><?php endif; ?>
+                                <?php if ($gradeIcon !== ''): ?><span
+                                        class="text-2xl"><?= e($gradeIcon) ?></span><?php endif; ?>
                                 <div>
                                     <span
                                         class="grade-badge inline-block px-4 py-1.5 rounded-lg text-sm font-extrabold <?= match ($gradeColor) { 'emerald' => 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30', 'blue' => 'bg-blue-500/20 text-blue-300 border border-blue-400/30', 'cyan' => 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/30', 'amber' => 'bg-amber-500/20 text-amber-300 border border-amber-400/30', 'red' => 'bg-red-500/20 text-red-300 border border-red-400/30', default => 'bg-slate-500/20 text-slate-300 border border-slate-400/30'} ?>"><?= e($grade) ?></span>
@@ -2183,7 +2184,8 @@ class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.
                         <?= $LANG['recommendation_label'] ?? 'Recommendation' ?>
                     </div>
                     <div class="print-conclusion">
-                        <strong>Grade: <?= e($gradeDisplay) ?><?= $completedCount > 0 ? ' (' . $overallPct . '%)' : '' ?></strong><br><br>
+                        <strong>Grade:
+                            <?= e($gradeDisplay) ?>        <?= $completedCount > 0 ? ' (' . $overallPct . '%)' : '' ?></strong><br><br>
                         <?= $conclusionText ?>
                     </div>
                 </div>
@@ -2228,9 +2230,9 @@ class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.
                     </section> -->
                 <?php endif; ?>
 
-                <?php if ($module === 'student_support_services'): ?>
+                <!-- <?php if ($module === 'student_support_services'): ?>
                     <div class="print-all-sss-bottom-space" aria-hidden="true"></div>
-                <?php endif; ?>
+                <?php endif; ?> -->
 
                 <div class="print-report-bottom-space print-details-bottom-space" aria-hidden="true"></div>
 

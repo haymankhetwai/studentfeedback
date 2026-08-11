@@ -226,10 +226,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             !$end
         ) {
 
-            setFlash(
-                'error',
-                'All fields are required. Make sure a Question Set exists for the selected Year + Module.'
-            );
+            setFlash('error', $LANG['flash_admin_all_fields_are_required_make_sure'] ?? 'All fields are required. Make sure a Question Set exists for the selected Year + Module.');
 
             header('Location: feedback_forms_all.php');
             exit;
@@ -246,10 +243,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
         if ($module === 'teaching_quality' && !$sec) {
 
-            setFlash(
-                'error',
-                'Section is required for Teaching Quality forms.'
-            );
+            setFlash('error', $LANG['flash_admin_section_is_required_for_teaching_quality'] ?? 'Section is required for Teaching Quality forms.');
 
             header('Location: feedback_forms_all.php');
             exit;
@@ -270,10 +264,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             $sectionConsistencyStmt->close();
 
             if (!$sectionIsConsistent) {
-                setFlash(
-                    'error',
-                    'Selected section does not belong to the selected academic year and semester.'
-                );
+                setFlash('error', $LANG['flash_admin_selected_section_does_not_belong_to'] ?? 'Selected section does not belong to the selected academic year and semester.');
 
                 header('Location: feedback_forms_all.php');
                 exit;
@@ -300,10 +291,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
         if ($startDateTime < $nowDateTime) {
 
-            setFlash(
-                'error',
-                'Start date cannot be before now.'
-            );
+            setFlash('error', $LANG['flash_admin_start_date_cannot_be_before_now'] ?? 'Start date cannot be before now.');
 
             header('Location: feedback_forms_all.php');
             exit;
@@ -312,10 +300,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
         if ($endDateTime < $startDateTime) {
 
-            setFlash(
-                'error',
-                'End date must be after start date.'
-            );
+            setFlash('error', $LANG['flash_admin_end_date_must_be_after_start'] ?? 'End date must be after start date.');
 
             header('Location: feedback_forms_all.php');
             exit;
@@ -489,17 +474,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
         if ($stmt->execute()) {
 
-            setFlash(
-                'success',
-                'Feedback form created.'
-            );
+            setFlash('success', $LANG['flash_admin_feedback_form_created'] ?? 'Feedback form created.');
 
         } else {
 
-            setFlash(
-                'error',
-                'Failed.'
-            );
+            setFlash('error', $LANG['flash_admin_failed'] ?? 'Failed.');
         }
 
         $stmt->close();
@@ -560,10 +539,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                 !$sec
             ) {
 
-                setFlash(
-                    'error',
-                    'Section is required for Teaching Quality forms.'
-                );
+                setFlash('error', $LANG['flash_admin_section_is_required_for_teaching_quality'] ?? 'Section is required for Teaching Quality forms.');
 
                 header('Location: feedback_forms_all.php');
                 exit;
@@ -630,10 +606,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                     $startDateTime < $nowDateTime
                 ) {
 
-                    setFlash(
-                        'error',
-                        'Start date cannot be before now.'
-                    );
+                    setFlash('error', $LANG['flash_admin_start_date_cannot_be_before_now'] ?? 'Start date cannot be before now.');
 
                     header('Location: feedback_forms_all.php');
                     exit;
@@ -645,10 +618,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                     $startDateTime
                 ) {
 
-                    setFlash(
-                        'error',
-                        'End date must be after start date.'
-                    );
+                    setFlash('error', $LANG['flash_admin_end_date_must_be_after_start'] ?? 'End date must be after start date.');
 
                     header('Location: feedback_forms_all.php');
                     exit;
@@ -767,17 +737,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
             if ($stmt->execute()) {
 
-                setFlash(
-                    'success',
-                    'Form updated.'
-                );
+                setFlash('success', $LANG['flash_admin_form_updated'] ?? 'Form updated.');
 
             } else {
 
-                setFlash(
-                    'error',
-                    'Update failed.'
-                );
+                setFlash('error', $LANG['flash_admin_update_failed'] ?? 'Update failed.');
             }
 
             $stmt->close();
@@ -795,7 +759,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     if ($deleteAction === 'delete' && $deleteId) {
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verifyCsrf()) {
-            setFlash('error', 'Invalid request.');
+            setFlash('error', $LANG['flash_admin_invalid_request'] ?? 'Invalid request.');
             header('Location: feedback_forms_all.php');
             exit;
         }
@@ -851,9 +815,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         }
 
         if ($deleted) {
-            setFlash('success', 'Form deleted.');
+            setFlash('success', $LANG['flash_admin_form_deleted'] ?? 'Form deleted.');
         } else {
-            setFlash('error', 'Cannot delete.');
+            setFlash('error', $LANG['flash_admin_cannot_delete'] ?? 'Cannot delete.');
         }
     }
 
