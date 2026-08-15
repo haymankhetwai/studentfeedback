@@ -471,8 +471,9 @@ function surveyCategoryCounts(array $options, array $optionCounts): array
 function surveyCategoryPercentages(array $categoryCounts): array
 {
     $total = array_sum($categoryCounts);
-    $result=[];
-    foreach(normalizeSurveyOptions(null) as $option) $result[$option['label']]=$total?round(($categoryCounts[$option['label']]??0)*100/$total,1):0.0;
+    $result = [];
+    foreach (normalizeSurveyOptions(null) as $option)
+        $result[$option['label']] = $total ? round(($categoryCounts[$option['label']] ?? 0) * 100 / $total, 1) : 0.0;
     return $result;
 }
 
@@ -481,26 +482,26 @@ function performanceGradeFromPercentage(float $percentage): array
 {
     global $LANG;
 
-    if ($percentage >= 90) {
+    if ($percentage >= 80) {
         $key = 'excellent';
         $color = 'emerald';
         $icon = '🏆';
-    } elseif ($percentage >= 80) {
+    } elseif ($percentage >= 60) {
         $key = 'good';
         $color = 'blue';
         $icon = '⭐';
-    } elseif ($percentage >= 70) {
+    } elseif ($percentage >= 40) {
         $key = 'fair';
         $color = 'cyan';
         $icon = '👍';
-    } elseif ($percentage >= 60) {
+    } elseif ($percentage >= 20) {
         $key = 'poor';
         $color = 'amber';
         $icon = '⚠️';
     } else {
         $key = 'very_poor';
         $color = 'red';
-        $icon = '❌';
+        $icon = '👎';
     }
 
     $label = $LANG['performance_grade_' . $key] ?? ucwords(str_replace('_', ' ', $key));

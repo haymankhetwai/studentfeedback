@@ -418,6 +418,14 @@ $conclusions = [
 ];
 $conclusionText = $gradeKey !== null ? ($conclusions[$gradeKey] ?? '') : '';
 
+// Dynamic feedback type label for print report
+$feedbackTypeLabel = match ($module ?? '') {
+    'teaching_quality' => $LANG['teaching_quality'] ?? 'Teaching Quality',
+    'student_support_services' => $LANG['student_support_services'] ?? 'Student Support Services',
+    'learning_environment' => $LANG['learning_environment'] ?? 'Learning Environment',
+    default => $form['title'] ?? $module ?? '',
+};
+
 include '../includes/admin_header.php';
 include '../includes/admin_sidebar.php';
 ?>
@@ -497,7 +505,7 @@ include '../includes/admin_sidebar.php';
             height: auto !important;
             overflow: visible !important;
             background: white !important;
-            font-size: 11pt !important;
+            font-size: 12pt !important;
         }
 
         body {
@@ -564,7 +572,8 @@ include '../includes/admin_sidebar.php';
         .print-cover-chart {
             flex: 1 1 auto;
             min-height: 76mm;
-            margin-top: 14px;
+            margin-top: 18px;
+            margin-bottom: 12px;
             padding: 12px 16px 10px;
             border: 1px solid #cbd5e1;
             border-radius: 8px;
@@ -575,7 +584,7 @@ include '../includes/admin_sidebar.php';
         .print-cover-chart h3 {
             margin: 0 0 10px;
             text-align: center;
-            font-size: 12pt;
+            font-size: 14pt;
             color: #0f172a;
         }
 
@@ -599,8 +608,9 @@ include '../includes/admin_sidebar.php';
         .print-percentage-summary {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
-            gap: 8px;
-            margin-top: 12px;
+            gap: 12px;
+            margin-top: 14px;
+            margin-bottom: 14px;
             padding: 0 4px;
             clear: both;
             break-inside: avoid;
@@ -612,14 +622,14 @@ include '../includes/admin_sidebar.php';
             padding: 8px 6px;
             border: 1px solid #cbd5e1;
             border-radius: 6px;
-            font-size: 9pt;
+            font-size: 10pt;
             color: #475569;
         }
 
         .print-percentage-item strong {
             display: block;
             margin-top: 2px;
-            font-size: 14pt;
+            font-size: 16pt;
             color: #0f172a;
         }
 
@@ -631,29 +641,41 @@ include '../includes/admin_sidebar.php';
         }
 
         .print-overall-summary {
-            display: flex;
+            display: grid;
+            grid-template-columns: minmax(150px, 1fr) minmax(105px, auto) minmax(135px, auto);
             align-items: center;
-            justify-content: center;
-            gap: 36px;
+            gap: 28px;
             margin-top: 10px;
+            margin-bottom: 14px;
             padding: 9px 16px;
             border: 2px solid #334155;
             border-radius: 8px;
             break-inside: avoid;
         }
 
-        .print-overall-summary>div {
+        .print-overall-summary>div:not(.print-feedback-type) {
             text-align: center;
         }
 
-        .print-overall-summary strong {
-            display: block;
-            font-size: 18pt;
+        .print-overall-summary .print-feedback-type {
+            font-size: 16pt;
+            font-weight: 800;
+            line-height: 1.2;
             color: #0f172a;
         }
 
-        .print-overall-summary span {
-            font-size: 8pt;
+        .print-overall-summary .print-summary-value {
+            display: block;
+            font-size: 24pt;
+            font-weight: 800;
+            line-height: 1.1;
+            color: #0f172a;
+        }
+
+        .print-overall-summary .print-summary-label {
+            display: block;
+            margin-top: 3px;
+            font-size: 10pt;
             color: #64748b;
             font-weight: 600;
             text-transform: uppercase;
@@ -757,7 +779,7 @@ include '../includes/admin_sidebar.php';
         }
 
         .print-header-university {
-            font-size: 14pt;
+            font-size: 18pt;
             font-weight: 800;
             color: #0f172a;
             margin: 0 0 2px;
@@ -808,7 +830,7 @@ include '../includes/admin_sidebar.php';
         }
 
         .print-report-header h1 {
-            font-size: 16pt;
+            font-size: 20pt;
             font-weight: 800;
             color: #0f172a;
             margin: 0;
@@ -816,7 +838,7 @@ include '../includes/admin_sidebar.php';
         }
 
         .print-report-header h2 {
-            font-size: 13pt;
+            font-size: 16pt;
             font-weight: 700;
             color: #334155;
             margin: 4px 0;
@@ -830,15 +852,15 @@ include '../includes/admin_sidebar.php';
 
         .print-generated-date {
             margin-top: 5px !important;
-            font-size: 8.5pt !important;
+            font-size: 10pt !important;
             font-weight: 600;
             color: #475569 !important;
         }
 
         .print-participation-note {
-            margin: 4px 0 0 !important;
+            margin: 2px 0 0 !important;
             color: #334155 !important;
-            font-size: 8.5pt !important;
+            font-size: 12pt !important;
             font-weight: 600;
             line-height: 1.3;
             text-align: center;
@@ -852,7 +874,7 @@ include '../includes/admin_sidebar.php';
         }
 
         .print-section-title {
-            font-size: 11pt;
+            font-size: 13pt;
             font-weight: 700;
             color: #0f172a;
             border-bottom: 1.5px solid #cbd5e1;
@@ -862,9 +884,9 @@ include '../includes/admin_sidebar.php';
 
         .print-info-grid {
             display: grid;
-            grid-template-columns: 145px 1fr;
+            grid-template-columns: 160px 1fr;
             gap: 7px 16px;
-            font-size: 10pt;
+            font-size: 14pt;
         }
 
         .print-info-grid dt {
@@ -882,7 +904,7 @@ include '../includes/admin_sidebar.php';
         .print-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 9pt;
+            font-size: 10pt;
         }
 
         .print-table th {
@@ -925,13 +947,13 @@ include '../includes/admin_sidebar.php';
         }
 
         .print-rating-item .value {
-            font-size: 22pt;
+            font-size: 26pt;
             font-weight: 800;
             color: #0f172a;
         }
 
         .print-rating-item .label {
-            font-size: 8pt;
+            font-size: 10pt;
             color: #64748b;
             font-weight: 600;
             text-transform: uppercase;
@@ -940,10 +962,10 @@ include '../includes/admin_sidebar.php';
 
         .print-grade-badge {
             display: inline-block;
-            padding: 2px 12px;
+            padding: 4px 16px;
             border-radius: 4px;
             font-weight: 700;
-            font-size: 10pt;
+            font-size: 13pt;
             border: 1.5px solid #334155;
         }
 
@@ -990,11 +1012,6 @@ include '../includes/admin_sidebar.php';
 
         .print-report-bottom-space {
             display: none !important;
-            min-height: 35mm;
-        }
-
-        body.print-report-graph .print-graph-bottom-space {
-            display: block !important;
         }
 
         /* Detailed-only content must remain in one natural document flow. */
@@ -1112,6 +1129,70 @@ include '../includes/admin_sidebar.php';
             page-break-inside: auto !important;
             break-before: auto !important;
             page-break-before: auto !important;
+        }
+
+        /* Student Participation Stats */
+        .print-participation-stats {
+            display: none;
+            justify-content: center;
+            gap: 32px;
+            margin-top: 12px;
+            padding: 10px 16px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 8px;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        body.print-report-graph .print-graph-participation,
+        body.print-report-details .print-details-participation,
+        body.print-report-all .print-all-participation {
+            display: flex !important;
+        }
+
+        body.print-report-graph .print-cover-content {
+            min-height: calc(297mm - 38mm) !important;
+        }
+
+        body.print-report-graph .print-graph-participation {
+            margin-top: auto;
+        }
+
+        body.print-report-graph .print-participation-note {
+            break-before: avoid !important;
+            page-break-before: avoid !important;
+            margin-top: 6px !important;
+        }
+
+        /* Teaching Quality has extra info rows; let its graph page use its natural
+           height so the participation note below the cover is not pushed to page 2. */
+        body.print-report-graph .print-module-tq .print-cover-content {
+            min-height: 0 !important;
+        }
+
+        /* Keep the Teaching Quality graph-only summary on the chart page. */
+        body.print-report-graph .print-module-tq .print-cover-chart {
+            width: 93% !important;
+            align-self: center;
+        }
+
+        .print-participation-stats>div {
+            text-align: center;
+        }
+
+        .print-participation-stats strong {
+            display: block;
+            font-size: 20pt;
+            font-weight: 800;
+            color: #0f172a;
+        }
+
+        .print-participation-stats span {
+            font-size: 9pt;
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
     }
 </style>
@@ -1546,12 +1627,6 @@ include '../includes/admin_sidebar.php';
                                 <p class="text-sm font-bold text-slate-800"><?= e(semesterToRoman($formMeta['semester'] ?? '')) ?>
                                 </p>
                             </div>
-                            <div>
-                                <p class="text-[11px] font-semibold text-slate-400 uppercase">
-                                    <?= $LANG['form_type_label'] ?? 'Form Type' ?>
-                                </p>
-                                <p class="text-sm font-bold text-slate-800"><?= moduleBadge($module) ?></p>
-                            </div>
                         </div>
                     </div>
                 <?php endif ?>
@@ -1583,7 +1658,7 @@ include '../includes/admin_sidebar.php';
                             </thead> -->
                                 <thead>
                                     <tr
-                                        class="text-white font-bold [&>th]:px-4 [&>th]:py-3.5 [&>th]:align-middle [&>th]:transition-colors [&>th]:duration-200 [&>th:first-child]:rounded-tl-lg [&>th:last-child]:rounded-tr-lg [&>th:nth-child(3)]:bg-emerald-600 [&>th:nth-child(3):hover]:bg-emerald-700 [&>th:nth-child(4)]:bg-blue-600 [&>th:nth-child(4):hover]:bg-blue-700 [&>th:nth-child(5)]:bg-amber-500 [&>th:nth-child(5):hover]:bg-amber-600 [&>th:nth-child(6)]:bg-orange-500 [&>th:nth-child(6):hover]:bg-orange-600 [&>th:nth-child(7)]:bg-red-600 [&>th:nth-child(7):hover]:bg-red-700">
+                                        class="text-white font-bold [&>th]:px-4 [&>th]:py-3.5 [&>th]:align-middle [&>th]:transition-colors [&>th]:duration-200 [&>th:first-child]:rounded-tl-lg [&>th:last-child]:rounded-tr-lg [&>th:nth-child(3)]:bg-emerald-600 [&>th:nth-child(3):hover]:bg-emerald-700 [&>th:nth-child(4)]:bg-blue-600 [&>th:nth-child(4):hover]:bg-blue-700 [&>th:nth-child(5)]:bg-violet-500 [&>th:nth-child(5):hover]:bg-violet-600 [&>th:nth-child(6)]:bg-orange-500 [&>th:nth-child(6):hover]:bg-orange-600 [&>th:nth-child(7)]:bg-red-600 [&>th:nth-child(7):hover]:bg-red-700">
                                         <th class="p-3 w-12 text-center bg-blue-300 text-lg"><?= $LANG['col_no'] ?? 'No.' ?>
                                         </th>
                                         <th class="p-3 bg-blue-500/80 text-lg">
@@ -1826,7 +1901,8 @@ class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.
         <!-- Print report -->
         <!-- PROFESSIONAL PRINTABLE REPORT (print-only, hidden on screen) -->
         <!-- End print report -->
-        <div class="print-only myanmar-font" style="max-width: 100%;">
+        <div class="print-only myanmar-font<?= $module === 'teaching_quality' ? ' print-module-tq' : '' ?>"
+            style="max-width: 100%;">
             <section class="print-cover-page">
                 <div class="print-cover-content">
                     <div class="print-report-header">
@@ -1871,28 +1947,29 @@ class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.
                             <?php endif; ?>
                         </dl>
                     </div>
-                    <p class="print-participation-note">
+                    <!-- <p class="print-participation-note">
                         <?= e(sprintf(
                             $LANG['report_student_participation'] ?? 'The results are calculated based on feedback provided by %d students.',
                             $completedCount
                         )) ?>
-                    </p>
+                    </p> -->
 
-                    <div class="print-overall-summary">
-                        <div>
-                            <strong><?= $overallPct ?>%</strong>
-                            <span><?= $LANG['overall_rating'] ?? 'Overall Rating' ?></span>
+                    <div class="print-overall-summary" style="margin-top:20px">
+                        <div class="print-feedback-type"><?= e($feedbackTypeLabel) ?></div>
+                        <div class="print-summary-metric">
+                            <strong class="print-summary-value"><?= $overallPct ?>%</strong>
+                            <span class="print-summary-label"><?= $LANG['overall_rating'] ?? 'Overall Rating' ?></span>
                         </div>
-                        <div>
-                            <strong><?= e($gradeDisplay) ?></strong>
-                            <span><?= $LANG['performance_grade'] ?? 'Performance Grade' ?></span>
+                        <div class="print-summary-metric">
+                            <strong class="print-summary-value"><?= e($gradeDisplay) ?></strong>
+                            <span class="print-summary-label"><?= $LANG['performance_grade'] ?? 'Performance Grade' ?></span>
                         </div>
                     </div>
 
                     <div class="print-cover-chart">
-                        <h3><?= $LANG['rating_distribution'] ?? '5-Point Likert Rating Distribution' ?></h3>
+                        <!-- <h3><?= $LANG['rating_distribution'] ?? '5-Point Likert Rating Distribution' ?></h3> -->
                         <div class="print-cover-chart-canvas">
-                            <canvas id="printRatingBarChart" width="700" height="525"></canvas>
+                            <canvas id="printRatingBarChart" style="margin-top:70px" width="700" height="525"></canvas>
                         </div>
                     </div>
 
@@ -1904,7 +1981,7 @@ class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.
                             </div><?php endforeach; ?>
                     </div>
 
-                    <?php if (!empty($surveyAverages['groups'])):
+                    <!-- <?php if (!empty($surveyAverages['groups'])):
                         $groupLang = ($_SESSION['lang'] ?? 'en') === 'mm' ? 'mm' : 'en'; ?>
                         <section class="print-section print-group-ratings">
                             <div class="print-section-title"><?= e($LANG['survey_group_ratings'] ?? 'Survey Group Ratings') ?></div>
@@ -1931,9 +2008,18 @@ class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.
                                 </tbody>
                             </table>
                         </section>
-                    <?php endif; ?>
+                    <?php endif; ?> -->
 
-                    <div class="print-report-bottom-space print-graph-bottom-space" aria-hidden="true"></div>
+                    <!-- <div class="print-participation-stats print-graph-participation">
+                        <span><b><?= $LANG['total_students_label'] ?? 'Total Students' ?>:</b> <?= $totalStudents ?></span>
+                        <span><b><?= $LANG['completed_label'] ?? 'Completed Students' ?>:</b>
+                            <?= $completedCount ?></span>
+                        <p class="print-participation-note"
+                            style="text-align:center; margin-top:20px; border-top:1px solid #e2e8f0; padding-top:15px;font-size:20px;">
+                            <?= e(sprintf($LANG['report_results_based_on_students'] ?? 'The results are calculated based on %1$d responding student(s) out of a total of %2$d students.', $completedCount, $totalStudents)) ?>
+                        </p>
+                    </div> -->
+
 
                 </div>
             </section>
@@ -1972,13 +2058,6 @@ class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.
                         <?php endif; ?>
                         <dt><?= $LANG['feedback_period'] ?? 'Feedback Period' ?>:</dt>
                         <dd><?= formatDateTime($form['start_date']) ?> — <?= formatDateTime($form['end_date']) ?></dd>
-                        <dt><?= $LANG['total_students'] ?? 'Total Students' ?>:</dt>
-                        <dd><?= $totalStudents ?></dd>
-                        <dt><?= $LANG['total_responses'] ?? 'Total Responses' ?>:</dt>
-                        <dd><?= $completedCount ?>
-                            (<?= $totalStudents > 0 ? round(($completedCount / $totalStudents) * 100) : 0 ?>%
-                            <?= $LANG['response_rate'] ?? 'response rate' ?>)
-                        </dd>
                     </dl>
                 </div>
 
@@ -2065,6 +2144,12 @@ class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.
                         <?php endif ?>
                     </div>
                 </div>
+
+                <!-- <div class="print-participation-stats print-details-participation">
+                    <span><b><?= $LANG['total_students_label'] ?? 'Total Students' ?>:</b> <?= $totalStudents ?></span>
+                    <span><b><?= $LANG['completed_label'] ?? 'Completed' ?>:</b> <?= $completedCount ?></span>
+                </div> -->
+
 
                 <!-- Survey Results with Doughnut Charts -->
                 <!-- <?php if (!empty($surveyQuestions)): ?>
@@ -2185,10 +2270,16 @@ class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.
                     </div>
                     <div class="print-conclusion">
                         <strong>Grade:
-                            <?= e($gradeDisplay) ?>        <?= $completedCount > 0 ? ' (' . $overallPct . '%)' : '' ?></strong><br><br>
+                            <?= e($gradeDisplay) ?>         <?= $completedCount > 0 ? ' (' . $overallPct . '%)' : '' ?></strong><br><br>
                         <?= $conclusionText ?>
                     </div>
                 </div>
+
+                <!-- <div class="print-participation-stats print-all-participation">
+                    <span><b><?= $LANG['total_students_label'] ?? 'Total Students' ?>:</b> <?= $totalStudents ?></span>
+                    <span><b><?= $LANG['completed_label'] ?? 'Completed' ?>:</b> <?= $completedCount ?></span>
+                </div> -->
+
 
                 <!-- Signature Lines -->
                 <!-- <div class="print-signatures">
@@ -2244,6 +2335,10 @@ class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.
                 Generated by Student Feedback Information System (SFIS) — University of Computer Studies(Hinthada) —
                 <?= date('F d, Y') ?>
             </div>
+            <p class="print-participation-note"
+                style="text-align:center; margin-top:15px; border-top:1px solid #e2e8f0; padding-top:15px;font-size:20px;">
+                <?= e(sprintf($LANG['report_results_based_on_students'] ?? 'The results are calculated based on %1$d responding student(s) out of a total of %2$d students.', $completedCount, $totalStudents)) ?>
+            </p>
         </div>
     <?php endif; ?>
 <?php endif; ?>
@@ -2539,8 +2634,8 @@ class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.
         // ==========================================
         <?php if (!empty($ratingQuestions)): ?>
             var barCanvas = document.getElementById('likertRatingBarChart');
-            var likertBarColors = ['#16a34a', '#65a30d', '#f59e0b', '#f97316', '#dc2626'];
-            var likertBarBorderColors = ['#15803d', '#4d7c0f', '#b45309', '#c2410c', '#b91c1c'];
+            var likertBarColors = ['#16a34a', '#2563eb', '#8b5cf6', '#f97316', '#dc2626'];
+            var likertBarBorderColors = ['#15803d', '#1d4ed8', '#7c3aed', '#c2410c', '#b91c1c'];
             if (barCanvas) {
                 new Chart(barCanvas, {
                     type: 'bar',
