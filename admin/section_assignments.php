@@ -74,11 +74,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
 
             if (count($matchedStudents) > 0) {
                 $added = 0;
+                $addedStudents = 0;
                 $duplicates = 0;
                 $failed = 0;
                 $checkStmt = $conn->prepare("SELECT 1 FROM section_assignments WHERE student_id=? AND section_id=? LIMIT 1");
                 $insertStmt = $conn->prepare("INSERT INTO section_assignments (student_id, section_id) VALUES (?,?)");
                 foreach ($matchedStudents as $stud) {
+                    $studentAdded = false;
                     foreach ($sectionIds as $secId) {
                         $studentId = (int) $stud['id'];
                         $checkStmt->bind_param('ii', $studentId, $secId);
@@ -97,9 +99,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                         $insertStmt->bind_param('ii', $studentId, $secId);
                         if ($insertStmt->execute() && $insertStmt->affected_rows === 1) {
                             $added++;
+                            $studentAdded = true;
                         } else {
                             $failed++;
                         }
+                    }
+                    if ($studentAdded) {
+                        $addedStudents++;
                     }
                 }
                 $checkStmt->close();
@@ -109,8 +115,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                     setFlash('error', $LANG['flash_admin_one_or_more_student_assignments_could'] ?? 'One or more student assignments could not be saved.');
                 } elseif ($added > 0) {
                     setFlash('success', $duplicates > 0
-                        ? str_replace(':duplicates', $duplicates, $LANG['flash_admin_assignments_added_with_duplicates'] ?? "New assignments were added successfully. This student is already assigned to this section for :duplicates existing assignment(s), which were skipped.")
-                        : str_replace(':added', $added, $LANG['flash_admin_assignments_added'] ?? ":added student assignment(s) added successfully."));
+                        ? str_replace([':added', ':duplicates'], [$addedStudents, $duplicates], $LANG['flash_admin_assignments_added_with_duplicates'] ?? ":added student assignment(s) added successfully. :duplicates existing assignment(s) were skipped.")
+                        : str_replace(':added', $addedStudents, $LANG['flash_admin_assignments_added'] ?? ":added student assignment(s) added successfully."));
                 } else {
                     setFlash('error', $LANG['duplicate_range_error'] ?? 'This student range has already been assigned. Duplicate assignments are not allowed.');
                 }
