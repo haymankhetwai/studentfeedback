@@ -19,7 +19,7 @@ $studentSemIds = getStudentSemesterIds($conn, $studentId);
 
 if (!$studentId) {
     setFlash('error', $LANG['flash_student_profile_missing'] ?? 'Student profile not found.');
-    header('Location: /studentfeedbackucsh/student/dashboard.php');
+    header('Location: ' . BASE_URL . 'student/dashboard.php');
     exit;
 }
 
@@ -271,7 +271,7 @@ $initials = avatarInitials($user['name']);
     <script src="https://cdn.tailwindcss.com"></script>
     <script>tailwind.config = { theme: { extend: { fontFamily: { inter: ['Inter', 'sans-serif'] } } } }</script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/studentfeedbackucsh/assets/css/custom.css">
+    <link rel="stylesheet" href="<?= e(BASE_URL) ?>assets/css/custom.css">
     <style>
         .form-card {
             transition: all 0.3s ease;
@@ -305,7 +305,7 @@ $initials = avatarInitials($user['name']);
             class="fixed inset-y-0 left-0 w-64 bg-gradient-to-b from-cyan-600 to-cyan-700 text-white flex flex-col z-40 transform -translate-x-full transition-transform duration-300 lg:relative lg:translate-x-0 lg:flex-shrink-0">
             <div class="flex items-center gap-3 px-5 py-5 border-b border-cyan-500">
                 <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
-                    <img src="/studentfeedbackucsh/assets/uploads/profiles/image.png" alt="UCSH Logo"
+                    <img src="<?= e(BASE_URL) ?>assets/uploads/profiles/image.png" alt="UCSH Logo"
                         class="w-full h-full object-contain rounded-xl">
                 </div>
                 <div>
@@ -323,9 +323,9 @@ $initials = avatarInitials($user['name']);
             <nav class="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto scrollbar-thin">
                 <?php
                 $navItems = [
-                    ['label' => $LANG['nav_dashboard'] ?? 'Dashboard', 'href' => '/studentfeedbackucsh/student/dashboard.php', 'key' => 'dashboard', 'icon' => 'home', 'iconColor' => 'text-yellow-300'],
-                    ['label' => $LANG['nav_history'] ?? 'Submission History', 'href' => '/studentfeedbackucsh/student/feedback_history.php', 'key' => 'history', 'icon' => 'history', 'iconColor' => 'text-teal-300'],
-                    ['label' => $LANG['nav_profile'] ?? 'Profile', 'href' => '/studentfeedbackucsh/student/profile.php', 'key' => 'profile', 'icon' => 'user', 'iconColor' => 'text-rose-300'],
+                    ['label' => $LANG['nav_dashboard'] ?? 'Dashboard', 'href' => BASE_URL . 'student/dashboard.php', 'key' => 'dashboard', 'icon' => 'home', 'iconColor' => 'text-yellow-300'],
+                    ['label' => $LANG['nav_history'] ?? 'Submission History', 'href' => BASE_URL . 'student/feedback_history.php', 'key' => 'history', 'icon' => 'history', 'iconColor' => 'text-teal-300'],
+                    ['label' => $LANG['nav_profile'] ?? 'Profile', 'href' => BASE_URL . 'student/profile.php', 'key' => 'profile', 'icon' => 'user', 'iconColor' => 'text-rose-300'],
                 ];
                 foreach ($navItems as $n):
                     $a = $activeMenu === $n['key']; ?>
@@ -338,7 +338,7 @@ $initials = avatarInitials($user['name']);
                 <?php endforeach ?>
             </nav>
 
-            <a href="/studentfeedbackucsh/auth/logout.php" title="<?= $LANG['logout'] ?? 'Logout' ?>"
+            <a href="<?= e(BASE_URL) ?>auth/logout.php" title="<?= $LANG['logout'] ?? 'Logout' ?>"
                 class="block border-t border-white/15 bg-red-500/80 text-gray-50 hover:text-gray-200 transition-colors px-4 py-4 cursor-pointer">
                 <div class="flex items-center justify-center gap-3">
                     <div class="min-w-0">
@@ -377,7 +377,7 @@ $initials = avatarInitials($user['name']);
                         <p class="text-lg text-slate-600 mb-8">
                             <?= $LANG['all_forms_completed'] ?? 'You have completed all feedback forms. Thank you!' ?>
                         </p>
-                        <a href="/studentfeedbackucsh/student/dashboard.php"
+                        <a href="<?= e(BASE_URL) ?>student/dashboard.php"
                             class="inline-flex items-center gap-2 px-6 py-3 bg-cyan-600 text-white font-semibold rounded-xl hover:bg-cyan-700 transition-all hover:-translate-y-0.5 shadow-md">
                             <?= iconSvg('home', 'w-5 h-5') ?>
                             <?= $LANG['return_to_dashboard'] ?? 'Return to Dashboard' ?>
@@ -470,7 +470,7 @@ $initials = avatarInitials($user['name']);
                             <p class="text-lg text-slate-600 mb-8">
                                 <?= $LANG['all_forms_completed'] ?? 'You have completed all feedback forms. Thank you!' ?>
                             </p>
-                            <a href="/studentfeedbackucsh/student/dashboard.php"
+                            <a href="<?= e(BASE_URL) ?>student/dashboard.php"
                                 class="inline-flex items-center gap-2 px-6 py-3 bg-cyan-600 text-white font-semibold rounded-xl hover:bg-cyan-700 transition-all hover:-translate-y-0.5 shadow-md">
                                 <?= iconSvg('home', 'w-5 h-5') ?>
                                 <?= $LANG['return_to_dashboard'] ?? 'Return to Dashboard' ?>
@@ -578,19 +578,19 @@ $initials = avatarInitials($user['name']);
                                                 · <?= getTimeRemaining($f['end_date']) ?>
                                             </span>
                                             <?php if ($f['module'] === 'teaching_quality'): ?>
-                                                <a href="/studentfeedbackucsh/student/feedback_form.php?form_id=<?= $f['id'] ?>"
+                                                <a href="<?= e(BASE_URL) ?>student/feedback_form.php?form_id=<?= $f['id'] ?>"
                                                     class="fill-btn js-inline-survey inline-flex items-center gap-1 px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all hover:-translate-y-0.5 shadow-sm">
                                                     <?= iconSvg('clipboard', 'w-3.5 h-3.5') ?>
                                                     <?= $LANG['fill'] ?? 'Fill' ?>
                                                 </a>
                                             <?php elseif ($f['module'] === 'student_support_services'): ?>
-                                                <a href="/studentfeedbackucsh/student/sa_feedback_form.php?form_id=<?= $f['id'] ?>"
+                                                <a href="<?= e(BASE_URL) ?>student/sa_feedback_form.php?form_id=<?= $f['id'] ?>"
                                                     class="fill-btn js-inline-survey inline-flex items-center gap-1 px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all hover:-translate-y-0.5 shadow-sm">
                                                     <?= iconSvg('clipboard', 'w-3.5 h-3.5') ?>
                                                     <?= $LANG['fill'] ?? 'Fill' ?>
                                                 </a>
                                             <?php else: ?>
-                                                <a href="/studentfeedbackucsh/student/adm_feedback_form.php?form_id=<?= $f['id'] ?>"
+                                                <a href="<?= e(BASE_URL) ?>student/adm_feedback_form.php?form_id=<?= $f['id'] ?>"
                                                     class="fill-btn js-inline-survey inline-flex items-center gap-1 px-4 py-2 text-xs font-semibold text-white bg-orange-600 hover:bg-orange-700 rounded-xl transition-all hover:-translate-y-0.5 shadow-sm">
                                                     <?= iconSvg('clipboard', 'w-3.5 h-3.5') ?>
                                                     <?= $LANG['fill'] ?? 'Fill' ?>

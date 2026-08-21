@@ -277,11 +277,11 @@ if ($r)
     <!-- ─── Navigation ──────────────────────────────────────── -->
     <nav class="sticky top-0 z-50 backdrop-blur-md border-b border-blue-100/50 shadow-lg shadow-blue-500/5 transition-all duration-300"
         style="background: linear-gradient(135deg, rgba(219,234,254,0.92) 0%, rgba(191,219,254,0.88) 40%, rgba(224,242,254,0.90) 100%);">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16 lg:h-20">
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2 sm:gap-3 min-w-0">
                     <div
-                        class="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 ">
+                        class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 ">
                         <img src="../assets/uploads/profiles/image.png" alt="uscsh_logo"
                             class="object-contain rounded-lg">
                     </div>
@@ -292,14 +292,14 @@ if ($r)
                         </p>
                     </div>
                 </div>
-                <div class="flex items-center gap-5">
-                        <a href="/studentfeedbackucsh/index.php"
-                            class="inline-flex items-center gap-1.5 text-blue-600/80 hover:text-blue-700 font-semibold text-sm transition-colors">
+                <div class="flex items-center gap-1.5 sm:gap-3 lg:gap-5 flex-shrink-0">
+                        <a href="<?= e(BASE_URL) ?>index.php"
+                            class="inline-flex items-center gap-1 sm:gap-1.5 text-blue-600/80 hover:text-blue-700 font-semibold text-[10px] sm:text-sm whitespace-nowrap transition-colors">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
                             </svg>
-                            <?= $LANG['home'] ?? 'Home' ?>
+                            <span class="hidden sm:inline"><?= $LANG['home'] ?? 'Home' ?></span>
                         </a>
                     <!-- <span
                         class="text-xs text-blue-700/70 hidden md:block font-semibold capitalize tracking-wide"><?= e($loginType) ?>
@@ -309,24 +309,24 @@ if ($r)
                     <div
                         class="flex items-center gap-0.5 bg-white/70 backdrop-blur-sm rounded-xl p-0.5 text-xs font-semibold border border-blue-200/60 shadow-sm">
                         <a href="?lang=en" id="lang-btn-en"
-                            class="px-3 py-1.5 rounded-lg transition-all duration-200 <?= $currentLang === 'en' ? 'bg-blue-500 shadow-md shadow-blue-500/25 text-white font-bold' : 'text-blue-400 hover:text-blue-600 hover:bg-blue-50/50' ?>">
-                            ENG
+                            class="px-2 sm:px-3 py-1.5 rounded-lg transition-all duration-200 <?= $currentLang === 'en' ? 'bg-blue-500 shadow-md shadow-blue-500/25 text-white font-bold' : 'text-blue-400 hover:text-blue-600 hover:bg-blue-50/50' ?>">
+                            <span class="sm:hidden">EN</span><span class="hidden sm:inline">ENG</span>
                         </a>
                         <a href="?lang=mm" id="lang-btn-mm"
-                            class="px-3 py-1.5 rounded-lg transition-all duration-200 <?= $currentLang === 'mm' ? 'bg-blue-500 shadow-md shadow-blue-500/25 text-white font-bold' : 'text-blue-400 hover:text-blue-600 hover:bg-blue-50/50' ?>">
-                            မြန်မာ
+                            class="px-2 sm:px-3 py-1.5 rounded-lg transition-all duration-200 <?= $currentLang === 'mm' ? 'bg-blue-500 shadow-md shadow-blue-500/25 text-white font-bold' : 'text-blue-400 hover:text-blue-600 hover:bg-blue-50/50' ?>">
+                            <span class="sm:hidden">MM</span><span class="hidden sm:inline">မြန်မာ</span>
                         </a>
                     </div>
 
 
 
                     <button type="button" id="navLoginBtn"
-                        class="inline-flex items-center gap-2 bg-white/80 text-blue-600 px-5 py-2 rounded-xl font-semibold text-sm shadow-lg shadow-blue-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/40 hover:-translate-y-0.5 hover:from-blue-600 hover:to-blue-700 cursor-pointer ring-1 ring-blue-400/30">
+                        class="inline-flex items-center justify-center gap-1 sm:gap-2 bg-white/80 text-blue-600 px-2 py-2 sm:px-5 sm:py-2 rounded-xl font-semibold text-[10px] sm:text-sm whitespace-nowrap shadow-lg shadow-blue-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/40 hover:-translate-y-0.5 hover:from-blue-600 hover:to-blue-700 cursor-pointer ring-1 ring-blue-400/30">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
-                        <span><?= $LANG['login'] ?? 'Login' ?></span>
+                        <span class="hidden sm:inline"><?= $LANG['login'] ?? 'Login' ?></span>
                     </button>
                 </div>
             </div>
@@ -366,11 +366,11 @@ if ($r)
         <!-- <div class="absolute top-20 left-10 w-72 h-72 bg-white/5 rounded-full blur-3xl animate-pulse"></div>
         <div class="absolute bottom-10 right-10 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl"></div> -->
 
-        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20 flex items-center w-full">
-            <div class="grid lg:grid-cols-12 gap-10 lg:gap-20 items-center w-full">
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-20 flex items-center w-full">
+            <div class="grid lg:grid-cols-12 gap-8 sm:gap-10 lg:gap-20 items-center w-full">
 
                 <!-- Left: Hero Text -->
-                <div class="lg:col-span-7 space-y-6 lg:space-y-8">
+                <div class="lg:col-span-7 space-y-5 sm:space-y-6 lg:space-y-8 text-center lg:text-left">
                     <?php if ($showBadge && !empty($badgeText)): ?>
                         <div
                             class="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm px-4 py-2 rounded-full border border-white/15 text-sm font-medium">
@@ -392,13 +392,13 @@ if ($r)
                         <div class="h-1 w-16 rounded-full bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 opacity-70"></div>
                     </div> -->
 
-                    <p class="hero-desc text-base sm:text-lg text-blue-50/70 font-light max-w-xl leading-relaxed">
+                    <p class="hero-desc text-sm sm:text-lg text-blue-50/70 font-light max-w-xl mx-auto lg:mx-0 leading-relaxed">
                         <?= htmlspecialchars($heroDescription) ?>
                     </p>
 
-                    <div class="flex flex-wrap gap-4 pt-2">
+                    <div class="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4 pt-2">
                         <button type="button" id="loginTriggerBtn"
-                            class="inline-flex items-center gap-2 bg-white/90 text-blue-800 font-semibold px-6 py-3 rounded-xl shadow-xl shadow-black/10 hover:shadow-2xl hover:-translate-y-0.5 transition-all cursor-pointer">
+                            class="inline-flex items-center justify-center gap-2 w-full sm:w-auto bg-white/90 text-blue-800 font-semibold px-6 py-3 rounded-xl shadow-xl shadow-black/10 hover:shadow-2xl hover:-translate-y-0.5 transition-all cursor-pointer">
                             <span><?= htmlspecialchars($buttonText) ?></span>
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -415,7 +415,7 @@ if ($r)
                         </a> -->
 
                         <a href="#stats" onclick="smoothScrollToStats(); return false;"
-                            class="inline-flex items-center gap-2 border-2 border-white/70 text-white/90 bg-white/10 hover:bg-white/30 px-6 py-3 rounded-xl font-medium transition-all">
+                            class="inline-flex items-center justify-center gap-2 w-full sm:w-auto border-2 border-white/70 text-white/90 bg-white/10 hover:bg-white/30 px-6 py-3 rounded-xl font-medium transition-all">
                             <?= $LANG['view_statistics'] ?? 'View Statistics' ?>
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -426,10 +426,10 @@ if ($r)
                 </div>
 
                 <!-- Right: University Box / Login Form -->
-                <div class="lg:col-span-5 relative w-full min-h-[420px] flex items-center justify-center">
+                <div class="lg:col-span-5 relative w-full min-h-[430px] sm:min-h-[420px] flex items-center justify-center">
 
                     <div id="universityBox"
-                        class="absolute inset-0 bg-white/8 backdrop-blur-sm rounded-2xl border border-white/15 flex flex-col items-center justify-center p-8 text-center transition-all duration-500 <?= $showLoginOnLoad ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100' ?> z-10">
+                        class="absolute inset-0 bg-white/8 backdrop-blur-sm rounded-2xl border border-white/15 flex flex-col items-center justify-center p-5 sm:p-8 text-center transition-all duration-500 <?= $showLoginOnLoad ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100' ?> z-10">
                         <!-- Logo with ring -->
                         <div class="relative w-24 h-24 mb-6 animate-float">
                             <!-- <div class="absolute inset-0 rounded-2xl bg-white/10 border border-white/20 rotate-3"></div> -->
@@ -453,12 +453,12 @@ if ($r)
                     </div>
 
                     <div id="loginBox"
-                        class="absolute w-full max-w-sm mx-auto transition-all duration-500 <?= $showLoginOnLoad ? 'opacity-100 scale-100 z-10' : 'opacity-0 scale-95 pointer-events-none z-0' ?>">
+                        class="absolute w-full max-w-sm px-1 sm:px-0 mx-auto transition-all duration-500 <?= $showLoginOnLoad ? 'opacity-100 scale-100 z-10' : 'opacity-0 scale-95 pointer-events-none z-0' ?>">
                         <div
                             class="bg-white rounded-2xl shadow-2xl border border-slate-200/80 overflow-hidden text-slate-800">
 
                             <div
-                                class="bg-gradient-to-r from-blue-600/70 to-violet-700/50 px-6 py-5 text-center relative">
+                                class="bg-gradient-to-r from-blue-600/70 to-violet-700/50 px-4 sm:px-6 py-4 sm:py-5 text-center relative">
                                 <button type="button" id="closeLoginBtn"
                                     class="absolute top-3 right-3 text-white/70 hover:text-white text-xs bg-black/10 hover:bg-black/20 px-2 py-1 rounded-md transition-colors cursor-pointer">✕</button>
                                 <!-- <div
@@ -471,7 +471,7 @@ if ($r)
                                 </div> -->
                                 <div
                                     class="inline-flex items-center justify-center w-11 h-11 rounded-xl  mb-3">
-                                    <img src="/studentfeedbackucsh/assets/uploads/profiles/image.png" alt="UCSH Logo"
+                                    <img src="<?= e(BASE_URL) ?>assets/uploads/profiles/image.png" alt="UCSH Logo"
                                         class="w-full h-full object-contain rounded-xl">
                                 </div>
                                 <h1 class="text-xl font-bold text-white tracking-wide"><?= $LANG['sfms'] ?? 'SFIS' ?>
@@ -481,7 +481,7 @@ if ($r)
                                 </p>
                             </div>
 
-                            <div class="px-6 py-5">
+                            <div class="px-4 sm:px-6 py-4 sm:py-5">
                                 <h2 class="text-lg font-bold text-slate-900 mb-0.5">
                                     <?= $LANG['welcome_back'] ?? 'Welcome back' ?>
                                 </h2>
@@ -583,7 +583,7 @@ if ($r)
     </header>
 
     <!-- ─── Statistics Section ──────────────────────────────────── -->
-    <section id="stats" class="relative py-18 lg:py-20 bg-slate-50">
+    <section id="stats" class="relative py-12 sm:py-16 lg:py-20 bg-slate-50">
         <div class="absolute inset-0 bg-gradient-to-b from-white via-transparent to-white pointer-events-none">
         </div>
         <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

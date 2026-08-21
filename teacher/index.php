@@ -1,6 +1,8 @@
 <?php
 session_start();
+require_once '../config/base_url.php';
 require_once '../includes/auth.php';
+//require_once '../includes/auth.php';
 
 if (isLoggedIn() && $_SESSION['role'] === 'teacher') {
     // Authorized
@@ -11,7 +13,7 @@ if (isLoggedIn() && $_SESSION['role'] === 'teacher') {
     $hasLoginIntent = isset($_SESSION['login_intent']) && $_SESSION['login_intent'] === 'teacher';
 
     if (!$hasEntry && !($isPost && $hasLoginIntent) && !($isLangSwitch && $hasLoginIntent)) {
-        header('Location: /studentfeedbackucsh/index.php');
+        header('Location: ' . BASE_URL . 'index.php');
         exit;
     }
 

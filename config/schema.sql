@@ -65,6 +65,21 @@ CREATE TABLE IF NOT EXISTS academic_years (
     INDEX idx_ay_status (status)
 ) ENGINE=InnoDB;
 
+-- Academic-year-specific performance grade configuration.
+CREATE TABLE IF NOT EXISTS performance_grade_settings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    academic_year_id INT NOT NULL,
+    grade_code VARCHAR(50) NOT NULL,
+    min_score DECIMAL(5,2) NOT NULL,
+    max_score DECIMAL(5,2) NOT NULL,
+    recommendation_key VARCHAR(100) NOT NULL,
+    recommendation TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE CASCADE,
+    UNIQUE KEY (academic_year_id, grade_code)
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS semesters (
     id INT AUTO_INCREMENT PRIMARY KEY,
     semester_name VARCHAR(50) NOT NULL,

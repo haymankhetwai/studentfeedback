@@ -10,7 +10,7 @@ $initials = avatarInitials($user['name']);
 $pageTitle = $LANG['completion_congratulations'] ?? 'Congratulations!';
 $currentLang = $_SESSION['lang'] ?? 'en';
 $completionLanguageUrl = static function (string $language): string {
-    return ($_SERVER['PHP_SELF'] ?? '/studentfeedbackucsh/student/completion.php') . '?lang=' . $language;
+    return ($_SERVER['PHP_SELF'] ?? BASE_URL . 'student/completion.php') . '?lang=' . $language;
 };
 ?>
 <!DOCTYPE html>
@@ -21,7 +21,7 @@ $completionLanguageUrl = static function (string $language): string {
     <title><?= e($pageTitle) ?> — SFIS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/studentfeedbackucsh/assets/css/custom.css">
+    <link rel="stylesheet" href="<?= e(BASE_URL) ?>assets/css/custom.css">
     <style>
         body { font-family: 'Inter', sans-serif; }
 
@@ -83,7 +83,7 @@ $completionLanguageUrl = static function (string $language): string {
     <header class="bg-white/90 backdrop-blur-sm border-b border-slate-100 px-6 py-3.5 flex items-center justify-between sticky top-0 z-20 shadow-sm">
         <div class="flex items-center gap-3">
             <div class="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0">
-                <img src="/studentfeedbackucsh/assets/uploads/profiles/image.png" alt="UCSH" class="w-full h-full object-contain">
+                <img src="<?= e(BASE_URL) ?>assets/uploads/profiles/image.png" alt="UCSH" class="w-full h-full object-contain">
             </div>
             <div>
                 <p class="text-sm font-bold text-slate-800"><?= e($LANG['student_portal'] ?? 'SFIS Student Portal') ?></p>
@@ -183,7 +183,7 @@ $completionLanguageUrl = static function (string $language): string {
                     </div>
 
                     <!-- Return to Dashboard (the ONLY button in the entire flow) -->
-                    <a href="/studentfeedbackucsh/student/dashboard.php"
+                    <a href="<?= e(BASE_URL) ?>student/dashboard.php"
                        id="return-dashboard-btn"
                        class="shimmer-btn inline-flex items-center gap-2.5 px-8 py-3.5 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 text-sm slide-up-5">
                         <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

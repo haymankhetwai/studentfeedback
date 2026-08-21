@@ -42,10 +42,10 @@ $studentLanguageUrl = static function (string $language): string {
             </a>
         </div>
         <!-- Profile -->
-        <a href="/studentfeedbackucsh/student/profile.php"
+        <a href="<?= e(BASE_URL) ?>student/profile.php"
            class="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-cyan-50/60 transition-colors">
             <?php if (!empty($user['profile_image'])): ?>
-                <img src="/studentfeedbackucsh/<?= e($user['profile_image']) ?>" alt="Profile"
+                <img src="<?= e(BASE_URL) ?><?= e($user['profile_image']) ?>" alt="Profile"
                     class="w-7 h-7 rounded-full object-cover">
             <?php else: ?>
                 <div class="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold text-white">

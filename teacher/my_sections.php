@@ -47,7 +47,7 @@ if ($teacherId) {
 } else { $rows = []; }
 
 ?>
-<!DOCTYPE html><html lang="<?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'my' : 'en' ?>" class="h-full"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?= e($pageTitle) ?> — SFIS</title><script src="https://cdn.tailwindcss.com"></script><script>tailwind.config={theme:{extend:{fontFamily:{inter:['Inter','sans-serif']}}}}</script><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/studentfeedbackucsh/assets/css/custom.css"></head>
+<!DOCTYPE html><html lang="<?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'my' : 'en' ?>" class="h-full"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?= e($pageTitle) ?> — SFIS</title><script src="https://cdn.tailwindcss.com"></script><script>tailwind.config={theme:{extend:{fontFamily:{inter:['Inter','sans-serif']}}}}</script><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="<?= e(BASE_URL) ?>assets/css/custom.css"></head>
 <body class="h-full bg-gradient-to-br from-slate-50 via-blue-50 to-sky-50 font-inter antialiased <?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'lang-mm' : '' ?>">
 <?php require_once '../includes/teacher_sidebar.php'; ?>
 
@@ -85,7 +85,7 @@ if ($teacherId) {
                     <td class="px-10 py-3 "><span class="text-sm font-bold text-slate-700"><?= $row['student_count'] ?></span></td>
                     <td class="px-10 py-3 "><span class="text-sm font-bold text-emerald-600"><?= $row['form_count'] ?></span></td>
                     <td class="px-5 py-3 text-right">
-                        <a href="/studentfeedbackucsh/teacher/feedback_results.php?section_id=<?= $row['id'] ?>" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+                        <a href="<?= e(BASE_URL) ?>teacher/feedback_results.php?section_id=<?= $row['id'] ?>" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
                             <?= iconSvg('chart','w-3.5 h-3.5') ?> <?= $LANG['results_link'] ?? 'Results' ?>
                         </a>
                     </td>

@@ -28,7 +28,7 @@
                         <i class="fa-solid fa-key text-3xl text-cyan-600"></i>
                     </div>
                     <h3 class="text-xl font-semibold text-gray-900 mb-6"><?= $LANG['admin_login'] ?? 'Admin Login' ?></h3>
-                    <a href="/studentfeedbackucsh/auth/login.php?role=admin"
+                    <a href="<?= e(BASE_URL) ?>auth/login.php?role=admin"
                         class="w-full py-3 px-4 bg-indigo-600  hover:bg-indigo-700 text-white font-medium text-sm rounded-lg transition-all duration-200 text-center block">
                         <?= $LANG['login_as_admin'] ?? 'Login as Administrator' ?>
                     </a>
@@ -40,7 +40,7 @@
                         <i class="fa-solid fa-graduation-cap text-3xl text-cyan-600"></i>
                     </div>
                     <h3 class="text-xl font-semibold text-gray-900 mb-6"><?= $LANG['teachers_login'] ?? 'Teachers Login' ?></h3>
-                    <a href="/studentfeedbackucsh/auth/login.php?role=teacher"
+                    <a href="<?= e(BASE_URL) ?>auth/login.php?role=teacher"
                         class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm rounded-lg transition-all duration-200 text-center block">
                         <?= $LANG['login_as_teacher'] ?? 'Login as Teacher' ?>
                     </a>
@@ -52,7 +52,7 @@
                         <i class="fa-solid fa-users text-3xl text-cyan-600"></i>
                     </div>
                     <h3 class="text-xl font-semibold text-gray-900 mb-6"><?= $LANG['students_login'] ?? 'Students Login' ?></h3>
-                    <a href="/studentfeedbackucsh/auth/login.php?role=student"
+                    <a href="<?= e(BASE_URL) ?>auth/login.php?role=student"
                         class="w-full py-3 px-4 bg-indigo-600  hover:bg-indigo-700 text-white font-medium text-sm rounded-lg transition-all duration-200 text-center block">
                         <?= $LANG['login_as_student'] ?? 'Login as Student' ?>
                     </a>

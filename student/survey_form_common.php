@@ -157,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'form_id' => (int) $formId,
                     'module' => $module,
                 ];
-                header('Location: /studentfeedbackucsh/student/dashboard.php');
+                header('Location: ' . BASE_URL . 'student/dashboard.php');
                 exit;
             } catch (Throwable $error) {
                 $conn->rollback();
@@ -199,7 +199,7 @@ $moduleLabel = match ($module) {
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title><?= e($pageTitle) ?> — SFIS</title>
         <script src="https://cdn.tailwindcss.com"></script>
-        <link rel="stylesheet" href="/studentfeedbackucsh/assets/css/custom.css">
+        <link rel="stylesheet" href="<?= e(BASE_URL) ?>assets/css/custom.css">
     </head>
 
     <body class="bg-slate-100 min-h-screen">
@@ -218,7 +218,7 @@ $moduleLabel = match ($module) {
             <div class="survey-inline-content" data-form-id="<?= $formId ?>" data-module="<?= e($module) ?>">
                 <?php if (!$isDashboardEmbedded): ?>
                     <div class="sticky top-0 z-10 flex justify-end py-2 mb-2">
-                        <a href="/studentfeedbackucsh/student/feedback_forms.php"
+                        <a href="<?= e(BASE_URL) ?>student/feedback_forms.php"
                             class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-cyan-700 bg-white border border-cyan-200 rounded-xl shadow-sm hover:bg-cyan-50 hover:border-cyan-300 transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
                                 stroke="currentColor" class="w-4 h-4" aria-hidden="true">
@@ -322,7 +322,7 @@ $moduleLabel = match ($module) {
                 </div>
             <?php else: ?>
                 <form method="post"
-                    action="<?= $isDashboardEmbedded ? '/studentfeedbackucsh/student/dashboard.php' : e(basename($_SERVER['PHP_SELF'])) ?>?form_id=<?= $formId ?><?= $isAjaxEmbedded ? '&amp;embed=1' : '' ?>"
+                    action="<?= $isDashboardEmbedded ? BASE_URL . 'student/dashboard.php' : e(basename($_SERVER['PHP_SELF'])) ?>?form_id=<?= $formId ?><?= $isAjaxEmbedded ? '&amp;embed=1' : '' ?>"
                     class="space-y-5" id="survey-form" novalidate>
                     <?= csrfField() ?>
                     <!-- <div id="survey-validation-summary" class="hidden rounded-2xl border border-red-300 bg-red-50 p-5 text-red-800" role="alert" aria-live="assertive">

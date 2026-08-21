@@ -35,7 +35,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                     } else {
                         $stmt = $conn->prepare("INSERT INTO academic_years (year_name, status) VALUES (?, 'active')");
                         $stmt->bind_param('s', $yearName);
-                        $stmt->execute() ? setFlash('success', $LANG['flash_admin_academic_year_added'] ?? 'Academic Year added.') : setFlash('error', $LANG['flash_admin_failed'] ?? 'Failed.');
+                        if ($stmt->execute()) {
+                            ensurePerformanceGradeSettings($conn, (int) $stmt->insert_id);
+                            setFlash('success', $LANG['flash_admin_academic_year_added'] ?? 'Academic Year added.');
+                        } else {
+                            setFlash('error', $LANG['flash_admin_failed'] ?? 'Failed.');
+                        }
                         $stmt->close();
                     }
                 }

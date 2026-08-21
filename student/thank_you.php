@@ -15,7 +15,7 @@ $stmtSt->close();
 $studentId = (int) ($student['id'] ?? 0);
 
 if (!$studentId) {
-    header('Location: /studentfeedbackucsh/student/dashboard.php');
+    header('Location: ' . BASE_URL . 'student/dashboard.php');
     exit;
 }
 
@@ -24,7 +24,7 @@ $module = trim($_GET['module'] ?? '');
 $validModules = ['teaching_quality', 'student_support_services', 'learning_environment'];
 
 if (!$formId || !in_array($module, $validModules, true)) {
-    header('Location: /studentfeedbackucsh/student/dashboard.php');
+    header('Location: ' . BASE_URL . 'student/dashboard.php');
     exit;
 }
 
@@ -33,7 +33,7 @@ $vStmt = $conn->prepare("SELECT id FROM feedback_submissions WHERE form_id = ? A
 $vStmt->bind_param('ii', $formId, $studentId);
 $vStmt->execute();
 if ($vStmt->get_result()->num_rows === 0) {
-    header('Location: /studentfeedbackucsh/student/dashboard.php');
+    header('Location: ' . BASE_URL . 'student/dashboard.php');
     exit;
 }
 $vStmt->close();
@@ -130,7 +130,7 @@ if ($module === 'learning_environment')
     $isLastInModule = ($remainingLE === 0);
 
 // ─── Redirect target ──────────────────────────────────────────────────
-$redirectTarget = '/studentfeedbackucsh/student/dashboard.php';
+$redirectTarget = BASE_URL . 'student/dashboard.php';
 $redirectDelay = 4000; // ms
 
 // ─── Build contextual message ─────────────────────────────────────────
@@ -170,7 +170,7 @@ $currentLang = $_SESSION['lang'] ?? 'en';
 $languageUrl = static function (string $language): string {
     $params = $_GET;
     $params['lang'] = $language;
-    $path = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '/studentfeedbackucsh/student/thank_you.php';
+    $path = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: BASE_URL . 'student/thank_you.php';
     return $path . '?' . http_build_query($params);
 };
 ?>
@@ -183,7 +183,7 @@ $languageUrl = static function (string $language): string {
     <title><?= e($pageTitle) ?> — SFIS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/studentfeedbackucsh/assets/css/custom.css">
+    <link rel="stylesheet" href="<?= e(BASE_URL) ?>assets/css/custom.css">
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -297,7 +297,7 @@ $languageUrl = static function (string $language): string {
         class="bg-white/90 backdrop-blur-sm border-b border-slate-100 px-6 py-3.5 flex items-center justify-between sticky top-0 z-20 shadow-sm">
         <div class="flex items-center gap-3">
             <div class="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0">
-                <img src="/studentfeedbackucsh/assets/uploads/profiles/image.png" alt="UCSH"
+                <img src="<?= e(BASE_URL) ?>assets/uploads/profiles/image.png" alt="UCSH"
                     class="w-full h-full object-contain">
             </div>
             <div>

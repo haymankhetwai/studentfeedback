@@ -64,18 +64,15 @@ $summary = null;
 $ayImprovements = [];
 $hasData = false;
 $hasMultipleAY = false;
+$hasComparableHistory = false;
 
 if ($teacherId && $courseId) {
-    $trendData = getAcademicRatingTrend($conn, $teacherId, $courseId ?: null);
-    $questionRaw = getAcademicQuestionTrend($conn, $teacherId, $courseId ?: null);
-    $surveyRaw = getAcademicSurveyTrend($conn, $teacherId, $courseId ?: null);
-
-    $questionTrend = processQuestionTrend($questionRaw);
-    $surveyTrend = processSurveyTrend($surveyRaw);
-    $summary = buildTrendSummary($trendData);
-
-    $hasData = count($trendData) > 0;
-    $hasMultipleAY = count($trendData) > 1;
+    $allTrendData = getAcademicRatingTrend($conn, $teacherId, $courseId ?: null);
+    $hasData = count($allTrendData) > 0;
+    $hasMultipleAY = count($allTrendData) > 1;
+    $trendData = comparableOverallRatingTrend($conn, $allTrendData);
+    $hasComparableHistory = count($trendData) > 1;
+    $summary = $hasComparableHistory ? buildTrendSummary($trendData) : null;
 
     // Per-AY improvement calculations
     for ($i = 0; $i < count($trendData); $i++) {
@@ -83,8 +80,8 @@ if ($teacherId && $courseId) {
             $ayImprovements[] = null;
         } else {
             $ayImprovements[] = calcImprovement(
-                (float) $trendData[$i]['avg_rating'],
-                (float) $trendData[$i - 1]['avg_rating']
+                (float) $trendData[$i]['overall_rating'],
+                (float) $trendData[$i - 1]['overall_rating']
             );
         }
     }
@@ -340,15 +337,15 @@ include '../includes/admin_sidebar.php';
         </div>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-6">
+    <!-- <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-6">
         <h3 class="text-base font-semibold text-slate-800 mb-1">
             <?= e($selectedTeacherName) ?> – <?= e($trendData[0]['year_name']) ?>
         </h3>
         <p class="text-sm text-slate-500 mb-4"><?= $LANG['feedback_summary'] ?? 'Feedback Summary' ?></p>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div class="bg-blue-50 rounded-xl p-4 text-center">
-                <p class="text-2xl font-bold text-blue-700"><?= $trendData[0]['avg_rating'] ?></p>
-                <p class="text-xs text-blue-600 mt-1"><?= $LANG['average_rating'] ?? 'Average Rating' ?> (1–5)</p>
+                <p class="text-2xl font-bold text-blue-700"><?= $trendData[0]['overall_rating'] ?></p>
+                <p class="text-xs text-blue-600 mt-1"><?= $LANG['overall_rating'] ?? 'Overall Rating' ?> (%)</p>
             </div>
             <div class="bg-emerald-50 rounded-xl p-4 text-center">
                 <p class="text-2xl font-bold text-emerald-700"><?= (int) $trendData[0]['strongly_agree_count'] ?></p>
@@ -359,8 +356,13 @@ include '../includes/admin_sidebar.php';
                 <p class="text-xs text-slate-600 mt-1"><?= $LANG['total_responses'] ?? 'Total Responses' ?></p>
             </div>
         </div>
-    </div>
+    </div> -->
 
+<?php elseif (!$hasComparableHistory): ?>
+    <div class="bg-amber-50 border border-amber-200 rounded-2xl p-6 mb-6">
+        <h3 class="text-base font-semibold text-amber-800"><?= e($LANG['no_comparable_historical_data'] ?? 'No comparable historical data available.') ?></h3>
+        <p class="text-sm text-amber-700 mt-1"><?= e($LANG['no_comparable_historical_data_desc'] ?? 'Academic Years can be compared only when the Teacher, Course, Performance Grade, and valid Overall Ratings match the comparison rules.') ?></p>
+    </div>
 <?php else: ?>
     <!-- --- Full Trend Analysis -------------------------------- -->
 
@@ -384,11 +386,11 @@ include '../includes/admin_sidebar.php';
             <div class="flex items-center gap-3 mb-2">
                 <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-xl">⭐</div>
                 <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    <?= $LANG['latest_avg_rating'] ?? 'Latest Avg Rating' ?>
+                    <?= $LANG['overall_rating'] ?? 'Overall Rating' ?>
                 </p>
             </div>
-            <p class="text-3xl font-bold text-slate-800"><?= $summary['latest_avg'] ?><span
-                    class="text-base font-normal text-slate-400">/5</span></p>
+            <p class="text-3xl font-bold text-slate-800"><?= $summary['latest_overall'] ?><span
+                    class="text-base font-normal text-slate-400">%</span></p>
         </div>
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-5">
             <div class="flex items-center gap-3 mb-2">
@@ -398,7 +400,7 @@ include '../includes/admin_sidebar.php';
                 </p>
             </div>
             <p class="text-xl font-bold text-emerald-700"><?= e($summary['best_year']) ?></p>
-            <p class="text-sm text-slate-500"><?= $summary['best_avg'] ?>/5</p>
+            <p class="text-sm text-slate-500"><?= $summary['best_overall'] ?>%</p>
         </div>
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-5">
             <div class="flex items-center gap-3 mb-2">
@@ -408,7 +410,7 @@ include '../includes/admin_sidebar.php';
                 </p>
             </div>
             <p class="text-xl font-bold text-red-700"><?= e($summary['worst_year']) ?></p>
-            <p class="text-sm text-slate-500"><?= $summary['worst_avg'] ?>/5</p>
+            <p class="text-sm text-slate-500"><?= $summary['worst_overall'] ?>%</p>
         </div>
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-5 <?= $summary['trend_info']['bg'] ?>">
             <div class="flex items-center gap-3 mb-2">
@@ -440,7 +442,7 @@ include '../includes/admin_sidebar.php';
         </div> -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-6">
             <h3 class="text-base font-semibold text-slate-800 mb-4">
-                <?= $LANG['rating_comparison'] ?? 'Rating Comparison' ?>
+                <?= $LANG['overall_rating_comparison'] ?? 'Overall Rating Comparison' ?>
             </h3>
             <div class="relative" style="height: 300px;">
                 <canvas id="trendOverallBarChart"></canvas>
@@ -458,7 +460,7 @@ include '../includes/admin_sidebar.php';
                 <thead>
                     <tr class="border-b border-slate-200">
                         <th class="text-left py-3 px-4 text-slate-500"><?= $LANG['academic_year'] ?? 'Academic Year' ?></th>
-                        <th class="text-center py-3 px-4 text-slate-500"><?= $LANG['average_rating'] ?? 'Avg Rating' ?></th>
+                        <th class="text-center py-3 px-4 text-slate-500"><?= $LANG['overall_rating'] ?? 'Overall Rating' ?></th>
                         <?php foreach (normalizeSurveyOptions(null) as $option): ?>
                             <th class="text-center py-3 px-4 text-slate-500"><?= e($option['label']) ?></th><?php endforeach; ?>
                         <th class="text-center py-3 px-4 text-slate-500"><?= $LANG['total'] ?? 'Total' ?></th>
@@ -473,7 +475,7 @@ include '../includes/admin_sidebar.php';
                             <td class="py-3 px-4 text-center">
                                 <span
                                     class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-bold text-sm">
-                                    <?= $row['avg_rating'] ?>
+                                    <?= $row['overall_rating'] ?>%
                                 </span>
                             </td>
                             <td class="py-3 px-4 text-center font-medium"><?= (int) $row['strongly_agree_count'] ?></td>
@@ -516,7 +518,7 @@ include '../includes/admin_sidebar.php';
     <!-- --- Chart.js Initialization -------------------------------- -->
     <script>
         const trendLabels = <?= json_encode(array_column($trendData, 'year_name')) ?>;
-        const trendAvgRatings = <?= json_encode(array_map('floatval', array_column($trendData, 'avg_rating'))) ?>;
+        const trendOverallRatings = <?= json_encode(array_map('floatval', array_column($trendData, 'overall_rating'))) ?>;
         const trendColors = <?= json_encode(trendChartColors()) ?>;
 
         // Overall Rating Trend – Line Chart
@@ -525,8 +527,8 @@ include '../includes/admin_sidebar.php';
             data: {
                 labels: trendLabels,
                 datasets: [{
-                    label: '<?= $LANG['average_rating'] ?? 'Average Rating' ?>',
-                    data: trendAvgRatings,
+                    label: '<?= $LANG['overall_rating'] ?? 'Overall Rating' ?>',
+                    data: trendOverallRatings,
                     borderColor: '#6366f1',
                     backgroundColor: 'rgba(99,102,241,0.08)',
                     fill: true,
@@ -544,8 +546,8 @@ include '../includes/admin_sidebar.php';
                 maintainAspectRatio: false,
                 scales: {
                     y: {
-                        min: 0, max: 5, ticks: { stepSize: 1 },
-                        title: { display: true, text: '<?= $LANG['average_rating'] ?? 'Average Rating' ?>', font: { size: 11 } },
+                        min: 0, max: 100, ticks: { stepSize: 10 },
+                        title: { display: true, text: '<?= $LANG['overall_rating'] ?? 'Overall Rating' ?>', font: { size: 11 } },
                         grid: { color: 'rgba(0,0,0,0.04)' }
                     },
                     x: {
@@ -557,7 +559,7 @@ include '../includes/admin_sidebar.php';
                     legend: { display: false },
                     tooltip: {
                         backgroundColor: 'rgba(15,23,42,0.9)', padding: 12, cornerRadius: 8,
-                        callbacks: { label: ctx => '<?= $LANG['average_rating'] ?? 'Avg Rating' ?>: ' + ctx.parsed.y.toFixed(2) + ' / 5' }
+                        callbacks: { label: ctx => '<?= $LANG['overall_rating'] ?? 'Overall Rating' ?>: ' + ctx.parsed.y.toFixed(1) + '%' }
                     }
                 }
             }
@@ -573,8 +575,8 @@ include '../includes/admin_sidebar.php';
             data: {
                 labels: trendLabels,
                 datasets: [{
-                    label: '<?= $LANG['average_rating'] ?? 'Average Rating' ?>',
-                    data: trendAvgRatings,
+                    label: '<?= $LANG['overall_rating'] ?? 'Overall Rating' ?>',
+                    data: trendOverallRatings,
                     backgroundColor: barColors,
                     borderRadius: 8, borderSkipped: false, maxBarThickness: 60,
                 }]
@@ -583,12 +585,12 @@ include '../includes/admin_sidebar.php';
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    y: { min: 0, max: 5, ticks: { stepSize: 1 }, title: { display: true, text: '<?= $LANG['average_rating'] ?? 'Rating' ?>', font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.04)' } },
+                    y: { min: 0, max: 100, ticks: { stepSize: 10 }, title: { display: true, text: '<?= $LANG['overall_rating'] ?? 'Overall Rating' ?>', font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.04)' } },
                     x: { grid: { display: false } }
                 },
                 plugins: {
                     legend: { display: false },
-                    tooltip: { backgroundColor: 'rgba(15,23,42,0.9)', padding: 12, cornerRadius: 8, callbacks: { label: ctx => '<?= $LANG['average_rating'] ?? 'Rating' ?>: ' + ctx.parsed.y.toFixed(2) + ' / 5' } }
+                    tooltip: { backgroundColor: 'rgba(15,23,42,0.9)', padding: 12, cornerRadius: 8, callbacks: { label: ctx => '<?= $LANG['overall_rating'] ?? 'Overall Rating' ?>: ' + ctx.parsed.y.toFixed(1) + '%' } }
                 }
             }
         });
