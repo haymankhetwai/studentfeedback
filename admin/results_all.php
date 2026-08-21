@@ -399,7 +399,7 @@ foreach (normalizeSurveyOptions(null) as $option)
     $earnedScore += $likertTotals[$option['label']] * $option['value'];
 $maxScore = $completedCount * $numRatingQuestions * 5;
 $overallPct = $maxScore > 0 ? round(($earnedScore / $maxScore) * 100, 1) : 0;
-$gradeInfo = $completedCount > 0 ? performanceGradeFromPercentage($overallPct) : null;
+$gradeInfo = $completedCount > 0 ? performanceGradeFromPercentage($conn, $overallPct, (int) ($form['academic_year_id'] ?? 0)) : null;
 $gradeKey = $gradeInfo['key'] ?? null;
 $grade = $gradeInfo['label'] ?? '--';
 $gradeColor = $gradeInfo['color'] ?? 'slate';
@@ -409,14 +409,7 @@ $circleRadius = 54;
 $circleCircumference = 2 * M_PI * $circleRadius;
 $circleOffset = $circleCircumference - ($overallPct / 100) * $circleCircumference;
 
-$conclusions = [
-    'excellent' => 'The teacher has demonstrated outstanding performance based on student feedback. Students are highly satisfied with the teaching quality, methodology, and classroom engagement. It is recommended to recognize and commend this performance.',
-    'good' => 'The teacher has shown good performance with strong student satisfaction. Minor areas for improvement may exist, but overall performance is above expectations.',
-    'fair' => 'The teacher has achieved a fair performance rating. There are opportunities for further improvement in certain areas.',
-    'poor' => 'The teacher\'s performance is below the expected level. There are notable areas requiring improvement.',
-    'very_poor' => 'The teacher\'s performance falls well below the expected standard. Significant improvement and support are recommended.',
-];
-$conclusionText = $gradeKey !== null ? ($conclusions[$gradeKey] ?? '') : '';
+$conclusionText = $gradeInfo['recommendation'] ?? '';
 
 // Dynamic feedback type label for print report
 $feedbackTypeLabel = match ($module ?? '') {
@@ -970,10 +963,10 @@ include '../includes/admin_sidebar.php';
         }
 
         .print-conclusion {
-            border-left: 4px solid #334155;
-            padding: 10px 14px;
+
+            /* padding: 10px 14px; */
             background: #f8fafc;
-            font-size: 10pt;
+            font-size: 12pt;
             line-height: 1.6;
             color: #334155;
             margin-top: 8px;
@@ -1161,7 +1154,7 @@ include '../includes/admin_sidebar.php';
         body.print-report-graph .print-participation-note {
             break-before: avoid !important;
             page-break-before: avoid !important;
-            margin-top: 6px !important;
+            margin-top: 3px !important;
         }
 
         /* Teaching Quality has extra info rows; let its graph page use its natural
@@ -1444,7 +1437,7 @@ include '../includes/admin_sidebar.php';
         </div>
         <?php if (!empty($surveyAverages['groups'])):
             $groupLang = ($_SESSION['lang'] ?? 'en') === 'mm' ? 'mm' : 'en'; ?>
-            <section class="mb-6 bg-white border border-slate-200 rounded-2xl shadow-sm p-6 no-print">
+            <!-- <section class="mb-6 bg-white border border-slate-200 rounded-2xl shadow-sm p-6 no-print">
                 <div class="flex items-center justify-between gap-3 mb-4">
                     <div>
                         <h3 class="text-lg font-bold text-slate-900">
@@ -1477,7 +1470,7 @@ include '../includes/admin_sidebar.php';
                             </div>
                         </article><?php endforeach; ?>
                 </div>
-            </section>
+            </section> -->
         <?php endif; ?>
         <?php if ($completedCount === 0): ?>
             <div class="bg-blue-50 border border-blue-200 rounded-2xl px-5 py-4 mb-6 flex items-center gap-3 no-print">
@@ -1630,6 +1623,17 @@ include '../includes/admin_sidebar.php';
                         </div>
                     </div>
                 <?php endif ?>
+
+                <?php if ($module === 'teaching_quality' && !empty($ratingQuestions) && $completedCount > 0): ?>
+                    <div class="mb-8 rounded-xl border border-indigo-100 bg-indigo-50/60 p-5">
+                        <h3 class="text-lg font-bold text-slate-900 mb-3"><?= e($LANG['the_results'] ?? 'The Results') ?></h3>
+                        <p class="text-sm font-semibold text-indigo-800 mb-2">
+                            <?= e($LANG['performance_grade'] ?? 'Performance Grade') ?>: <?= e($gradeDisplay) ?>
+                        </p>
+                        <p class="text-sm leading-7 text-slate-700"><?= e($conclusionText) ?></p>
+                    </div>
+                <?php endif; ?>
+
 
                 <?php if (!empty($ratingQuestions)): ?>
                     <div class="mb-8">
@@ -2263,18 +2267,6 @@ class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.
                     </div>
                 <?php endif ?>
 
-                <!-- Conclusion / Recommendation -->
-                <div class="print-section print-exclude">
-                    <div class="print-section-title"><?= $LANG['conclusion_label'] ?? 'Conclusion' ?> &
-                        <?= $LANG['recommendation_label'] ?? 'Recommendation' ?>
-                    </div>
-                    <div class="print-conclusion">
-                        <strong>Grade:
-                            <?= e($gradeDisplay) ?>         <?= $completedCount > 0 ? ' (' . $overallPct . '%)' : '' ?></strong><br><br>
-                        <?= $conclusionText ?>
-                    </div>
-                </div>
-
                 <!-- <div class="print-participation-stats print-all-participation">
                     <span><b><?= $LANG['total_students_label'] ?? 'Total Students' ?>:</b> <?= $totalStudents ?></span>
                     <span><b><?= $LANG['completed_label'] ?? 'Completed' ?>:</b> <?= $completedCount ?></span>
@@ -2336,9 +2328,20 @@ class="text-lg font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg mt-0.
                 <?= date('F d, Y') ?>
             </div>
             <p class="print-participation-note"
-                style="text-align:center; margin-top:15px; border-top:1px solid #e2e8f0; padding-top:15px;font-size:20px;">
+                style="text-align:left; margin-top:15px;padding-top:12px;font-size:20px;">
                 <?= e(sprintf($LANG['report_results_based_on_students'] ?? 'The results are calculated based on %1$d responding student(s) out of a total of %2$d students.', $completedCount, $totalStudents)) ?>
             </p>
+
+            <?php if ($module === 'teaching_quality' && !empty($ratingQuestions) && $completedCount > 0): ?>
+                <div class="print-section" style="page-break-inside:avoid;">
+                    <!-- <div class="print-section-title"><?= e($LANG['the_results'] ?? 'The Results') ?></div> -->
+                    <div class="print-conclusion">
+                        <strong>
+                            <?= e($gradeDisplay) ?>:</strong>
+                        <?= e($conclusionText) ?>
+                    </div>
+                </div>
+            <?php endif; ?>
         </div>
     <?php endif; ?>
 <?php endif; ?>

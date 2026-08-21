@@ -169,7 +169,7 @@ include '../includes/admin_sidebar.php';
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col items-center text-center">
         <div class="mb-4 relative">
             <?php if (!empty($userData['profile_image'])): ?>
-                <img src="/studentfeedbackucsh/<?= e($userData['profile_image']) ?>" alt="Profile"
+                <img src="<?= e(BASE_URL) ?><?= e($userData['profile_image']) ?>" alt="Profile"
                     class="w-20 h-20 rounded-full object-cover shadow-lg border-2 border-white">
             <?php else: ?>
                 <div
@@ -205,7 +205,7 @@ include '../includes/admin_sidebar.php';
                 <div class="flex items-center gap-5">
                     <div class="shrink-0">
                         <img id="imagePreview"
-                            src="<?= !empty($userData['profile_image']) ? '/studentfeedbackucsh/' . e($userData['profile_image']) : '' ?>"
+                            src="<?= !empty($userData['profile_image']) ? e(BASE_URL . $userData['profile_image']) : '' ?>"
                             alt="Preview"
                             class="w-16 h-16 rounded-full object-cover border-2 border-slate-200 <?= empty($userData['profile_image']) ? 'hidden' : '' ?>">
                         <div id="initialsPreview"

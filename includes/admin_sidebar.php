@@ -16,7 +16,8 @@ $isAcademicActive = in_array($activeMenu, $academicKeys);
 $feedbackKeys = [
     'question_sets',
     'forms',
-    'results'
+    'results',
+    'performance_grades'
 ];
 
 $isFeedbackActive = in_array($activeMenu, $feedbackKeys);
@@ -24,7 +25,7 @@ $isFeedbackActive = in_array($activeMenu, $feedbackKeys);
 $nav = [
     [
         'label' => $LANG['nav_dashboard'] ?? 'Dashboard',
-        'href' => '/studentfeedbackucsh/admin/dashboard.php',
+        'href' => BASE_URL . 'admin/dashboard.php',
         'key' => 'dashboard',
         'icon' => 'home',
         'iconColor' => 'text-blue-700'
@@ -39,7 +40,7 @@ $nav = [
 
     [
         'label' => $LANG['nav_users'] ?? 'Users',
-        'href' => '/studentfeedbackucsh/admin/users.php',
+        'href' => BASE_URL . 'admin/users.php',
         'key' => 'users',
         'icon' => 'users',
         'indent' => true,
@@ -56,7 +57,7 @@ $nav = [
 
     [
         'label' => $LANG['nav_academic_years'] ?? 'Academic Years',
-        'href' => '/studentfeedbackucsh/admin/academic_years.php',
+        'href' => BASE_URL . 'admin/academic_years.php',
         'key' => 'academic_years',
         'icon' => 'academic',
         'indent' => true,
@@ -66,7 +67,7 @@ $nav = [
 
     [
         'label' => $LANG['nav_semesters'] ?? 'Semesters',
-        'href' => '/studentfeedbackucsh/admin/semesters.php',
+        'href' => BASE_URL . 'admin/semesters.php',
         'key' => 'semesters',
         'icon' => 'clipboard',
         'indent' => true,
@@ -76,7 +77,7 @@ $nav = [
 
     [
         'label' => $LANG['nav_section_management'] ?? 'Class Sections',
-        'href' => '/studentfeedbackucsh/admin/section_management.php',
+        'href' => BASE_URL . 'admin/section_management.php',
         'key' => 'section_management',
         'icon' => 'grid',
         'indent' => true,
@@ -86,7 +87,7 @@ $nav = [
 
     [
         'label' => $LANG['nav_departments'] ?? 'Departments',
-        'href' => '/studentfeedbackucsh/admin/departments.php',
+        'href' => BASE_URL . 'admin/departments.php',
         'key' => 'departments',
         'icon' => 'building',
         'indent' => true,
@@ -96,7 +97,7 @@ $nav = [
 
     [
         'label' => $LANG['nav_students'] ?? 'Students',
-        'href' => '/studentfeedbackucsh/admin/students.php',
+        'href' => BASE_URL . 'admin/students.php',
         'key' => 'students',
         'icon' => 'users',
         'indent' => true,
@@ -106,7 +107,7 @@ $nav = [
 
     [
         'label' => $LANG['nav_teachers'] ?? 'Teachers',
-        'href' => '/studentfeedbackucsh/admin/teachers.php',
+        'href' => BASE_URL . 'admin/teachers.php',
         'key' => 'teachers',
         'icon' => 'user',
         'indent' => true,
@@ -116,7 +117,7 @@ $nav = [
 
     [
         'label' => $LANG['nav_courses'] ?? 'Courses',
-        'href' => '/studentfeedbackucsh/admin/courses.php',
+        'href' => BASE_URL . 'admin/courses.php',
         'key' => 'courses',
         'icon' => 'book',
         'indent' => true,
@@ -126,7 +127,7 @@ $nav = [
 
     [
         'label' => $LANG['nav_sections'] ?? 'Teaching Assignments',
-        'href' => '/studentfeedbackucsh/admin/sections.php',
+        'href' => BASE_URL . 'admin/sections.php',
         'key' => 'sections',
         'icon' => 'grid',
         'indent' => true,
@@ -136,7 +137,7 @@ $nav = [
 
     [
         'label' => $LANG['nav_assignments'] ?? 'Student Assignments',
-        'href' => '/studentfeedbackucsh/admin/section_assignments.php',
+        'href' => BASE_URL . 'admin/section_assignments.php',
         'key' => 'assignments',
         'icon' => 'link',
         'indent' => true,
@@ -153,7 +154,7 @@ $nav = [
 
     [
         'label' => $LANG['nav_question_sets'] ?? 'Question Sets',
-        'href' => '/studentfeedbackucsh/admin/question_sets.php',
+        'href' => BASE_URL . 'admin/question_sets.php',
         'key' => 'question_sets',
         'icon' => 'question',
         'indent' => true,
@@ -162,8 +163,18 @@ $nav = [
     ],
 
     [
+        'label' => $LANG['nav_performance_grades'] ?? 'Performance Grades',
+        'href' => BASE_URL . 'admin/performance_grades.php',
+        'key' => 'performance_grades',
+        'icon' => 'chart',
+        'indent' => true,
+        'group' => 'feedback_management',
+        'iconColor' => 'text-emerald-300'
+    ],
+
+    [
         'label' => $LANG['nav_forms'] ?? 'Forms',
-        'href' => '/studentfeedbackucsh/admin/feedback_forms_all.php',
+        'href' => BASE_URL . 'admin/feedback_forms_all.php',
         'key' => 'forms',
         'icon' => 'document',
         'indent' => true,
@@ -173,7 +184,7 @@ $nav = [
 
     [
         'label' => $LANG['nav_results'] ?? 'Results',
-        'href' => '/studentfeedbackucsh/admin/results_all.php',
+        'href' => BASE_URL . 'admin/results_all.php',
         'key' => 'results',
         'icon' => 'chart',
         'indent' => true,
@@ -197,7 +208,7 @@ $nav = [
 
     [
         'label' => $LANG['nav_academic_trend'] ?? 'Teaching Quality Trend',
-        'href' => '/studentfeedbackucsh/admin/trend_academic.php',
+        'href' => BASE_URL . 'admin/trend_academic.php',
         'key' => 'trend_academic',
         'icon' => 'history',
         'indent' => true,
@@ -207,7 +218,7 @@ $nav = [
 
     [
         'label' => $LANG['nav_sa_trend'] ?? 'Student Support Services Trend',
-        'href' => '/studentfeedbackucsh/admin/trend_sa.php',
+        'href' => BASE_URL . 'admin/trend_sa.php',
         'key' => 'trend_sa',
         'icon' => 'shield',
         'indent' => true,
@@ -217,7 +228,7 @@ $nav = [
 
     [
         'label' => $LANG['nav_adm_trend'] ?? 'Learning Environment Trend',
-        'href' => '/studentfeedbackucsh/admin/trend_adm.php',
+        'href' => BASE_URL . 'admin/trend_adm.php',
         'key' => 'trend_adm',
         'icon' => 'office',
         'indent' => true,
@@ -238,7 +249,7 @@ $nav = [
 
         <!-- UCSH Logo -->
         <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
-            <img src="/studentfeedbackucsh/assets/uploads/profiles/image.png" alt="UCSH Logo"
+            <img src="<?= e(BASE_URL) ?>assets/uploads/profiles/image.png" alt="UCSH Logo"
                 class="w-full h-full object-contain rounded-xl">
         </div>
 
@@ -382,7 +393,7 @@ $nav = [
     </nav>
 
     <!-- User Footer -->
-    <a href="/studentfeedbackucsh/auth/logout.php" title="<?= $LANG['logout'] ?? 'Logout' ?>" class="
+    <a href="<?= e(BASE_URL) ?>auth/logout.php" title="<?= $LANG['logout'] ?? 'Logout' ?>" class="
             block
             border-t border-white/15
             bg-red-500/80
@@ -510,7 +521,7 @@ $nav = [
             </div>
 
             <!-- Profile -->
-            <a href="/studentfeedbackucsh/admin/profile.php" class="
+            <a href="<?= e(BASE_URL) ?>admin/profile.php" class="
                     flex items-center gap-2
                     px-3 py-1.5
                     rounded-xl
@@ -520,7 +531,7 @@ $nav = [
 
                 <?php if (!empty($user['profile_image'])): ?>
 
-                    <img src="/studentfeedbackucsh/<?= e($user['profile_image']) ?>" alt="Profile"
+                    <img src="<?= e(BASE_URL) ?><?= e($user['profile_image']) ?>" alt="Profile"
                         class="w-7 h-7 rounded-full object-cover">
 
                 <?php else: ?>

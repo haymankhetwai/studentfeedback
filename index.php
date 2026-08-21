@@ -1,18 +1,19 @@
 <?php
 session_start();
+require_once 'config/base_url.php';
 require_once 'includes/functions.php';
 
 // Already logged-in users go straight to their dashboard
 if (isset($_SESSION['user_id']) && isset($_SESSION['role'])) {
     switch ($_SESSION['role']) {
         case 'admin':
-            header("Location: admin/dashboard.php");
+            header('Location: ' . BASE_URL . 'admin/dashboard.php');
             exit;
         case 'teacher':
-            header("Location: teacher/dashboard.php");
+            header('Location: ' . BASE_URL . 'teacher/dashboard.php');
             exit;
         case 'student':
-            header("Location: student/dashboard.php");
+            header('Location: ' . BASE_URL . 'student/dashboard.php');
             exit;
     }
 }
@@ -203,6 +204,7 @@ $currentLang = $_SESSION['lang'] ?? 'en';
 
         /* ─── Role Card ───────────────────────────────────── */
         .role-card {
+            width: 100%;
             background: rgba(255, 255, 255, 0.12);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
@@ -262,7 +264,8 @@ $currentLang = $_SESSION['lang'] ?? 'en';
                 <div class="flex items-center gap-3">
                     <div
                         class="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                        <img src="assets/uploads/profiles/image.png" alt="ucsh_logo" class="object-contain rounded-lg">
+                        <img src="<?= e(BASE_URL . 'assets/uploads/profiles/image.png') ?>" alt="ucsh_logo"
+                            class="object-contain rounded-lg">
                     </div>
                     <div>
                         <h1 class="text-lg font-bold tracking-tight text-blue-900 leading-none">UCSH</h1>
@@ -276,7 +279,7 @@ $currentLang = $_SESSION['lang'] ?? 'en';
                         <?= $LANG['welcome_portal'] ?? 'Welcome' ?>
                     </span> -->
 
-                    <a href="index.php"
+                    <a href="<?= e(BASE_URL . 'index.php') ?>"
                         class="inline-flex items-center gap-1.5 text-blue-600/80 hover:text-blue-700 font-semibold text-sm transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -287,17 +290,17 @@ $currentLang = $_SESSION['lang'] ?? 'en';
 
                     <div
                         class="flex items-center gap-0.5 bg-white/70 backdrop-blur-sm rounded-xl p-0.5 text-xs font-semibold border border-blue-200/60 shadow-sm">
-                        <a href="?lang=en" id="lang-btn-en"
+                        <a href="<?= e(BASE_URL . 'index.php?lang=en') ?>" id="lang-btn-en"
                             class="px-3 py-1.5 rounded-lg transition-all duration-200 <?= $currentLang === 'en' ? 'bg-blue-500 shadow-md shadow-blue-500/25 text-white font-bold' : 'text-blue-400 hover:text-blue-600 hover:bg-blue-50/50' ?>">
                             ENG
                         </a>
-                        <a href="?lang=mm" id="lang-btn-mm"
+                        <a href="<?= e(BASE_URL . 'index.php?lang=mm') ?>" id="lang-btn-mm"
                             class="px-3 py-1.5 rounded-lg transition-all duration-200 <?= $currentLang === 'mm' ? 'bg-blue-500 shadow-md shadow-blue-500/25 text-white font-bold' : 'text-blue-400 hover:text-blue-600 hover:bg-blue-50/50' ?>">
                             မြန်မာ
                         </a>
                     </div>
 
-                    <!-- <a href="index.php"
+                    <!-- <a href="<?= e(BASE_URL . 'index.php') ?>"
                         class="inline-flex items-center gap-1.5 text-blue-600/80 hover:text-blue-700 font-semibold text-sm transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -315,8 +318,8 @@ $currentLang = $_SESSION['lang'] ?? 'en';
 
         <!-- Background (blurred hero image) -->
         <div class="absolute inset-0 -z-30 overflow-hidden">
-            <img src="assets/uploads/ucsh_logo.jpg" class="w-full h-full object-cover scale-110 blur-xs brightness-75"
-                alt="ucsh">
+            <img src="<?= e(BASE_URL . 'assets/uploads/ucsh_logo.jpg') ?>"
+                class="w-full h-full object-cover scale-110 blur-xs brightness-75" alt="ucsh">
         </div>
 
         <!-- Modern Gradient Overlay -->
@@ -339,7 +342,8 @@ $currentLang = $_SESSION['lang'] ?? 'en';
                 <div class="relative w-28 h-28 mx-auto mb-4 fade-up-1">
                     <!-- <div class="absolute inset-0 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 rotate-3"></div> -->
                     <div class="relative w-full h-full flex items-center justify-center overflow-hidden">
-                        <img src="assets/uploads/profiles/image.png" alt="UCSH Logo" class="w-20 h-20 object-contain">
+                        <img src="<?= e(BASE_URL . 'assets/uploads/profiles/image.png') ?>" alt="UCSH Logo"
+                            class="w-20 h-20 object-contain">
                     </div>
                 </div>
 
@@ -372,10 +376,10 @@ $currentLang = $_SESSION['lang'] ?? 'en';
             </div>
 
             <!-- Role Selection Cards -->
-            <div class="grid sm:grid-cols-2 gap-6 lg:gap-8 max-w-3xl mx-auto fade-up-4">
+            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 w-full max-w-7xl mx-auto fade-up-4">
 
                 <!-- Enter as Teacher -->
-                <a href="portal.php?role=teacher" id="enter-teacher-btn"
+                <a href="<?= e(BASE_URL . 'portal.php?role=teacher') ?>" id="enter-teacher-btn"
                     class="role-card group cursor-pointer block no-underline">
                     <div
                         class="role-icon bg-gradient-to-br from-emerald-400/30 to-teal-500/30 border border-emerald-300/30">
@@ -402,7 +406,7 @@ $currentLang = $_SESSION['lang'] ?? 'en';
                 </a>
 
                 <!-- Enter as Student -->
-                <a href="portal.php?role=student" id="enter-student-btn"
+                <a href="<?= e(BASE_URL . 'portal.php?role=student') ?>" id="enter-student-btn"
                     class="role-card group cursor-pointer block no-underline">
                     <div
                         class="role-icon bg-gradient-to-br from-blue-400/30 to-indigo-500/30 border border-blue-300/30">
@@ -420,6 +424,33 @@ $currentLang = $_SESSION['lang'] ?? 'en';
                     <span
                         class="inline-flex items-center gap-2 bg-white/15 hover:bg-white/25 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-all duration-200 group-hover:bg-white/25 border border-white/20">
                         <?= $LANG['enter_as_student'] ?? 'Enter as Student' ?>
+                        <svg class="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                    </span>
+                </a>
+
+                <!-- Enter as Admin -->
+                <a href="<?= e(BASE_URL . 'admin/index.php') ?>" id="enter-admin-btn"
+                    class="role-card group cursor-pointer block no-underline">
+                    <div
+                        class="role-icon bg-gradient-to-br from-violet-400/30 to-purple-500/30 border border-violet-300/30">
+                        <svg class="w-8 h-8 text-violet-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                d="M9 12.75 11.25 15 15 9.75m6-3.75c0 7.142-3.75 12-9 13.5C6.75 18 3 13.142 3 6c3.75 0 6-1.5 9-3 3 1.5 5.25 3 9 3Z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-white mb-2">
+                        <?= $LANG['enter_as_admin'] ?? 'Enter as Admin' ?>
+                    </h3>
+                    <p class="text-sm text-blue-100/60 mb-5">
+                        <?= $LANG['admin_card_desc'] ?? 'Manage users, feedback, and system settings' ?>
+                    </p>
+                    <span
+                        class="inline-flex items-center gap-2 bg-white/15 hover:bg-white/25 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-all duration-200 group-hover:bg-white/25 border border-white/20">
+                        <?= $LANG['enter_as_admin'] ?? 'Enter as Admin' ?>
                         <svg class="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" fill="none"
                             stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

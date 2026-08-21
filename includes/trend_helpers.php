@@ -24,8 +24,8 @@ function trendRatingCase(): string
 function getAcademicRatingTrend(mysqli $conn, int $teacherId, ?int $courseId = null): array
 {
     $rc = trendRatingCase();
-    $sql = "SELECT ay.id AS ay_id, ay.year_name,
-                   ROUND(AVG($rc), 2) AS avg_rating,
+    $sql = "SELECT ay.id AS ay_id, ay.year_name, sec.teacher_id, sec.course_id,
+                   ROUND(AVG($rc) * 20, 1) AS overall_rating,
                    COUNT(fsa.id) AS total_ratings,
                    SUM(CASE WHEN ($rc) = 5 THEN 1 ELSE 0 END) AS strongly_agree_count,
                    SUM(CASE WHEN ($rc) = 4 THEN 1 ELSE 0 END) AS agree_count,
@@ -50,7 +50,7 @@ function getAcademicRatingTrend(mysqli $conn, int $teacherId, ?int $courseId = n
         $params[] = $courseId;
     }
 
-    $sql .= " GROUP BY ay.id, ay.year_name ORDER BY ay.year_name ASC";
+    $sql .= " GROUP BY ay.id, ay.year_name, sec.teacher_id, sec.course_id ORDER BY ay.year_name ASC";
 
     $stmt = $conn->prepare($sql);
     $stmt->bind_param($types, ...$params);
@@ -150,7 +150,7 @@ function getModuleRatingTrend(mysqli $conn, string $module, ?int $semId = null):
 {
     $rc = trendRatingCase();
     $sql = "SELECT ay.id AS ay_id, ay.year_name,
-                   ROUND(AVG($rc), 2) AS avg_rating,
+                   ROUND(AVG($rc) * 20, 1) AS overall_rating,
                    COUNT(fsa.id) AS total_ratings,
                    SUM(CASE WHEN ($rc) = 5 THEN 1 ELSE 0 END) AS strongly_agree_count,
                    SUM(CASE WHEN ($rc) = 4 THEN 1 ELSE 0 END) AS agree_count,
@@ -362,18 +362,88 @@ function trendStatusInfo(float $improvementPct): array
 
 /**
  * Build a summary from trend data array.
- * Input: array of ['year_name' => ..., 'avg_rating' => ...]
- * Returns: ['count', 'latest_avg', 'best_year', 'best_avg', 'worst_year', 'worst_avg',
+ * Input: array of ['year_name' => ..., 'overall_rating' => ...]
+ * Returns: ['count', 'latest_overall', 'best_year', 'best_overall', 'worst_year', 'worst_overall',
  *           'overall_change_pct', 'trend_info']
  */
+/**
+ * Return a stable signature for an Academic Year's complete Performance Grade
+ * range configuration. Grade labels are deliberately excluded: trend
+ * compatibility depends only on the configured Min Score + Max Score pairs.
+ */
+function performanceGradeRangeSignature(mysqli $conn, int $academicYearId): ?string
+{
+    if ($academicYearId < 1)
+        return null;
+
+    $stmt = $conn->prepare(
+        "SELECT min_score, max_score
+         FROM performance_grade_settings
+         WHERE academic_year_id = ?
+         ORDER BY min_score ASC, max_score ASC"
+    );
+    $stmt->bind_param('i', $academicYearId);
+    $stmt->execute();
+    $ranges = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+
+    if (!$ranges)
+        return null;
+
+    return implode('|', array_map(static function (array $range): string {
+        return number_format((float) $range['min_score'], 2, '.', '')
+            . ':'
+            . number_format((float) $range['max_score'], 2, '.', '');
+    }, $ranges));
+}
+
+function comparableOverallRatingTrend(mysqli $conn, array $trendData): array
+{
+    foreach ($trendData as &$row) {
+        $overallRating = isset($row['overall_rating']) ? (float) $row['overall_rating'] : 0.0;
+        $row['performance_grade_range_signature'] = null;
+        if ($overallRating > 0 && !empty($row['ay_id']))
+            $row['performance_grade_range_signature'] = performanceGradeRangeSignature($conn, (int) $row['ay_id']);
+    }
+    unset($row);
+
+    if (count($trendData) < 2)
+        return $trendData;
+
+    $compatibleGroups = [];
+    foreach ($trendData as $row) {
+        $rangeSignature = $row['performance_grade_range_signature'] ?? null;
+        if ($rangeSignature === null || !isset($row['overall_rating']) || (float) $row['overall_rating'] <= 0)
+            continue;
+
+        // Teaching Quality rows are scoped to an exact teacher/course pair.
+        // The other modules have no teacher/course association, so both parts
+        // intentionally resolve to the same neutral key for every year.
+        $teacherKey = array_key_exists('teacher_id', $row) ? (string) ($row['teacher_id'] ?? '') : '';
+        $courseKey = array_key_exists('course_id', $row) ? (string) ($row['course_id'] ?? '') : '';
+        $groupKey = $teacherKey . ':' . $courseKey . ':' . $rangeSignature;
+        $compatibleGroups[$groupKey][] = $row;
+    }
+
+    $comparable = [];
+    foreach ($compatibleGroups as $group) {
+        // Prefer the largest compatible multi-year series. On equal sizes the
+        // later group wins because trend data is ordered by Academic Year.
+        if (count($group) >= 2 && count($group) >= count($comparable))
+            $comparable = $group;
+    }
+
+    return array_values($comparable);
+}
+
 function buildTrendSummary(array $trendData): array
 {
     $count = count($trendData);
     if ($count === 0) {
         return [
-            'count' => 0, 'latest_avg' => 0,
-            'best_year' => '—', 'best_avg' => 0,
-            'worst_year' => '—', 'worst_avg' => 0,
+            'count' => 0, 'latest_overall' => 0,
+            'best_year' => '—', 'best_overall' => 0,
+            'worst_year' => '—', 'worst_overall' => 0,
             'overall_change_pct' => 0,
             'trend_info' => trendStatusInfo(0),
         ];
@@ -385,22 +455,22 @@ function buildTrendSummary(array $trendData): array
     $worst  = $trendData[0];
 
     foreach ($trendData as $d) {
-        $avg = (float) $d['avg_rating'];
-        if ($avg > (float) $best['avg_rating'])  $best = $d;
-        if ($avg < (float) $worst['avg_rating']) $worst = $d;
+        $overallRating = (float) $d['overall_rating'];
+        if ($overallRating > (float) $best['overall_rating'])  $best = $d;
+        if ($overallRating < (float) $worst['overall_rating']) $worst = $d;
     }
 
     $overallChange = ($count > 1)
-        ? calcImprovement((float) $latest['avg_rating'], (float) $first['avg_rating'])
+        ? calcImprovement((float) $latest['overall_rating'], (float) $first['overall_rating'])
         : 0;
 
     return [
         'count'              => $count,
-        'latest_avg'         => round((float) $latest['avg_rating'], 2),
+        'latest_overall'         => round((float) $latest['overall_rating'], 1),
         'best_year'          => $best['year_name'],
-        'best_avg'           => round((float) $best['avg_rating'], 2),
+        'best_overall'           => round((float) $best['overall_rating'], 1),
         'worst_year'         => $worst['year_name'],
-        'worst_avg'          => round((float) $worst['avg_rating'], 2),
+        'worst_overall'          => round((float) $worst['overall_rating'], 1),
         'overall_change_pct' => $overallChange,
         'trend_info'         => trendStatusInfo($overallChange),
     ];

@@ -139,13 +139,13 @@ $nextFormUrl = null;
 
 if (!empty($acadPendingForms)) {
     $nextForm = $acadPendingForms[0];
-    $nextFormUrl = '/studentfeedbackucsh/student/feedback_form.php?form_id=' . (int) $nextForm['id'];
+    $nextFormUrl = BASE_URL . 'student/feedback_form.php?form_id=' . (int) $nextForm['id'];
 } elseif (!empty($saPendingForms)) {
     $nextForm = $saPendingForms[0];
-    $nextFormUrl = '/studentfeedbackucsh/student/sa_feedback_form.php?form_id=' . (int) $nextForm['id'];
+    $nextFormUrl = BASE_URL . 'student/sa_feedback_form.php?form_id=' . (int) $nextForm['id'];
 } elseif (!empty($admPendingForms)) {
     $nextForm = $admPendingForms[0];
-    $nextFormUrl = '/studentfeedbackucsh/student/adm_feedback_form.php?form_id=' . (int) $nextForm['id'];
+    $nextFormUrl = BASE_URL . 'student/adm_feedback_form.php?form_id=' . (int) $nextForm['id'];
 }
 
 // One-time completion state created by the successful survey submission.
@@ -219,7 +219,7 @@ if ($nextForm) {
     <script src="https://cdn.tailwindcss.com"></script>
     <script>tailwind.config = { theme: { extend: { fontFamily: { inter: ['Inter', 'sans-serif'] } } } }</script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/studentfeedbackucsh/assets/css/custom.css">
+    <link rel="stylesheet" href="<?= e(BASE_URL) ?>assets/css/custom.css">
     <style>
         @keyframes fadeInUp {
             from {
@@ -344,7 +344,7 @@ if ($nextForm) {
             class="fixed inset-y-0 left-0 w-64 bg-gradient-to-b from-cyan-600 to-cyan-700 text-white flex flex-col z-40 transform -translate-x-full transition-transform duration-300 lg:relative lg:translate-x-0 lg:flex-shrink-0">
             <div class="flex items-center gap-3 px-5 py-5 border-b border-cyan-500">
                 <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
-                    <img src="/studentfeedbackucsh/assets/uploads/profiles/image.png" alt="UCSH Logo"
+                    <img src="<?= e(BASE_URL) ?>assets/uploads/profiles/image.png" alt="UCSH Logo"
                         class="w-full h-full object-contain rounded-xl">
                 </div>
                 <div>
@@ -362,9 +362,9 @@ if ($nextForm) {
             <nav class="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto scrollbar-thin">
                 <?php
                 $navItems = [
-                    ['label' => $LANG['nav_dashboard'] ?? 'Dashboard', 'href' => '/studentfeedbackucsh/student/dashboard.php', 'key' => 'dashboard', 'icon' => 'home', 'iconColor' => 'text-yellow-300'],
-                    ['label' => $LANG['nav_history'] ?? 'Submission History', 'href' => '/studentfeedbackucsh/student/feedback_history.php', 'key' => 'history', 'icon' => 'history', 'iconColor' => 'text-teal-300'],
-                    ['label' => $LANG['nav_profile'] ?? 'Profile', 'href' => '/studentfeedbackucsh/student/profile.php', 'key' => 'profile', 'icon' => 'user', 'iconColor' => 'text-rose-300'],
+                    ['label' => $LANG['nav_dashboard'] ?? 'Dashboard', 'href' => BASE_URL . 'student/dashboard.php', 'key' => 'dashboard', 'icon' => 'home', 'iconColor' => 'text-yellow-300'],
+                    ['label' => $LANG['nav_history'] ?? 'Submission History', 'href' => BASE_URL . 'student/feedback_history.php', 'key' => 'history', 'icon' => 'history', 'iconColor' => 'text-teal-300'],
+                    ['label' => $LANG['nav_profile'] ?? 'Profile', 'href' => BASE_URL . 'student/profile.php', 'key' => 'profile', 'icon' => 'user', 'iconColor' => 'text-rose-300'],
                 ];
                 foreach ($navItems as $n):
                     $a = $activeMenu === $n['key']; ?>
@@ -377,7 +377,7 @@ if ($nextForm) {
                 <?php endforeach ?>
             </nav>
 
-            <a href="/studentfeedbackucsh/auth/logout.php" title="<?= $LANG['logout'] ?? 'Logout' ?>"
+            <a href="<?= e(BASE_URL) ?>auth/logout.php" title="<?= $LANG['logout'] ?? 'Logout' ?>"
                 class="block border-t border-white/15 bg-red-500/80 text-gray-50 hover:text-gray-200 transition-colors px-4 py-4 cursor-pointer">
                 <div class="flex items-center justify-center gap-3">
                     <div class="min-w-0">
@@ -733,7 +733,7 @@ if ($nextForm) {
 
                 <!-- ── Quick Links ── -->
                 <!-- <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 fade-in-up delay-3">
-                    <a href="/studentfeedbackucsh/student/feedback_history.php"
+                    <a href="<?= e(BASE_URL) ?>student/feedback_history.php"
                         class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3 hover:shadow-md hover:border-slate-300 transition-all hover:-translate-y-0.5">
                         <div class="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center flex-shrink-0">
                             <?= iconSvg('history', 'w-5 h-5 text-teal-600') ?>
@@ -743,7 +743,7 @@ if ($nextForm) {
                             <p class="text-xs text-slate-500"><?= $LANG['all_submissions'] ?? 'All submissions' ?></p>
                         </div>
                     </a>
-                    <a href="/studentfeedbackucsh/student/profile.php"
+                    <a href="<?= e(BASE_URL) ?>student/profile.php"
                         class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3 hover:shadow-md hover:border-rose-200/60 transition-all hover:-translate-y-0.5">
                         <div class="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center flex-shrink-0">
                             <?= iconSvg('user', 'w-5 h-5 text-rose-600') ?>

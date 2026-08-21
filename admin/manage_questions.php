@@ -274,16 +274,23 @@ include '../includes/admin_sidebar.php';
                 </p>
             </div>
             <?php if (!$readOnly): ?><button onclick="modal('groupModal')"
-                class="inline-flex items-center self-end px-4 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold"><?= iconSvg('plus', 'w-4 h-4') ?>
-                <?= e(surveyAdminText('add_survey_group', 'Add Survey Group')) ?></button><?php endif; ?>
+                    class="inline-flex items-center self-end px-4 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold"><?= iconSvg('plus', 'w-4 h-4') ?>
+                    <?= e(surveyAdminText('add_survey_group', 'Add Survey Group')) ?></button><?php endif; ?>
         </div>
         <?php renderFlash(); ?>
         <?php if ($readOnly): ?>
             <div class="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 flex items-start gap-3">
-                <svg class="w-6 h-6 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/></svg>
+                <svg class="w-6 h-6 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                </svg>
                 <div>
-                    <p class="font-semibold text-amber-800"><?= e($LANG['sync_locked_title'] ?? 'Read-Only — Questions Locked') ?></p>
-                    <p class="text-sm text-amber-700 mt-1"><?= e($syncCheck['reason'] === 'has_submissions' ? ($LANG['sync_locked_desc_submissions'] ?? 'A feedback form using this Question Set already has student submissions. Questions cannot be modified.') : ($LANG['sync_locked_desc_active'] ?? 'A feedback form using this Question Set is currently Active or Expired. Questions cannot be modified.')) ?></p>
+                    <p class="font-semibold text-amber-800">
+                        <?= e($LANG['sync_locked_title'] ?? 'Read-Only — Questions Locked') ?></p>
+                    <p class="text-sm text-amber-700 mt-1">
+                        <?= e($syncCheck['reason'] === 'has_submissions' ? ($LANG['sync_locked_desc_submissions'] ?? 'A feedback form using this Question Set already has student submissions. Questions cannot be modified.') : ($LANG['sync_locked_desc_active'] ?? 'A feedback form using this Question Set is currently Active or Expired. Questions cannot be modified.')) ?>
+                    </p>
                 </div>
             </div>
         <?php endif; ?>
@@ -302,13 +309,14 @@ include '../includes/admin_sidebar.php';
                             </p>
 
                         </div>
-                        <?php if (!$readOnly): ?><div class="flex items-center justify-end gap-2"><button type="button"
-                                data-row='<?= e(json_encode($g, JSON_UNESCAPED_UNICODE)) ?>' onclick="editGroup(this)"
-                                class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 rounded-lg transition-colors"><?= iconSvg('edit', 'w-3.5 h-3.5') ?>
-                                <?= e($LANG['edit'] ?? 'Edit') ?></button><button type="button"
-                                onclick="deleteItem('delete_group',<?= (int) $g['id'] ?>)"
-                                class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"><?= iconSvg('trash', 'w-3.5 h-3.5') ?>
-                                <?= e($LANG['delete'] ?? 'Delete') ?></button></div><?php endif; ?>
+                        <?php if (!$readOnly): ?>
+                            <div class="flex items-center justify-end gap-2"><button type="button"
+                                    data-row='<?= e(json_encode($g, JSON_UNESCAPED_UNICODE)) ?>' onclick="editGroup(this)"
+                                    class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 rounded-lg transition-colors"><?= iconSvg('edit', 'w-3.5 h-3.5') ?>
+                                    <?= e($LANG['edit'] ?? 'Edit') ?></button><button type="button"
+                                    onclick="deleteItem('delete_group',<?= (int) $g['id'] ?>)"
+                                    class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"><?= iconSvg('trash', 'w-3.5 h-3.5') ?>
+                                    <?= e($LANG['delete'] ?? 'Delete') ?></button></div><?php endif; ?>
                     </header>
                     <div class="divide-y"><?php foreach ($byGroup[$g['id']] ?? [] as $q): ?>
                             <div class="p-5 flex justify-between gap-4">
@@ -333,23 +341,25 @@ include '../includes/admin_sidebar.php';
                                     </div>
                                 </div>
 
-                                <?php if (!$readOnly): ?><div class="shrink-0 flex items-center justify-end gap-2"><button type="button"
-                                        data-row='<?= e(json_encode($q, JSON_UNESCAPED_UNICODE)) ?>'
-                                        onclick="editQuestion(this)"
-                                        class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 rounded-lg transition-colors"><?= iconSvg('edit', 'w-3.5 h-3.5') ?>
-                                        <?= e($LANG['edit'] ?? 'Edit') ?></button><button type="button"
-                                        onclick="deleteItem('delete_question',<?= (int) $q['id'] ?>)"
-                                        class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"><?= iconSvg('trash', 'w-3.5 h-3.5') ?>
-                                        <?= e($LANG['delete'] ?? 'Delete') ?></button></div><?php endif; ?>
+                                <?php if (!$readOnly): ?>
+                                    <div class="shrink-0 flex items-center justify-end gap-2"><button type="button"
+                                            data-row='<?= e(json_encode($q, JSON_UNESCAPED_UNICODE)) ?>'
+                                            onclick="editQuestion(this)"
+                                            class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 rounded-lg transition-colors"><?= iconSvg('edit', 'w-3.5 h-3.5') ?>
+                                            <?= e($LANG['edit'] ?? 'Edit') ?></button><button type="button"
+                                            onclick="deleteItem('delete_question',<?= (int) $q['id'] ?>)"
+                                            class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"><?= iconSvg('trash', 'w-3.5 h-3.5') ?>
+                                            <?= e($LANG['delete'] ?? 'Delete') ?></button></div><?php endif; ?>
                             </div><?php endforeach; ?>
                         <?php if (empty($byGroup[$g['id']])): ?>
                             <p class="p-5 text-slate-400">
                                 <?= e(surveyAdminText('no_questions_in_group', 'No questions in this group.')) ?>
                             </p>
                         <?php endif; ?>
-                        <?php if (!$readOnly): ?><div class="flex justify-end"><button onclick="addQuestion(<?= (int) $g['id'] ?>)"
-                                class="inline-flex items-center m-5 px-4 py-2 rounded-lg bg-violet-600 text-white "><?= iconSvg('plus', 'w-4 h-4') ?><?= e(surveyAdminText('add_survey_question', 'Add Survey Question')) ?></button>
-                        </div><?php endif; ?>
+                        <?php if (!$readOnly): ?>
+                            <div class="flex justify-end"><button onclick="addQuestion(<?= (int) $g['id'] ?>)"
+                                    class="inline-flex items-center m-5 px-4 py-2 rounded-lg bg-violet-600 text-white "><?= iconSvg('plus', 'w-4 h-4') ?><?= e(surveyAdminText('add_survey_question', 'Add Survey Question')) ?></button>
+                            </div><?php endif; ?>
                 </section><?php endforeach; ?>
 
 
@@ -416,9 +426,9 @@ include '../includes/admin_sidebar.php';
             <?php field('English question', 'question_text_en', 'q_en', true);
             field('မြန်မာမေးခွန်း', 'question_text_mm', 'q_mm', true); ?>
         </div>
-        <p class="text-xs text-slate-500">
+        <!-- <p class="text-xs text-slate-500">
             <?= e(surveyAdminText('fixed_likert_notice', 'Options are fixed: Strongly Agree, Agree, Neutral, Disagree, Strongly Disagree.')) ?>
-        </p>
+        </p> -->
         <div class="flex justify-end gap-2"><button type="button" onclick="hide('questionModal')"
                 class="flex-1 px-4 py-2.5 text-sm font-semibold bg-slate-500 text-white hover:bg-slate-600 rounded-xl transition-colors"><?= e($LANG['cancel'] ?? 'Cancel') ?></button><button
                 class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"><?= e($LANG['save'] ?? 'Save') ?></button>
@@ -456,7 +466,23 @@ include '../includes/admin_sidebar.php';
     function editGroup(b) { let r = JSON.parse(b.dataset.row); g_action.value = 'edit_group'; g_id.value = r.id; g_code.value = r.group_code; g_en.value = r.group_name_en; g_mm.value = r.group_name_mm; g_ien.value = r.instruction_en || ''; g_imm.value = r.instruction_mm || ''; modal('groupModal') }
     function addQuestion(group) { q_action.value = 'add_question'; q_id.value = ''; q_group.value = group; q_en.value = ''; q_mm.value = ''; modal('questionModal') }
     function editQuestion(b) { let r = JSON.parse(b.dataset.row); q_action.value = 'edit_question'; q_id.value = r.id; q_group.value = r.survey_group_id; q_en.value = r.question_text_en; q_mm.value = r.question_text_mm; modal('questionModal') }
-    function deleteItem(action, id) { d_action.value = action; d_id.value = id; let group = action === 'delete_group'; delete_title.textContent = group ? '<?= e(surveyAdminText('delete_survey_group', 'Delete Survey Group')) ?>' : '<?= e(surveyAdminText('delete_survey_question', 'Delete Survey Question')) ?>'; delete_message.textContent = group ? '<?= e(surveyAdminText('confirm_delete_group', 'Are you sure you want to delete this Survey Group and its questions?')) ?>' : '<?= e(surveyAdminText('confirm_delete_question', 'Are you sure you want to delete this question?')) ?>'; modal('deleteModal') }
+    //function deleteItem(action, id) { d_action.value = action; d_id.value = id; let group = action === 'delete_group'; delete_title.textContent = group ? '<?= e(surveyAdminText('delete_survey_group', 'Delete Survey Group')) ?>' : '<?= e(surveyAdminText('delete_survey_question', 'Delete Survey Question')) ?>'; delete_message.textContent = group ? '<?= e(surveyAdminText('confirm_delete_group', 'Are you sure you want to delete this Survey Group and its questions?')) ?>' : '<?= e(surveyAdminText('confirm_delete_question', 'Are you sure you want to delete this question?')) ?>'; modal('deleteModal') }
+    function deleteItem(action, id) {
+        d_action.value = action;
+        d_id.value = id;
+
+        let group = action === 'delete_group';
+
+        delete_title.textContent = group
+            ? '<?= e($LANG['delete_survey_group'] ?? 'Delete Survey Group') ?>'
+            : '<?= e($LANG['delete_survey_question'] ?? 'Delete Survey Question') ?>';
+
+        delete_message.textContent = group
+            ? '<?= e($LANG['confirm_delete_group'] ?? 'Are you sure you want to delete this Survey Group and its questions?') ?>'
+            : '<?= e($LANG['confirm_delete_question'] ?? 'Are you sure you want to delete this question?') ?>';
+
+        modal('deleteModal');
+    }
     document.getElementById('deleteModal').addEventListener('click', function (event) { if (event.target === this) hide('deleteModal') });
 </script>
 <?php include '../includes/admin_footer.php'; ?>

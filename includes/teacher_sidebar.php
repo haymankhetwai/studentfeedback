@@ -3,11 +3,11 @@ if (session_status() === PHP_SESSION_NONE)
     session_start();
 $user = getCurrentUser();
 $navItems = $navItems ?? [
-    ['label' => $LANG['nav_dashboard'] ?? 'Dashboard', 'href' => '/studentfeedbackucsh/teacher/dashboard.php', 'key' => 'dashboard', 'icon' => 'home'],
-    ['label' => $LANG['nav_my_sections'] ?? 'My Sections', 'href' => '/studentfeedbackucsh/teacher/my_sections.php', 'key' => 'sections', 'icon' => 'grid'],
-    ['label' => $LANG['nav_feedback_results'] ?? 'Feedback Results', 'href' => '/studentfeedbackucsh/teacher/feedback_results.php', 'key' => 'results', 'icon' => 'chart'],
-    ['label' => $LANG['nav_trend_analysis'] ?? 'Trend Analysis', 'href' => '/studentfeedbackucsh/teacher/trend_analysis.php', 'key' => 'trend', 'icon' => 'history'],
-    ['label' => $LANG['nav_profile'] ?? 'Profile', 'href' => '/studentfeedbackucsh/teacher/profile.php', 'key' => 'profile', 'icon' => 'user'],
+    ['label' => $LANG['nav_dashboard'] ?? 'Dashboard', 'href' => BASE_URL . 'teacher/dashboard.php', 'key' => 'dashboard', 'icon' => 'home'],
+    ['label' => $LANG['nav_my_sections'] ?? 'My Sections', 'href' => BASE_URL . 'teacher/my_sections.php', 'key' => 'sections', 'icon' => 'grid'],
+    ['label' => $LANG['nav_feedback_results'] ?? 'Feedback Results', 'href' => BASE_URL . 'teacher/feedback_results.php', 'key' => 'results', 'icon' => 'chart'],
+    ['label' => $LANG['nav_trend_analysis'] ?? 'Trend Analysis', 'href' => BASE_URL . 'teacher/trend_analysis.php', 'key' => 'trend', 'icon' => 'history'],
+    ['label' => $LANG['nav_profile'] ?? 'Profile', 'href' => BASE_URL . 'teacher/profile.php', 'key' => 'profile', 'icon' => 'user'],
 ];
 $initials = avatarInitials($user['name']);
 
@@ -32,7 +32,7 @@ $iconColors = [
                 <?= iconSvg('user', 'w-5 h-5 text-white') ?>
             </div> -->
             <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
-                <img src="/studentfeedbackucsh/assets/uploads/profiles/image.png" alt="UCSH Logo"
+                <img src="<?= e(BASE_URL) ?>assets/uploads/profiles/image.png" alt="UCSH Logo"
                     class="w-full h-full object-contain rounded-xl">
             </div>
             <div>
@@ -59,7 +59,7 @@ $iconColors = [
                 </a>
             <?php endforeach ?>
         </nav>
-        <a href="/studentfeedbackucsh/auth/logout.php" title="<?= $LANG['logout'] ?? 'Logout' ?>"
+        <a href="<?= e(BASE_URL) ?>auth/logout.php" title="<?= $LANG['logout'] ?? 'Logout' ?>"
             class="block border-t border-white/15 bg-red-500/80 text-gray-50 hover:text-gray-200 transition-colors px-4 py-4 cursor-pointer">
             <div class="flex items-center justify-center gap-3">
 
@@ -105,10 +105,10 @@ $iconColors = [
                     </a>
                 </div>
                 <!-- Profile -->
-                <a href="/studentfeedbackucsh/teacher/profile.php"
+                <a href="<?= e(BASE_URL) ?>teacher/profile.php"
                     class="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-blue-50/60">
                     <?php if (!empty($user['profile_image'])): ?>
-                        <img src="/studentfeedbackucsh/<?= e($user['profile_image']) ?>" alt="Profile"
+                        <img src="<?= e(BASE_URL) ?><?= e($user['profile_image']) ?>" alt="Profile"
                             class="w-7 h-7 rounded-full object-cover">
                     <?php else: ?>
                         <div

@@ -9,9 +9,9 @@ requireRole('student');
 $user = getCurrentUser();
 $pageTitle = $LANG['my_profile'] ?? 'My Profile';
 $navItems = [
-    ['label' => $LANG['nav_dashboard'] ?? 'Dashboard', 'href' => '/studentfeedbackucsh/student/dashboard.php', 'key' => 'dashboard', 'icon' => 'home', 'iconColor' => 'text-yellow-300'],
-    ['label' => $LANG['nav_history'] ?? 'Submission History', 'href' => '/studentfeedbackucsh/student/feedback_history.php', 'key' => 'history', 'icon' => 'history', 'iconColor' => 'text-teal-300'],
-    ['label' => $LANG['nav_profile'] ?? 'Profile', 'href' => '/studentfeedbackucsh/student/profile.php', 'key' => 'profile', 'icon' => 'user', 'iconColor' => 'text-rose-300'],
+    ['label' => $LANG['nav_dashboard'] ?? 'Dashboard', 'href' => BASE_URL . 'student/dashboard.php', 'key' => 'dashboard', 'icon' => 'home', 'iconColor' => 'text-yellow-300'],
+    ['label' => $LANG['nav_history'] ?? 'Submission History', 'href' => BASE_URL . 'student/feedback_history.php', 'key' => 'history', 'icon' => 'history', 'iconColor' => 'text-teal-300'],
+    ['label' => $LANG['nav_profile'] ?? 'Profile', 'href' => BASE_URL . 'student/profile.php', 'key' => 'profile', 'icon' => 'user', 'iconColor' => 'text-rose-300'],
 ];
 $initials = avatarInitials($user['name']);
 
@@ -216,7 +216,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     <script src="https://cdn.tailwindcss.com"></script>
     <script>tailwind.config = { theme: { extend: { fontFamily: { inter: ['Inter', 'sans-serif'] } } } }</script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/studentfeedbackucsh/assets/css/custom.css">
+    <link rel="stylesheet" href="<?= e(BASE_URL) ?>assets/css/custom.css">
     <style>
         input[type="password"]::-ms-reveal,
         input[type="password"]::-ms-clear {
@@ -235,7 +235,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                     <?= iconSvg('academic', 'w-5 h-5 text-white') ?>
                 </div> -->
                 <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
-                    <img src="/studentfeedbackucsh/assets/uploads/profiles/image.png" alt="UCSH Logo"
+                    <img src="<?= e(BASE_URL) ?>assets/uploads/profiles/image.png" alt="UCSH Logo"
                         class="w-full h-full object-contain rounded-xl">
                 </div>
                 <div>
@@ -253,7 +253,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                 $a = $n['key'] === 'profile'; ?><a href="<?= $n['href'] ?>"
                         class="flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl text-sm <?= $a ? 'bg-white/20 text-white font-semibold' : 'text-cyan-100 hover:bg-white/10 hover:text-white' ?>"><?= iconSvg($n['icon'], 'w-5 h-5 ' . ($n['iconColor'] ?? 'text-white/80')) ?>
                         <?= e($n['label']) ?></a><?php endforeach ?></nav>
-            <a href="/studentfeedbackucsh/auth/logout.php" title="<?= $LANG['logout'] ?? 'Logout' ?>"
+            <a href="<?= e(BASE_URL) ?>auth/logout.php" title="<?= $LANG['logout'] ?? 'Logout' ?>"
                 class="block border-t border-white/15 bg-red-500/80 text-gray-50 hover:text-gray-200 transition-colors px-4 py-4 cursor-pointer">
                 <div class="flex items-center justify-center gap-3">
 
@@ -276,7 +276,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                         class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col items-center text-center">
                         <div class="mb-4 relative">
                             <?php if (!empty($userData['profile_image'])): ?>
-                                <img src="/studentfeedbackucsh/<?= e($userData['profile_image']) ?>" alt="Profile"
+                                <img src="<?= e(BASE_URL) ?><?= e($userData['profile_image']) ?>" alt="Profile"
                                     class="w-20 h-20 rounded-full object-cover shadow-lg border-2 border-white">
                             <?php else: ?>
                                 <div
@@ -311,7 +311,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                                 <div class="flex items-center gap-5">
                                     <div class="shrink-0">
                                         <img id="imagePreview"
-                                            src="<?= !empty($userData['profile_image']) ? '/studentfeedbackucsh/' . e($userData['profile_image']) : '' ?>"
+                            src="<?= !empty($userData['profile_image']) ? e(BASE_URL . $userData['profile_image']) : '' ?>"
                                             alt="Preview"
                                             class="w-16 h-16 rounded-full object-cover border-2 border-slate-200 <?= empty($userData['profile_image']) ? 'hidden' : '' ?>">
                                         <div id="initialsPreview"

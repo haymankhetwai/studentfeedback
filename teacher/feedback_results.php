@@ -336,7 +336,7 @@ foreach (normalizeSurveyOptions(null) as $option)
     $earnedScore += $likertTotals[$option['label']] * $option['value'];
 $maxScore = $completedCount * $numRatingQuestions * 5;
 $overallPct = $maxScore > 0 ? round(($earnedScore / $maxScore) * 100, 1) : 0;
-$gradeInfo = $completedCount > 0 ? performanceGradeFromPercentage($overallPct) : null;
+$gradeInfo = $completedCount > 0 ? performanceGradeFromPercentage($conn, $overallPct, (int) ($form['academic_year_id'] ?? 0)) : null;
 $grade = $gradeInfo['label'] ?? '--';
 $gradeColor = $gradeInfo['color'] ?? 'slate';
 $gradeIcon = $gradeInfo['icon'] ?? '';
@@ -354,7 +354,7 @@ $gradeDisplay = $gradeIcon !== '' ? $gradeIcon . ' ' . $grade : '--';
     <script src="https://cdn.tailwindcss.com"></script>
     <script>tailwind.config = { theme: { extend: { fontFamily: { sans: ['Pyidaungsu', 'Inter', 'sans-serif'] } } } }</script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/studentfeedbackucsh/assets/css/custom.css">
+    <link rel="stylesheet" href="<?= e(BASE_URL) ?>assets/css/custom.css">
     <style>
         @import url('https://cdn.jsdelivr.net/css-myanmar-fonts/v1/pyidaungsu.css');
 
@@ -483,7 +483,7 @@ $gradeDisplay = $gradeIcon !== '' ? $gradeIcon . ' ' . $grade : '--';
                             <div class="flex-1 min-w-0">
                                 <p class="truncate"><?= e($sec['course_name']) ?></p>
                                 <p class="text-[10px] mt-0.5 <?= $isSelected ? 'text-blue-100' : 'text-slate-400' ?>">
-                                    <?= e(semesterToRoman($sec['display_semester'])) ?> · Section <?= e($sec['section_name']) ?>
+                                    <?= e($sec['display_year']) ?> · <?= e(semesterToRoman($sec['display_semester'])) ?> · Section <?= e($sec['section_name']) ?>
                                 </p>
                             </div>
                         </label>
@@ -642,7 +642,7 @@ $gradeDisplay = $gradeIcon !== '' ? $gradeIcon . ' ' . $grade : '--';
                         </div>
                     <?php endif ?>
 
-                    <?php if (!empty($surveyGroupRatings)):
+                    <!-- <?php if (!empty($surveyGroupRatings)):
                         $groupLang = ($_SESSION['lang'] ?? 'en') === 'mm' ? 'mm' : 'en'; ?>
                         <section class="mb-6 bg-white border border-slate-200 rounded-2xl shadow-sm p-6 no-print">
                             <div class="flex items-center justify-between gap-3 mb-4">
@@ -678,7 +678,7 @@ $gradeDisplay = $gradeIcon !== '' ? $gradeIcon . ' ' . $grade : '--';
                                     </article><?php endforeach; ?>
                             </div>
                         </section>
-                    <?php endif; ?>
+                    <?php endif; ?> -->
 
                     <?php if (!empty($ratingQuestions)): ?>
                         <!-- Rating Distribution Bar Chart -->

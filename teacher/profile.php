@@ -211,7 +211,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     <script src="https://cdn.tailwindcss.com"></script>
     <script>tailwind.config = { theme: { extend: { fontFamily: { inter: ['Inter', 'sans-serif'] } } } }</script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/studentfeedbackucsh/assets/css/custom.css">
+    <link rel="stylesheet" href="<?= e(BASE_URL) ?>assets/css/custom.css">
     <style>
         input[type="password"]::-ms-reveal,
         input[type="password"]::-ms-clear {
@@ -232,7 +232,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
             class="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-blue-100/50 p-6 flex flex-col items-center text-center">
             <div class="mb-4 relative">
                 <?php if (!empty($userData['profile_image'])): ?>
-                    <img src="/studentfeedbackucsh/<?= e($userData['profile_image']) ?>" alt="Profile"
+                    <img src="<?= e(BASE_URL) ?><?= e($userData['profile_image']) ?>" alt="Profile"
                         class="w-20 h-20 rounded-full object-cover shadow-lg border-2 border-white">
                 <?php else: ?>
                     <div
@@ -259,7 +259,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                     <div class="flex items-center gap-5">
                         <div class="shrink-0">
                             <img id="imagePreview"
-                                src="<?= !empty($userData['profile_image']) ? '/studentfeedbackucsh/' . e($userData['profile_image']) : '' ?>"
+                            src="<?= !empty($userData['profile_image']) ? e(BASE_URL . $userData['profile_image']) : '' ?>"
                                 alt="Preview"
                                 class="w-16 h-16 rounded-full object-cover border-2 border-blue-200/50 <?= empty($userData['profile_image']) ? 'hidden' : '' ?>">
                             <div id="initialsPreview"

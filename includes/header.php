@@ -39,7 +39,7 @@
             </div>
 
             <ul class="hidden md:flex gap-10 items-center font-medium">
-                <li><a href="/studentfeedbackucsh/index.php" class="hover:text-cyan-300 transition"><?= $LANG['home'] ?? 'Home' ?></a></li>
+                <li><a href="<?= e(BASE_URL) ?>index.php" class="hover:text-cyan-300 transition"><?= $LANG['home'] ?? 'Home' ?></a></li>
                 <li><a href="#" class="hover:text-cyan-300 transition"><?= $LANG['about'] ?? 'About' ?></a></li>
                 <?php if (empty($isLoginPage)): ?>
                 <li>

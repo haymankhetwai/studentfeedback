@@ -107,9 +107,9 @@ foreach ($admHistory as $r) {
 usort($allHistory, fn($a, $b) => strtotime($b['submitted_at']) - strtotime($a['submitted_at']));
 
 $navItems = [
-    ['label' => $LANG['nav_dashboard'] ?? 'Dashboard', 'href' => '/studentfeedbackucsh/student/dashboard.php', 'key' => 'dashboard', 'icon' => 'home', 'iconColor' => 'text-yellow-300'],
-    ['label' => $LANG['nav_history'] ?? 'Submission History', 'href' => '/studentfeedbackucsh/student/feedback_history.php', 'key' => 'history', 'icon' => 'history', 'iconColor' => 'text-teal-300'],
-    ['label' => $LANG['nav_profile'] ?? 'Profile', 'href' => '/studentfeedbackucsh/student/profile.php', 'key' => 'profile', 'icon' => 'user', 'iconColor' => 'text-rose-300'],
+    ['label' => $LANG['nav_dashboard'] ?? 'Dashboard', 'href' => BASE_URL . 'student/dashboard.php', 'key' => 'dashboard', 'icon' => 'home', 'iconColor' => 'text-yellow-300'],
+    ['label' => $LANG['nav_history'] ?? 'Submission History', 'href' => BASE_URL . 'student/feedback_history.php', 'key' => 'history', 'icon' => 'history', 'iconColor' => 'text-teal-300'],
+    ['label' => $LANG['nav_profile'] ?? 'Profile', 'href' => BASE_URL . 'student/profile.php', 'key' => 'profile', 'icon' => 'user', 'iconColor' => 'text-rose-300'],
 ];
 $initials = avatarInitials($user['name']);
 ?>
@@ -123,7 +123,7 @@ $initials = avatarInitials($user['name']);
     <script src="https://cdn.tailwindcss.com"></script>
     <script>tailwind.config = { theme: { extend: { fontFamily: { inter: ['Inter', 'sans-serif'] } } } }</script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/studentfeedbackucsh/assets/css/custom.css">
+    <link rel="stylesheet" href="<?= e(BASE_URL) ?>assets/css/custom.css">
 </head>
 
 <body class="h-full bg-slate-50 font-inter <?= ($_SESSION['lang'] ?? 'en') === 'mm' ? 'lang-mm' : '' ?>">
@@ -138,7 +138,7 @@ $initials = avatarInitials($user['name']);
                     <?= iconSvg('academic', 'w-5 h-5 text-white') ?>
                 </div> -->
                 <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
-                    <img src="/studentfeedbackucsh/assets/uploads/profiles/image.png" alt="UCSH Logo"
+                    <img src="<?= e(BASE_URL) ?>assets/uploads/profiles/image.png" alt="UCSH Logo"
                         class="w-full h-full object-contain rounded-xl">
                 </div>
                 <div>
@@ -166,7 +166,7 @@ $initials = avatarInitials($user['name']);
                     </a>
                 <?php endforeach ?>
             </nav>
-            <a href="/studentfeedbackucsh/auth/logout.php" title="<?= $LANG['logout'] ?? 'Logout' ?>"
+            <a href="<?= e(BASE_URL) ?>auth/logout.php" title="<?= $LANG['logout'] ?? 'Logout' ?>"
                 class="block border-t border-white/15 bg-red-500/80 text-gray-50 hover:text-gray-200 transition-colors px-4 py-4 cursor-pointer">
                 <div class="flex items-center justify-center gap-3">
 
@@ -181,7 +181,7 @@ $initials = avatarInitials($user['name']);
         <!-- Main -->
         <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
             <?php include '../includes/student_header.php'; ?>
-            <main class="flex-1 overflow-y-auto p-4 lg:p-6">
+            <main class="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6">
 
                 <div class="mb-6">
                     <!-- <h2 class="text-xl font-bold text-slate-800">
@@ -193,33 +193,33 @@ $initials = avatarInitials($user['name']);
                 </div>
 
                 <!-- Summary -->
-                <div class="grid grid-cols-3 gap-4 mb-6">
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-3 sm:p-4 flex items-center gap-3 min-w-0">
                         <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center flex-shrink-0">
                             <?= iconSvg('academic', 'w-5 h-5 text-white') ?>
                         </div>
-                        <div>
+                        <div class="min-w-0">
                             <p class="text-xl font-bold text-cyan-700"><?= count($academicHistory) ?></p>
                             <p class="text-xs text-slate-500"><?= $LANG['academic_feedback_section'] ?? 'Teaching Quality' ?>
                             </p>
                         </div>
                     </div>
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-3 sm:p-4 flex items-center gap-3 min-w-0">
                         <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center flex-shrink-0">
                             <?= iconSvg('shield', 'w-5 h-5 text-white') ?>
                         </div>
-                        <div>
+                        <div class="min-w-0">
                             <p class="text-xl font-bold text-purple-700"><?= count($saHistory) ?></p>
                             <p class="text-xs text-slate-500">
                                 <?= $LANG['student_affairs_section'] ?? 'Student Support Services' ?>
                             </p>
                         </div>
                     </div>
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-3 sm:p-4 flex items-center gap-3 min-w-0">
                         <div class="w-10 h-10 rounded-xl bg-orange-600 flex items-center justify-center flex-shrink-0">
                             <?= iconSvg('office', 'w-5 h-5 text-white') ?>
                         </div>
-                        <div>
+                        <div class="min-w-0">
                             <p class="text-xl font-bold text-orange-700"><?= count($admHistory) ?></p>
                             <p class="text-xs text-slate-500"><?= $LANG['administration_section'] ?? 'Learning Environment' ?>
                             </p>
@@ -229,7 +229,7 @@ $initials = avatarInitials($user['name']);
 
                 <!-- Combined History Table -->
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                    <div class="px-6 py-4 border-b border-slate-100">
+                    <div class="px-4 sm:px-6 py-4 border-b border-slate-100">
                         <h3 class="text-base font-semibold text-slate-800">
                             <?= $LANG['all_submissions'] ?? 'All Submissions' ?>
                         </h3>
@@ -238,8 +238,37 @@ $initials = avatarInitials($user['name']);
                         </p>
                     </div>
                     <?php if ($allHistory): ?>
-                        <div class="overflow-x-auto">
-                            <table>
+                        <!-- Mobile submission cards -->
+                        <div class="divide-y divide-slate-100 md:hidden">
+                            <?php foreach ($allHistory as $i => $r): ?>
+                                <article class="p-4 space-y-3">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div class="min-w-0">
+                                            <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                                                #<?= $i + 1 ?>
+                                            </p>
+                                            <h4 class="mt-1 text-sm font-semibold text-slate-800 break-words">
+                                                <?= e($r['form_title']) ?>
+                                            </h4>
+                                        </div>
+                                        <div class="min-w-0 max-w-[48%] text-right [&>span]:whitespace-normal">
+                                            <?= moduleBadge($r['module']) ?>
+                                        </div>
+                                    </div>
+                                    <div class="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600 break-words">
+                                        <?= $r['detail'] ?>
+                                    </div>
+                                    <div class="flex items-center gap-2 text-xs text-slate-400">
+                                        <?= iconSvg('history', 'w-4 h-4 flex-shrink-0') ?>
+                                        <span class="break-words"><?= formatDateTime($r['submitted_at']) ?></span>
+                                    </div>
+                                </article>
+                            <?php endforeach ?>
+                        </div>
+
+                        <!-- Existing tablet/desktop table -->
+                        <div class="hidden md:block overflow-x-auto">
+                            <table class="w-full min-w-[720px]">
                                 <thead class="bg-slate-200 border-b border-slate-200">
                                     <tr>
                                         <th class="text-left px-5 py-3 text-slate-500 text-sm font-semibold">#</th>

@@ -6,9 +6,9 @@ session_start();
 if (isset($_SESSION['user_id'])) {
     $role = $_SESSION['role'];
     match ($role) {
-        'admin' => header('Location: /studentfeedbackucsh/admin/dashboard.php'),
-        'teacher' => header('Location: /studentfeedbackucsh/teacher/dashboard.php'),
-        'student' => header('Location: /studentfeedbackucsh/student/dashboard.php'),
+        'admin' => header('Location: ' . BASE_URL . 'admin/dashboard.php'),
+        'teacher' => header('Location: ' . BASE_URL . 'teacher/dashboard.php'),
+        'student' => header('Location: ' . BASE_URL . 'student/dashboard.php'),
         default => null,
     };
     exit;
@@ -39,10 +39,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['profile_image'] = $user['profile_image'] ?? null;
 
                 match ($user['role']) {
-                    'admin' => header('Location: /studentfeedbackucsh/admin/dashboard.php'),
-                    'teacher' => header('Location: /studentfeedbackucsh/teacher/dashboard.php'),
-                    'student' => header('Location: /studentfeedbackucsh/student/dashboard.php'),
-                    default => header('Location: /studentfeedbackucsh/auth/login.php'),
+                    'admin' => header('Location: ' . BASE_URL . 'admin/dashboard.php'),
+                    'teacher' => header('Location: ' . BASE_URL . 'teacher/dashboard.php'),
+                    'student' => header('Location: ' . BASE_URL . 'student/dashboard.php'),
+                    default => header('Location: ' . BASE_URL . 'auth/login.php'),
                 };
                 exit;
             }

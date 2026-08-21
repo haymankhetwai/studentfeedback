@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../config/base_url.php';
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -11,7 +13,7 @@ function isLoggedIn(): bool {
 
 function requireLogin(): void {
     if (!isLoggedIn()) {
-        $redirect = '/studentfeedbackucsh/auth/login.php';
+        $redirect = BASE_URL . 'auth/login.php';
         if (!empty($_SERVER['REQUEST_URI'])) {
             $uri = $_SERVER['REQUEST_URI'];
             if (str_contains($uri, '/admin/')) {
@@ -34,10 +36,10 @@ function requireRole(string $role): void {
 
     if (!isLoggedIn()) {
         $redirect = match ($role) {
-            'admin'   => '/studentfeedbackucsh/admin/',
-            'teacher' => '/studentfeedbackucsh/index.php',
-            'student' => '/studentfeedbackucsh/index.php',
-            default   => '/studentfeedbackucsh/index.php',
+            'admin'   => BASE_URL . 'admin/',
+            'teacher' => BASE_URL . 'index.php',
+            'student' => BASE_URL . 'index.php',
+            default   => BASE_URL . 'index.php',
         };
         header("Location: $redirect");
         exit;
@@ -51,10 +53,10 @@ function requireRole(string $role): void {
 function redirectToDashboard(): void {
     $role = $_SESSION['role'] ?? '';
     match ($role) {
-        'admin'   => header('Location: /studentfeedbackucsh/admin/dashboard.php'),
-        'teacher' => header('Location: /studentfeedbackucsh/teacher/dashboard.php'),
-        'student' => header('Location: /studentfeedbackucsh/student/dashboard.php'),
-        default   => header('Location: /studentfeedbackucsh/auth/login.php'),
+        'admin'   => header('Location: ' . BASE_URL . 'admin/dashboard.php'),
+        'teacher' => header('Location: ' . BASE_URL . 'teacher/dashboard.php'),
+        'student' => header('Location: ' . BASE_URL . 'student/dashboard.php'),
+        default   => header('Location: ' . BASE_URL . 'auth/login.php'),
     };
     exit;
 }

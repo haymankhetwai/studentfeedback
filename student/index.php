@@ -11,7 +11,7 @@ if (isLoggedIn() && $_SESSION['role'] === 'student') {
     $hasLoginIntent = isset($_SESSION['login_intent']) && $_SESSION['login_intent'] === 'student';
 
     if (!$hasEntry && !($isPost && $hasLoginIntent) && !($isLangSwitch && $hasLoginIntent)) {
-        header('Location: /studentfeedbackucsh/index.php');
+        header('Location: ' . BASE_URL . 'index.php');
         exit;
     }
 

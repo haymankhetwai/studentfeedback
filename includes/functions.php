@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../config/base_url.php';
+
 if (session_status() === PHP_SESSION_NONE)
     session_start();
 
@@ -478,28 +480,64 @@ function surveyCategoryPercentages(array $categoryCounts): array
 }
 
 /** Student-style performance grade for an already-calculated overall percentage. */
-function performanceGradeFromPercentage(float $percentage): array
+function defaultPerformanceGrades(): array
+{
+    return [
+        ['excellent', 90.00, 100.00, 'performance_recommendation_excellent'],
+        ['good', 80, 89, 'performance_recommendation_good'],
+        ['satisfactory', 70, 79, 'performance_recommendation_satisfactory'],
+        ['needs_improvement', 60, 69, 'performance_recommendation_needs_improvement'],
+        ['unsatisfactory', 0, 59, 'performance_recommendation_unsatisfactory'],
+    ];
+}
+
+function ensurePerformanceGradeSettings(mysqli $conn, int $academicYearId): void
+{
+    global $LANG;
+    if ($academicYearId < 1) return;
+    $stmt = $conn->prepare("INSERT IGNORE INTO performance_grade_settings
+        (academic_year_id, grade_code, min_score, max_score, recommendation_key, recommendation)
+        VALUES (?, ?, ?, ?, ?, ?)");
+    foreach (defaultPerformanceGrades() as [$code, $min, $max, $recommendationKey]) {
+        $recommendation = $LANG[$recommendationKey] ?? '';
+        $stmt->bind_param('isddss', $academicYearId, $code, $min, $max, $recommendationKey, $recommendation);
+        $stmt->execute();
+    }
+    $stmt->close();
+}
+
+function performanceGradeFromPercentage(mysqli $conn, float $percentage, int $academicYearId): array
 {
     global $LANG;
 
-    if ($percentage >= 80) {
-        $key = 'excellent';
+    ensurePerformanceGradeSettings($conn, $academicYearId);
+    $stmt = $conn->prepare("SELECT grade_code, recommendation_key, recommendation FROM performance_grade_settings
+        WHERE academic_year_id = ? AND min_score <= ?
+        ORDER BY min_score DESC LIMIT 1");
+    $stmt->bind_param('id', $academicYearId, $percentage);
+    $stmt->execute();
+    $setting = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    $key = $setting['grade_code'] ?? 'unsatisfactory';
+    $recommendationKey = $setting['recommendation_key'] ?? ('performance_recommendation_' . $key);
+    $recommendation = trim((string) ($setting['recommendation'] ?? ''));
+    if ($recommendation === '')
+        $recommendation = $LANG[$recommendationKey] ?? '';
+
+    if ($key === 'excellent') {
         $color = 'emerald';
         $icon = '🏆';
-    } elseif ($percentage >= 60) {
-        $key = 'good';
+    } elseif ($key === 'good') {
         $color = 'blue';
         $icon = '⭐';
-    } elseif ($percentage >= 40) {
-        $key = 'fair';
+    } elseif ($key === 'satisfactory') {
         $color = 'cyan';
         $icon = '👍';
-    } elseif ($percentage >= 20) {
-        $key = 'poor';
+    } elseif ($key === 'needs_improvement') {
         $color = 'amber';
         $icon = '⚠️';
     } else {
-        $key = 'very_poor';
         $color = 'red';
         $icon = '👎';
     }
@@ -511,6 +549,8 @@ function performanceGradeFromPercentage(float $percentage): array
         'label' => $label,
         'color' => $color,
         'icon' => $icon,
+        'recommendation_key' => $recommendationKey,
+        'recommendation' => $recommendation,
     ];
 }
 
